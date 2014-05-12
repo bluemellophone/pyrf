@@ -1,0 +1,6 @@
+.DS_Store
+CRForest-Detector
+build
+*.o
+results
+*.pyc
