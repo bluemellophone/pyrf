@@ -15,9 +15,8 @@ if (APPLE)
     set(CMAKE_SHARED_LINKER_FLAGS "-lstdc++ -stdlib=libstdc++")
     set(CMAKE_EXE_LINKER_FLAGS "-lstdc++ -stdlib=libstdc++")
 else()
-    # Use clang by default
-    set(CMAKE_C_COMPILER "gcc")
-    set(CMAKE_CXX_COMPILER "${CMAKE_C_COMPILER}")
+    #set(CMAKE_C_COMPILER "gcc")
+    #set(CMAKE_CXX_COMPILER "${CMAKE_C_COMPILER}")
 endif()
 
 

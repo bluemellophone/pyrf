@@ -1,25 +1,33 @@
 #!/usr/bin/env python
-
 from __future__ import print_function, division
 # Standard
 from os.path import realpath, dirname
-from os import makedirs
+#from os import makedirs
 from collections import OrderedDict as odict
 import shutil
 import ctypes as C
 # Scientific
 import numpy as np
 import cv2
-from PIL import Image
+#from PIL import Image
 import os
 import sys
 import time
 import threading
-import random
-import xml.etree.ElementTree as xml
+#import random
+#import xml.etree.ElementTree as xml
 # https://github.com/bluemellophone/detecttools
+try:
+    import detecttools  # NOQA
+except ImportError:
+    sys.path.append(os.path.expanduser('~/code'))
+    try:
+        import detecttools  # NOQA
+    except ImportError:
+        print('Cannot find detecttools!')
+        raise
 import detecttools.ctypes_interface as ctypes_interface
-from detecttools.directory import Directory
+#from detecttools.directory import Directory
 from detecttools.ibeisdata import IBEIS_Data
 
 
@@ -68,9 +76,9 @@ constructor_parameters = [
     (CINT,  'default_split',            -1),
 
     (CINT,  'pos_like',                 0),
-        # 0 - Hough
-        # 1 - Classification
-        # 2 - Regression
+    # 0 - Hough
+    # 1 - Classification
+    # 2 - Regression
 
     (CBOOL, 'legacy',                   False),
     (CBOOL, 'include_horizontal_flip',   True),
@@ -119,7 +127,7 @@ def _prepare_inventory(directory_path, images, total, train=True, positive=True)
 
         for counter, image in enumerate(images):
             if counter % int(len(images) / 10) == 0:
-                print('%0.2f' %(float(counter) / len(images)))
+                print('%0.2f' % (float(counter) / len(images)))
 
             filename = os.path.join(directory_path, image.filename)
 
@@ -139,14 +147,14 @@ def _prepare_inventory(directory_path, images, total, train=True, positive=True)
 
                     width, height = (xmax - xmin), (ymax - ymin)
 
-                    temp = cv2.imread(image.image_path()) # Load
-                    temp = temp[ymin:ymax, xmin:xmax] # Crop
+                    temp = cv2.imread(image.image_path())  # Load
+                    temp = temp[ymin:ymax, xmin:xmax]      # Crop
 
                     target_width = 128
                     if width > target_width:
                         _width = int(target_width)
                         _height = int((_width / width) * height)
-                        temp = cv2.resize(temp, (_width,_height), interpolation=cv2.INTER_LANCZOS4) # Resize
+                        temp = cv2.resize(temp, (_width, _height), interpolation=cv2.INTER_LANCZOS4)  # Resize
                         width = _width
                         height = _height
 
@@ -156,16 +164,16 @@ def _prepare_inventory(directory_path, images, total, train=True, positive=True)
                     ymin = 0
 
                     if positive:
-                        postfix = ' %d %d %d %d %d %d' %(xmin, ymin, xmax, ymax, xmin + width / 2, ymin + height / 2)
+                        postfix = ' %d %d %d %d %d %d' % (xmin, ymin, xmax, ymax, xmin + width / 2, ymin + height / 2)
                     else:
-                        postfix = ' %d %d %d %d' %(xmin, ymin, xmax, ymax)
+                        postfix = ' %d %d %d %d' % (xmin, ymin, xmax, ymax)
 
-                    cv2.imwrite(_filename, temp) # Save
+                    cv2.imwrite(_filename, temp)  # Save
                     output.write(_filename + postfix + '\n')
                     i += 1
             else:
                 postfix = ''
-                cv2.imwrite(filename, cv2.imread(image.image_path())) # Save
+                cv2.imwrite(filename, cv2.imread(image.image_path()))  # Save
                 output.write(filename + postfix + '\n')
 
         output.close()
@@ -183,9 +191,9 @@ def ibeis(dataset_path, category, pos_path, neg_path, val_path, test_path, **kwa
     # Get all images using a specific positive set
     data = dataset.dataset(
         category,
-         neg_exclude_categories=kwargs['neg_exclude_categories'],
-         max_rois_pos=kwargs['max_rois_pos'],
-         max_rois_neg=kwargs['max_rois_neg'],
+        neg_exclude_categories=kwargs['neg_exclude_categories'],
+        max_rois_pos=kwargs['max_rois_pos'],
+        max_rois_neg=kwargs['max_rois_neg'],
     )
 
     (pos, pos_rois), (neg, neg_rois), val, test = data
@@ -200,7 +208,7 @@ def ibeis(dataset_path, category, pos_path, neg_path, val_path, test_path, **kwa
     test_fpath = _prepare_inventory(val_path, val, len(val), train=False)
 
     print('[rf] Caching Test')
-    test_fpath = _prepare_inventory(test_path, test, len(test), train=False)
+    test_fpath = _prepare_inventory(test_path, test, len(test), train=False)  # FIXME UNUSED  # NOQA
 
     return pos_fpath, neg_fpath
 
@@ -211,7 +219,7 @@ class Random_Forest_Detector(object):
     # Algorithm Constructor
     #=============================
     def __init__(rf, libname='pyrf', rebuild=False, **kwargs):
-        
+
         print('[rf] Testing Random_Forest')
 
         if rebuild:
@@ -252,14 +260,14 @@ class Random_Forest_Detector(object):
         print('[rf] New Random_Forest Object Created')
         print('[rf] Algorithm Settings=%r' % (_PARAM_ODICT,))
 
-        PARAM_VALUES = _PARAM_ODICT.values() # pass all parameters to the C constructor
+        PARAM_VALUES = _PARAM_ODICT.values()  # pass all parameters to the C constructor
         rf.detector = rf.CLIB.constructor(*PARAM_VALUES)
 
     def _run(rf, target, args):
         t = threading.Thread(target=target, args=args)
         t.daemon = True
         t.start()
-        while t.is_alive(): # wait for the thread to exit
+        while t.is_alive():  # wait for the thread to exit
             t.join(.1)
 
     #=============================
@@ -269,18 +277,34 @@ class Random_Forest_Detector(object):
     def train(rf, database_path, category, pos_path, neg_path, val_path, test_path, tree_path, **kwargs):
         _kwargs(kwargs, 'num_trees', 10)
 
+        def _rmtreedir(path):
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+        def _ensuredir(path):
+            if os.path.isdir(path):
+                os.makedirs(path)
+
         print('[rf] Clearing Test Cache Directories')
-        if os.path.isdir(pos_path):         shutil.rmtree(pos_path)
-        if os.path.isdir(neg_path):         shutil.rmtree(neg_path)
-        if os.path.isdir(val_path):         shutil.rmtree(val_path)
-        if os.path.isdir(test_path):        shutil.rmtree(test_path)
+        _rmtreedir(pos_path)
+        _rmtreedir(neg_path)
+        _rmtreedir(val_path)
+        _rmtreedir(test_path)
+        #if os.path.isdir(pos_path):         shutil.rmtree(pos_path)
+        #if os.path.isdir(neg_path):         shutil.rmtree(neg_path)
+        #if os.path.isdir(val_path):         shutil.rmtree(val_path)
+        #if os.path.isdir(test_path):        shutil.rmtree(test_path)
 
         print('[rf] Creating Test Cache Directories')
-        if not os.path.isdir(pos_path):       os.makedirs(pos_path)
-        if not os.path.isdir(neg_path):       os.makedirs(neg_path)
-        if not os.path.isdir(val_path):       os.makedirs(val_path)
-        if not os.path.isdir(test_path):      os.makedirs(test_path)
-        if not os.path.isdir(trees_path):     os.makedirs(trees_path)
+        _ensuredir(pos_path)
+        _ensuredir(neg_path)
+        _ensuredir(val_path)
+        _ensuredir(test_path)
+        _ensuredir(trees_path)
+        #if not os.path.isdir(pos_path):       os.makedirs(pos_path)
+        #if not os.path.isdir(neg_path):       os.makedirs(neg_path)
+        #if not os.path.isdir(val_path):       os.makedirs(val_path)
+        #if not os.path.isdir(test_path):      os.makedirs(test_path)
+        #if not os.path.isdir(trees_path):     os.makedirs(trees_path)
 
         # Gather training data from IBEIS database
         fpath_pos, fpath_neg = ibeis(database_path, category, pos_path, neg_path, val_path, test_path, **kwargs)
@@ -398,10 +422,12 @@ if __name__ == '__main__':
     #=================================
 
     print('[rf] Clearing Detect Cache Directories')
-    if os.path.isdir(detect_path):        shutil.rmtree(detect_path)
+    if os.path.isdir(detect_path):
+        shutil.rmtree(detect_path)
 
     print('[rf] Creating Detect Cache Directories')
-    if not os.path.isdir(detect_path):     os.makedirs(detect_path)
+    if not os.path.isdir(detect_path):
+        os.makedirs(detect_path)
 
     # Load forest, so we don't have to reload every time
     forest = detector.load(trees_path, tree_prefix)
