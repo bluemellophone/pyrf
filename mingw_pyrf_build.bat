@@ -17,8 +17,8 @@ cmake -G "MSYS Makefiles" -DOpenCV_DIR="%INSTALL32%\OpenCV" .. && make
 
 :: -DCMAKE_C_FLAGS="-march=i486" -DCMAKE_CXX_FLAGS="-march=i486"
 
-copy /y libpyrf.dll ..
-copy /y libpyrf.dll.a ..
+copy /y libpyrf.dll ..\pyrf
+copy /y libpyrf.dll.a ..\pyrf
 
 :: make command that doesn't freeze on mingw
 :: mingw32-make -j7 "MAKE=mingw32-make -j3" -f CMakeFiles\Makefile2 all

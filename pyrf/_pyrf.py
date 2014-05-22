@@ -1,40 +1,25 @@
 #!/usr/bin/env python
-from __future__ import print_function, division
+from __future__ import absolute_import, division, print_function
 # Standard
 import os
 import sys
 import time
 import threading
-from os.path import dirname, join, isdir, expanduser, realpath
+from os.path import dirname, join, isdir, realpath
 from collections import OrderedDict as odict
 import shutil
 import ctypes as C
 # Scientific
 import numpy as np
 import cv2
-try:
-    import detecttools  # NOQA
-except ImportError:
-    sys.path.append(expanduser('~/code'))
-    try:
-        import detecttools  # NOQA
-    except ImportError:
-        print('Cannot find detecttools!')
-        raise
 import detecttools.ctypes_interface as ctypes_interface
 from detecttools.ibeisdata import IBEIS_Data
-#from detecttools.directory import Directory
-#from os import makedirs
-#from PIL import Image
-#import random
-#import xml.etree.ElementTree as xml
-# https://github.com/bluemellophone/detecttools
 
 
 # JONCOMMENT: join will ignore the preceding arguments if any of the next
 # arguments are absolute paths. the os.getcwd() does noting here
 #__LOCATION__ = realpath(join(os.getcwd(), dirname(__file__)))
-__LOCATION__ = realpath(dirname(__file__))
+__REPO_LOCATION__ = realpath(join(dirname(__file__), '..'))
 
 
 #============================
@@ -117,7 +102,7 @@ def _kwargs(kwargs, key, value):
 
 def _build_shared_c_library(rebuild=False):
     if rebuild:
-        rmtreedir(join(__LOCATION__, 'build'))
+        rmtreedir(join(__REPO_LOCATION__, 'build'))
 
     retVal = os.system('./build_rf_unix.sh')
 
