@@ -4,3 +4,6 @@ build
 *.o
 results
 *.pyc
+*.dll
+*.so
+*.dylib
