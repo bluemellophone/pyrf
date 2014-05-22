@@ -1,37 +1,40 @@
 #!/usr/bin/env python
 from __future__ import print_function, division
 # Standard
-from os.path import realpath, dirname
-#from os import makedirs
+import os
+import sys
+import time
+import threading
+from os.path import dirname, join, isdir, expanduser, realpath
 from collections import OrderedDict as odict
 import shutil
 import ctypes as C
 # Scientific
 import numpy as np
 import cv2
-#from PIL import Image
-import os
-import sys
-import time
-import threading
-#import random
-#import xml.etree.ElementTree as xml
-# https://github.com/bluemellophone/detecttools
 try:
     import detecttools  # NOQA
 except ImportError:
-    sys.path.append(os.path.expanduser('~/code'))
+    sys.path.append(expanduser('~/code'))
     try:
         import detecttools  # NOQA
     except ImportError:
         print('Cannot find detecttools!')
         raise
 import detecttools.ctypes_interface as ctypes_interface
-#from detecttools.directory import Directory
 from detecttools.ibeisdata import IBEIS_Data
+#from detecttools.directory import Directory
+#from os import makedirs
+#from PIL import Image
+#import random
+#import xml.etree.ElementTree as xml
+# https://github.com/bluemellophone/detecttools
 
 
-__LOCATION__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+# JONCOMMENT: join will ignore the preceding arguments if any of the next
+# arguments are absolute paths. the os.getcwd() does noting here
+#__LOCATION__ = realpath(join(os.getcwd(), dirname(__file__)))
+__LOCATION__ = realpath(dirname(__file__))
 
 
 #============================
@@ -57,7 +60,7 @@ CFLOAT   = C.c_float
 #=================================
 
 
-'''
+"""
     This defines the default constructor parameters for the algorithm.
     These values may be overwritten by passing in a dictionary to the
     class constructor using kwargs
@@ -68,7 +71,7 @@ CFLOAT   = C.c_float
 
     IMPORTANT:
     The order of this list must match the C++ constructor parameter order
-'''
+"""
 constructor_parameters = [
     (CINT,  'patch_width',              32),
     (CINT,  'patch_height',             32),
@@ -97,15 +100,24 @@ PARAM_TYPES = [_type for (_type, key, val) in constructor_parameters]
 # Python Interface
 #============================
 
+def rmtreedir(path):
+    if isdir(path):
+        shutil.rmtree(path)
+
+
+def ensuredir(path):
+    if isdir(path):
+        os.makedirs(path)
+
 
 def _kwargs(kwargs, key, value):
-    if key not in kwargs.keys():
+    if key not in kwargs:
         kwargs[key] = value
 
 
 def _build_shared_c_library(rebuild=False):
     if rebuild:
-        shutil.rmtree(os.path.join(__LOCATION__, 'build'))
+        rmtreedir(join(__LOCATION__, 'build'))
 
     retVal = os.system('./build_rf_unix.sh')
 
@@ -117,71 +129,76 @@ def _build_shared_c_library(rebuild=False):
 
 
 def _prepare_inventory(directory_path, images, total, train=True, positive=True):
-        output_fpath = directory_path + '.txt'
-        output = open(output_fpath, 'w')
+    output_fpath = directory_path + '.txt'
+    output = open(output_fpath, 'w')
+
+    if train:
+        output.write(str(total) + ' 1\n')
+    else:
+        output.write(str(total) + '\n')
+
+    for counter, image in enumerate(images):
+        if counter % int(len(images) / 10) == 0:
+            print('%0.2f' % (float(counter) / len(images)))
+
+        filename = join(directory_path, image.filename)
 
         if train:
-            output.write(str(total) + ' 1\n')
+            i = 1
+            cv2.imwrite(filename + '_boxes.jpg', image.show(display=False))
+            for bndbox in image.bounding_boxes():
+                if positive and bndbox[0] != category:
+                    continue
+
+                _filename = filename + '_' + str(i) + '.jpg'
+
+                xmax = bndbox[1]  # max
+                xmin = bndbox[2]  # xmin
+                ymax = bndbox[3]  # ymax
+                ymin = bndbox[4]  # ymin
+
+                width, height = (xmax - xmin), (ymax - ymin)
+
+                temp = cv2.imread(image.image_path())  # Load
+                temp = temp[ymin:ymax, xmin:xmax]      # Crop
+
+                target_width = 128
+                if width > target_width:
+                    _width = int(target_width)
+                    _height = int((_width / width) * height)
+                    # Resize
+                    temp = cv2.resize(temp, (_width, _height),
+                                        interpolation=cv2.INTER_LANCZOS4)
+                    width = _width
+                    height = _height
+
+                xmax = width
+                xmin = 0
+                ymax = height
+                ymin = 0
+
+                if positive:
+                    postfix = ' %d %d %d %d %d %d' % (xmin, ymin, xmax, ymax,
+                                                        xmin + width / 2,
+                                                        ymin + height / 2)
+                else:
+                    postfix = ' %d %d %d %d' % (xmin, ymin, xmax, ymax)
+
+                cv2.imwrite(_filename, temp)  # Save
+                output.write(_filename + postfix + '\n')
+                i += 1
         else:
-            output.write(str(total) + '\n')
+            postfix = ''
+            cv2.imwrite(filename, cv2.imread(image.image_path()))  # Save
+            output.write(filename + postfix + '\n')
 
-        for counter, image in enumerate(images):
-            if counter % int(len(images) / 10) == 0:
-                print('%0.2f' % (float(counter) / len(images)))
+    output.close()
 
-            filename = os.path.join(directory_path, image.filename)
-
-            if train:
-                i = 1
-                cv2.imwrite(filename + '_boxes.jpg', image.show(display=False))
-                for bndbox in image.bounding_boxes():
-                    if positive and bndbox[0] != category:
-                        continue
-
-                    _filename = filename + '_' + str(i) + '.jpg'
-
-                    xmax = bndbox[1]  # max
-                    xmin = bndbox[2]  # xmin
-                    ymax = bndbox[3]  # ymax
-                    ymin = bndbox[4]  # ymin
-
-                    width, height = (xmax - xmin), (ymax - ymin)
-
-                    temp = cv2.imread(image.image_path())  # Load
-                    temp = temp[ymin:ymax, xmin:xmax]      # Crop
-
-                    target_width = 128
-                    if width > target_width:
-                        _width = int(target_width)
-                        _height = int((_width / width) * height)
-                        temp = cv2.resize(temp, (_width, _height), interpolation=cv2.INTER_LANCZOS4)  # Resize
-                        width = _width
-                        height = _height
-
-                    xmax = width
-                    xmin = 0
-                    ymax = height
-                    ymin = 0
-
-                    if positive:
-                        postfix = ' %d %d %d %d %d %d' % (xmin, ymin, xmax, ymax, xmin + width / 2, ymin + height / 2)
-                    else:
-                        postfix = ' %d %d %d %d' % (xmin, ymin, xmax, ymax)
-
-                    cv2.imwrite(_filename, temp)  # Save
-                    output.write(_filename + postfix + '\n')
-                    i += 1
-            else:
-                postfix = ''
-                cv2.imwrite(filename, cv2.imread(image.image_path()))  # Save
-                output.write(filename + postfix + '\n')
-
-        output.close()
-
-        return output_fpath
+    return output_fpath
 
 
-def ibeis(dataset_path, category, pos_path, neg_path, val_path, test_path, **kwargs):
+def get_training_data_from_ibeis(dataset_path, category, pos_path, neg_path,
+                                 val_path, test_path, **kwargs):
 
     dataset = IBEIS_Data(dataset_path, **kwargs)
 
@@ -225,13 +242,11 @@ class Random_Forest_Detector(object):
         if rebuild:
             _build_shared_c_library(rebuild)
 
-        '''
-        Loads the compiled lib and defines its functions
-        '''
+        #Load the compiled lib and defines its functions
         root_dir = realpath(dirname(__file__))
         rf.CLIB, LOAD_FUNCTION = ctypes_interface.load_clib(libname, root_dir)
 
-        '''
+        """
         def_lib_func is used to expose the Python bindings that are declared
         inside the .cpp files to the Python clib object.
 
@@ -240,7 +255,7 @@ class Random_Forest_Detector(object):
         IMPORTANT:
         For functions that return void, use Python None as the return value.
         For functions that take no parameters, use the Python empty list [].
-        '''
+        """
         LOAD_FUNCTION(COBJ, 'constructor',      PARAM_TYPES)
         LOAD_FUNCTION(None, 'train',            [COBJ, CCHAR, CINT, CCHAR, CCHAR])
         LOAD_FUNCTION(CINT, 'detect',           [COBJ, COBJ, CCHAR, CCHAR, CBOOL, CBOOL, CBOOL, CINT, CINT, CFLOAT, CFLOAT, CFLOAT, CINT])
@@ -250,10 +265,10 @@ class Random_Forest_Detector(object):
         LOAD_FUNCTION(None, 'save',             [COBJ])
         # Add any algorithm-specific functions here
 
-        '''
+        """
         Create the C object using the default parameter values and any updated
         parameter values from kwargs
-        '''
+        """
         _PARAM_ODICT = PARAM_ODICT.copy()
         _PARAM_ODICT.update(kwargs)
 
@@ -274,40 +289,27 @@ class Random_Forest_Detector(object):
     # Train Algorithm with Data
     #=============================
 
-    def train(rf, database_path, category, pos_path, neg_path, val_path, test_path, tree_path, **kwargs):
+    def train(rf, database_path, category, pos_path, neg_path,
+              val_path, test_path, tree_path, **kwargs):
         _kwargs(kwargs, 'num_trees', 10)
 
-        def _rmtreedir(path):
-            if os.path.isdir(path):
-                shutil.rmtree(path)
-        def _ensuredir(path):
-            if os.path.isdir(path):
-                os.makedirs(path)
-
         print('[rf] Clearing Test Cache Directories')
-        _rmtreedir(pos_path)
-        _rmtreedir(neg_path)
-        _rmtreedir(val_path)
-        _rmtreedir(test_path)
-        #if os.path.isdir(pos_path):         shutil.rmtree(pos_path)
-        #if os.path.isdir(neg_path):         shutil.rmtree(neg_path)
-        #if os.path.isdir(val_path):         shutil.rmtree(val_path)
-        #if os.path.isdir(test_path):        shutil.rmtree(test_path)
+        rmtreedir(pos_path)
+        rmtreedir(neg_path)
+        rmtreedir(val_path)
+        rmtreedir(test_path)
 
         print('[rf] Creating Test Cache Directories')
-        _ensuredir(pos_path)
-        _ensuredir(neg_path)
-        _ensuredir(val_path)
-        _ensuredir(test_path)
-        _ensuredir(trees_path)
-        #if not os.path.isdir(pos_path):       os.makedirs(pos_path)
-        #if not os.path.isdir(neg_path):       os.makedirs(neg_path)
-        #if not os.path.isdir(val_path):       os.makedirs(val_path)
-        #if not os.path.isdir(test_path):      os.makedirs(test_path)
-        #if not os.path.isdir(trees_path):     os.makedirs(trees_path)
+        ensuredir(pos_path)
+        ensuredir(neg_path)
+        ensuredir(val_path)
+        ensuredir(test_path)
+        ensuredir(trees_path)
 
         # Gather training data from IBEIS database
-        fpath_pos, fpath_neg = ibeis(database_path, category, pos_path, neg_path, val_path, test_path, **kwargs)
+        fpath_pos, fpath_neg = get_training_data_from_ibeis(
+            database_path, category, pos_path, neg_path, val_path,
+            test_path, **kwargs)
 
         # Run training algorithm
         params = [rf.detector, tree_path, kwargs['num_trees'], fpath_pos, fpath_neg]
@@ -370,18 +372,17 @@ class Random_Forest_Detector(object):
 
 
 if __name__ == '__main__':
-
     # Create detector
     detector = Random_Forest_Detector()
     category = 'zebra_plains'
 
     dataset_path = '../IBEIS2014/'
-    pos_path     = os.path.join('results', category, 'train-positives')
-    neg_path     = os.path.join('results', category, 'train-negatives')
-    val_path     = os.path.join('results', category, 'val')
-    test_path     = os.path.join('results', category, 'test')
-    detect_path = os.path.join('results', category, 'detect')
-    trees_path     = os.path.join('results', category, 'trees')
+    pos_path    = join('results', category, 'train-positives')
+    neg_path    = join('results', category, 'train-negatives')
+    val_path    = join('results', category, 'val')
+    test_path   = join('results', category, 'test')
+    detect_path = join('results', category, 'detect')
+    trees_path  = join('results', category, 'trees')
     tree_prefix = category + '-'
 
     #=================================
@@ -414,7 +415,7 @@ if __name__ == '__main__':
     # Train Random Forest
     #=================================
 
-    # _trees_path = os.path.join(trees_path, tree_prefix)
+    # _trees_path = join(trees_path, tree_prefix)
     # detector.train(dataset_path, category, pos_path, neg_path, val_path, test_path, _trees_path, **train_config)
 
     #=================================
@@ -422,12 +423,10 @@ if __name__ == '__main__':
     #=================================
 
     print('[rf] Clearing Detect Cache Directories')
-    if os.path.isdir(detect_path):
-        shutil.rmtree(detect_path)
+    rmtreedir(detect_path)
 
     print('[rf] Creating Detect Cache Directories')
-    if not os.path.isdir(detect_path):
-        os.makedirs(detect_path)
+    ensuredir(detect_path)
 
     # Load forest, so we don't have to reload every time
     forest = detector.load(trees_path, tree_prefix)
@@ -435,13 +434,14 @@ if __name__ == '__main__':
     # Get input images
     test_file = open(test_path + '.txt', 'r')
     test_file.readline()
-    files = [ line.strip() for line in test_file ]
+    files = [line.strip() for line in test_file ]
 
     for i in range(len(files)):
         src_fpath = files[i]
-        dst_fpath = os.path.join(detect_path, files[i].split('/')[-1])
+        dst_fpath = join(detect_path, files[i].split('/')[-1])
 
-        results, timing = detector.detect(forest, src_fpath, dst_fpath, **detect_config)
+        results, timing = detector.detect(forest, src_fpath, dst_fpath,
+                                          **detect_config)
 
         print('[rf] %s | Time: %.3f' % (src_fpath, timing))
         print(results)

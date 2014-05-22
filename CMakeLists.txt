@@ -2,15 +2,15 @@ cmake_minimum_required(VERSION 2.8)
 
 # Clang2 = Clang + OpenMP built for OSX Mavericks
 # http://goo.gl/1Tg0Zj
-SET(CLANG2 On)
 
 #######################################
 if (APPLE AND CLANG2)
+    SET(CLANG2 On)
     message('Apple System')
     set(CMAKE_C_COMPILER "clang2")
     set(CMAKE_CXX_COMPILER "${CMAKE_C_COMPILER}")
 else()
-    message('Win32 System')
+    SET(CLANG2 Off)
 endif()
 
 if (APPLE)
@@ -36,8 +36,8 @@ IF(OPENMP_FOUND)
     # add flags for OpenMP
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${OpenMP_SHARED_LINKER_FLAGS}")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${OpenMP_C_FLAGS} ${OpenMP_SHARED_LINKER_FLAGS}")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_C_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 ELSE()
     message("Missed OpenMP! x_x")
 ENDIF()
