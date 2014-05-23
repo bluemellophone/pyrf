@@ -280,7 +280,7 @@ struct CRForestDetectorClass
 					// bottom2 = centery - ((centery - miny) * nms_margin_percentage);
 					// top2 = centery + ((maxy - centery) * nms_margin_percentage);
 
-					if(left1 <= centerx && centerx <= right1 && bottom1 <= centery && centery <= top2)
+					if(left1 <= centerx && centerx <= right1 && bottom1 <= centery && centery <= top1)
 					   //left2 <= points[k][i][0] && points[k][i][0] <= right2 && bottom2 <= points[k][i][1] && points[k][i][1] <= top2)
 					{
 						return false;

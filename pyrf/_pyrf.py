@@ -312,8 +312,8 @@ class Random_Forest_Detector(object):
         _kwargs(kwargs, 'nms_margin_percentage',   0.75)
         _kwargs(kwargs, 'min_contour_area',        300)
 
-        import utool
-        print('kwargs = ' + utool.dict_str(kwargs))
+        #import utool
+        #print('kwargs = ' + utool.dict_str(kwargs))
 
         length = rf.CLIB.detect(
             rf.detector,
@@ -333,7 +333,7 @@ class Random_Forest_Detector(object):
 
         results = np.empty((length, 8), np.float32)
         rf.CLIB.detect_results(rf.detector, results)
-        print('results = %r' % (results,))
+        #print('results = %r' % (results,))
 
         done = time.time()
         return results, done - start

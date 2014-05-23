@@ -63,7 +63,7 @@ void CRForestDetector::detectColor(IplImage *img, vector<IplImage* >& imgDetect,
 				// To speed up the voting, one can vote only for patches
 			        // with a probability for foreground > 0.5
 			        //
-				// if((*itL)->pfg>0.5) {
+                 if((*itL)->pfg>0.5) {
 
 					// voting weight for leaf
 
@@ -139,7 +139,7 @@ void CRForestDetector::detectColor(IplImage *img, vector<IplImage* >& imgDetect,
 
 					}
 
-				 // } // end if
+                  } // end if
 
 			}
 
