@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 from __future__ import absolute_import, division, print_function
 # Standard
 import os
@@ -16,9 +15,6 @@ import detecttools.ctypes_interface as ctypes_interface
 from detecttools.ibeisdata import IBEIS_Data
 
 
-# JONCOMMENT: join will ignore the preceding arguments if any of the next
-# arguments are absolute paths. the os.getcwd() does noting here
-#__LOCATION__ = realpath(join(os.getcwd(), dirname(__file__)))
 __REPO_LOCATION__ = realpath(join(dirname(__file__), '..'))
 
 
@@ -103,17 +99,14 @@ def _kwargs(kwargs, key, value):
 def _build_shared_c_library(rebuild=False):
     if rebuild:
         rmtreedir(join(__REPO_LOCATION__, 'build'))
-
     retVal = os.system('./build_rf_unix.sh')
-
     if retVal != 0:
         print('[rf] C Shared Library failed to compile')
         sys.exit(0)
-
     print('[rf] C Shared Library built')
 
 
-def _prepare_inventory(directory_path, images, total, train=True, positive=True):
+def _prepare_inventory(directory_path, images, total, category, train=True, positive=True):
     output_fpath = directory_path + '.txt'
     output = open(output_fpath, 'w')
 
@@ -201,22 +194,21 @@ def get_training_data_from_ibeis(dataset_path, category, pos_path, neg_path,
     (pos, pos_rois), (neg, neg_rois), val, test = data
 
     print('[rf] Caching Positives')
-    pos_fpath = _prepare_inventory(pos_path, pos, pos_rois)
+    pos_fpath = _prepare_inventory(pos_path, pos, pos_rois, category)
 
     print('[rf] Caching Negatives')
-    neg_fpath = _prepare_inventory(neg_path, neg, neg_rois, positive=False)
+    neg_fpath = _prepare_inventory(neg_path, neg, neg_rois, category, positive=False)
 
     print('[rf] Caching Validation')
-    test_fpath = _prepare_inventory(val_path, val, len(val), train=False)
+    val_fpath  = _prepare_inventory(val_path, val, len(val), category, train=False)
 
     print('[rf] Caching Test')
-    test_fpath = _prepare_inventory(test_path, test, len(test), train=False)  # FIXME UNUSED  # NOQA
+    test_fpath = _prepare_inventory(test_path, test, len(test), category, train=False)
 
-    return pos_fpath, neg_fpath
+    return pos_fpath, neg_fpath, val_fpath, test_fpath
 
 
 class Random_Forest_Detector(object):
-
     #=============================
     # Algorithm Constructor
     #=============================
@@ -275,7 +267,7 @@ class Random_Forest_Detector(object):
     #=============================
 
     def train(rf, database_path, category, pos_path, neg_path,
-              val_path, test_path, tree_path, **kwargs):
+              val_path, test_path, trees_path, **kwargs):
         _kwargs(kwargs, 'num_trees', 10)
 
         print('[rf] Clearing Test Cache Directories')
@@ -292,12 +284,12 @@ class Random_Forest_Detector(object):
         ensuredir(trees_path)
 
         # Gather training data from IBEIS database
-        fpath_pos, fpath_neg = get_training_data_from_ibeis(
+        fpath_pos, fpath_neg, fpath_val, fpath_test = get_training_data_from_ibeis(
             database_path, category, pos_path, neg_path, val_path,
             test_path, **kwargs)
 
         # Run training algorithm
-        params = [rf.detector, tree_path, kwargs['num_trees'], fpath_pos, fpath_neg]
+        params = [rf.detector, trees_path, kwargs['num_trees'], fpath_pos, fpath_neg]
         rf._run(rf.CLIB.train, params)
 
     def retrain(rf):
@@ -320,6 +312,9 @@ class Random_Forest_Detector(object):
         _kwargs(kwargs, 'nms_margin_percentage',   0.75)
         _kwargs(kwargs, 'min_contour_area',        300)
 
+        import utool
+        print('kwargs = ' + utool.dict_str(kwargs))
+
         length = rf.CLIB.detect(
             rf.detector,
             forest,
@@ -338,6 +333,7 @@ class Random_Forest_Detector(object):
 
         results = np.empty((length, 8), np.float32)
         rf.CLIB.detect_results(rf.detector, results)
+        print('results = %r' % (results,))
 
         done = time.time()
         return results, done - start
@@ -356,77 +352,4 @@ class Random_Forest_Detector(object):
         rf._run(rf.CLIB.save, [rf.detector])
 
 
-if __name__ == '__main__':
-    # Create detector
-    detector = Random_Forest_Detector()
-    category = 'zebra_plains'
-
-    dataset_path = '../IBEIS2014/'
-    pos_path    = join('results', category, 'train-positives')
-    neg_path    = join('results', category, 'train-negatives')
-    val_path    = join('results', category, 'val')
-    test_path   = join('results', category, 'test')
-    detect_path = join('results', category, 'detect')
-    trees_path  = join('results', category, 'trees')
-    tree_prefix = category + '-'
-
-    #=================================
-    # Train / Detect Configurations
-    #=================================
-
-    train_config = {
-        'object_min_width':             32,
-        'object_min_height':            32,
-        'neg_exclude_categories':       [category],
-
-        'mine_negatives':               True,
-        'mine_max_keep':                10,
-        'mine_exclude_categories':      [category],
-        'mine_width_min':               128,
-        'mine_width_max':               512,
-        'mine_height_min':              128,
-        'mine_height_max':              512,
-
-        'max_rois_pos':                 None,
-        'max_rois_neg':                 'auto',
-    }
-
-    detect_config = {
-        'save_detection_images':        True,
-        'percentage_top':               0.40,
-    }
-
-    #=================================
-    # Train Random Forest
-    #=================================
-
-    # _trees_path = join(trees_path, tree_prefix)
-    # detector.train(dataset_path, category, pos_path, neg_path, val_path, test_path, _trees_path, **train_config)
-
-    #=================================
-    # Detect using Random Forest
-    #=================================
-
-    print('[rf] Clearing Detect Cache Directories')
-    rmtreedir(detect_path)
-
-    print('[rf] Creating Detect Cache Directories')
-    ensuredir(detect_path)
-
-    # Load forest, so we don't have to reload every time
-    forest = detector.load(trees_path, tree_prefix)
-
-    # Get input images
-    test_file = open(test_path + '.txt', 'r')
-    test_file.readline()
-    files = [line.strip() for line in test_file ]
-
-    for i in range(len(files)):
-        src_fpath = files[i]
-        dst_fpath = join(detect_path, files[i].split('/')[-1])
-
-        results, timing = detector.detect(forest, src_fpath, dst_fpath,
-                                          **detect_config)
-
-        print('[rf] %s | Time: %.3f' % (src_fpath, timing))
-        print(results)
+detector = Random_Forest_Detector()

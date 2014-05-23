@@ -4,7 +4,6 @@ from utool.util_setup import setuptools_setup
 from utool.util_cplat import get_dynamic_lib_globstrs
 import sys
 import subprocess
-import pyrf
 
 
 def build_command():
@@ -26,7 +25,8 @@ INSTALL_REQUIRES = [
 if __name__ == '__main__':
     setuptools_setup(
         setup_fpath=__file__,
-        module=pyrf,
+        package_name='pyrf',
+        version='1.0.0.dev1',
         build_command=build_command,
         description=('Detects objects in images using random forests'),
         url='https://github.com/bluemellophone/pyrf',

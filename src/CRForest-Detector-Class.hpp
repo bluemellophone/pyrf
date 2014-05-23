@@ -680,7 +680,7 @@ struct CRForestDetectorClass
 			tpath.erase(tpath.find_last_of(PATH_SEP));
 			string execstr = "mkdir ";
 			execstr += tpath;
-			system( execstr.c_str() );
+			int result = system( execstr.c_str() );
 
 			// Init training data
 			CRPatch Train(&cvRNG, patch_width, patch_height, 2);
