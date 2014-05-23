@@ -25,7 +25,7 @@ INSTALL_REQUIRES = [
 if __name__ == '__main__':
     setuptools_setup(
         setup_fpath=__file__,
-        package_name='pyrf',
+        name='pyrf',
         version='1.0.0.dev1',
         build_command=build_command,
         description=('Detects objects in images using random forests'),
