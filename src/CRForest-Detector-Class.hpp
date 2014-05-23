@@ -306,7 +306,7 @@ struct CRForestDetectorClass
 					int min_contour_area
 				   	)
 		{
-			char buffer[200];
+			char buffer[512];  // was 200
 
 			// Storage for output
 			vector<vector<IplImage*> > vImgDetect(scales.size());
@@ -333,6 +333,7 @@ struct CRForestDetectorClass
 			// Store result of all scales
 			IplImage* combined = cvCreateImage( cvSize(img->width, img->height), IPL_DEPTH_8U , 1);
 			IplImage* temp = cvCreateImage( cvSize(img->width, img->height), IPL_DEPTH_8U , 1);
+            cvSet(combined, cvScalar(0));  // Combined needs to be initialized to 0
 
 			// Prepare results vector
 			points.clear();
@@ -473,12 +474,13 @@ struct CRForestDetectorClass
 
 			if(save_detection_images)
 			{
-				sprintf_s(buffer,"%s_points.png", detection_result_filepath);
-				cvSaveImage( buffer, img );
+				//sprintf_s(buffer,"%s_points.png", detection_result_filepath);
+				//cvSaveImage( buffer, img );
 
 				// Save accumulated detection image
-				cvSmooth(combined, combined, CV_GAUSSIAN, 3);
-				cvSaveImage( detection_result_filepath, combined );
+				sprintf_s(buffer,"%s_hough.png", detection_result_filepath);
+                //cvSmooth(combined, combined, CV_GAUSSIAN, 3);
+				cvSaveImage( buffer, combined );
 			}
 
 			// Release image
@@ -698,7 +700,3 @@ struct CRForestDetectorClass
 
 		}
 };
-
-
-
-
