@@ -64,6 +64,3 @@ add_library(pyrf SHARED
 
 #######################################
 target_link_libraries(pyrf ${OpenCV_LIBS})
-
-
-

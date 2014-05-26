@@ -1,32 +1,38 @@
 #!/usr/bin/env python
 from __future__ import absolute_import, division, print_function
-from os.path import join, isdir
-import os
-import shutil
-from ._pyrf import detector
-
-
-def rmtreedir(path):
-    if isdir(path):
-        shutil.rmtree(path)
-
-
-def ensuredir(path):
-    if isdir(path):
-        os.makedirs(path)
+from os.path import join
+from pyrf import Random_Forest_Detector
+from pyrf.pyrf_helpers import rmtreedir, ensuredir
 
 
 if __name__ == '__main__':
+    import utool
+    #detectmodels_url =
+    testdata_url = '~/code/pyrf/testdata_detect'
+    #testdata_dir = utool.grab_zipped_url(testdata_url)
+    detectmodels_dir = utool.grab_zipped_url('https://dl.dropboxusercontent.com/s/9814r3d2rkiq5t3/rf.zip')
+    detectmodels_dir = r'C:\Users\joncrall\AppData\Roaming\utool\rf'
+    detectmodels_dir = utool.get_app_resource_dir('utool', 'rf')
+    testdata_dir = utool.unixpath('~/code/pyrf/testdata_detect')
+
+    assert utool.checkpath(testdata_dir)
+    assert utool.checkpath(detectmodels_dir)
+
+
+    if utool.get_flag('--vd'):
+        print(utool.ls(detectmodels_dir))
+        print(utool.ls(testdata_dir))
+
     # Create detector
-    category = 'zebra_plains'
+    detector = Random_Forest_Detector()
+    category = 'zebra_grevys'
 
     dataset_path = '../IBEIS2014/'
-    pos_path    = join('results', category, 'train-positives')
-    neg_path    = join('results', category, 'train-negatives')
-    val_path    = join('results', category, 'val')
-    test_path   = join('results', category, 'test')
-    detect_path = join('results', category, 'detect')
-    trees_path  = join('results', category, 'trees')
+    pos_path    = join(detectmodels_dir, category, 'train-positives')
+    neg_path    = join(detectmodels_dir, category, 'train-negatives')
+    val_path    = join(detectmodels_dir, category, 'val')
+    detect_path = join(detectmodels_dir, category, 'detect')
+    trees_path  = join(detectmodels_dir, category)
     tree_prefix = category + '-'
 
     #=================================
@@ -76,16 +82,12 @@ if __name__ == '__main__':
     forest = detector.load(trees_path, tree_prefix)
 
     # Get input images
-    test_file = open(test_path + '.txt', 'r')
-    test_file.readline()
-    files = [line.strip() for line in test_file ]
+    for ix, img_fname in enumerate(utool.list_images(testdata_dir)):
+        img_fpath = join(testdata_dir, img_fname)
+        dst_fpath = join(detect_path, img_fpath.split('/')[-1])
 
-    for i in range(len(files)):
-        src_fpath = files[i]
-        dst_fpath = join(detect_path, files[i].split('/')[-1])
-
-        results, timing = detector.detect(forest, src_fpath, dst_fpath,
+        results, timing = detector.detect(forest, img_fpath, dst_fpath,
                                           **detect_config)
 
-        print('[rf] %s | Time: %.3f' % (src_fpath, timing))
+        print('[rf] %s | Time: %.3f' % (img_fpath, timing))
         print(results)

@@ -1,22 +1,16 @@
 #!/usr/bin/env python
 from __future__ import absolute_import, division, print_function
 from utool.util_setup import setuptools_setup
-from utool.util_cplat import get_dynamic_lib_globstrs
-import sys
-import subprocess
+from utool import util_cplat
 
 
 def build_command():
     """ Build command run by utool.util_setup """
-    if sys.platform.startswith('win32'):
-        subprocess.call(['mingw_pyrf_build.bat'])
+    if util_cplat.WIN32:
+        util_cplat.shell('mingw_build.bat')
     else:
-        try:
-            subprocess.call(['unix_pyrf_build.sh'])
-        except OSError:
-            # Try fallback
-            import os
-            os.system('./unix_pyrf_build.sh')
+        util_cplat.shell('./unix_build.sh')
+
 
 INSTALL_REQUIRES = [
     'detecttools >= 1.0.0.dev1'
@@ -24,9 +18,7 @@ INSTALL_REQUIRES = [
 
 if __name__ == '__main__':
     setuptools_setup(
-        setup_fpath=__file__,
         name='pyrf',
-        version='1.0.0.dev1',
         build_command=build_command,
         description=('Detects objects in images using random forests'),
         url='https://github.com/bluemellophone/pyrf',
@@ -34,5 +26,6 @@ if __name__ == '__main__':
         author_email='bluemellophone@gmail.com',
         packages=['pyrf'],
         install_requires=INSTALL_REQUIRES,
-        package_data={'build': get_dynamic_lib_globstrs()},
+        package_data={'build': util_cplat.get_dynamic_lib_globstrs()},
+        setup_fpath=__file__,
     )
