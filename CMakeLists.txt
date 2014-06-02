@@ -1,9 +1,14 @@
 cmake_minimum_required(VERSION 2.8)
 
+#######################################
+
+project(pyrf)
+set(CMAKE_BUILD_TYPE "Release")
+
+#######################################
 # Clang2 = Clang + OpenMP built for OSX Mavericks
 # http://goo.gl/1Tg0Zj
 
-#######################################
 if (APPLE AND CLANG2)
     SET(CLANG2 On)
     message('Apple System')
@@ -18,10 +23,6 @@ if (APPLE)
     include_directories(/opt/local/include)
     link_directories(/opt/local/lib)
 endif()
-
-#######################################
-project(pyrf)
-set(CMAKE_BUILD_TYPE "Release")
 
 #######################################
 message(STATUS "Checking OpenCV")
