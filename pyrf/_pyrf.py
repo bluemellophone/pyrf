@@ -73,7 +73,8 @@ PARAM_TYPES = [_type for (_type, key, val) in constructor_parameters]
 
 def load_pyrf_clib(rebuild=False):
     """ Loads the pyrf dynamic library and defines its functions """
-    print('[rf] Testing Random_Forest')
+    #if VERBOSE:
+    #    print('[rf] Testing Random_Forest')
     if rebuild:
         _build_shared_c_library(rebuild)
     # FIXME: This will break on packaging
