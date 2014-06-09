@@ -88,7 +88,7 @@ struct CRForestDetectorClass
 		int 	patch_sample_density_neg;
 		vector<float> scales;
 		vector<float> ratios;
-		vector<vector<vector<int> > > points;
+		vector<vector<vector<float> > > points;
 
 	public:
 		// Constructor
@@ -264,7 +264,7 @@ struct CRForestDetectorClass
 			}
 		}
 
-		bool new_center(std::vector<vector<vector<int> > >& points, float nms_margin_percentage, int centerx, int centery, int minx, int miny, int maxx, int maxy)
+		bool new_center(std::vector<vector<vector<float> > >& points, float nms_margin_percentage, int centerx, int centery, int minx, int miny, int maxx, int maxy)
 		{
 			float distance;
 			int left1, right1, bottom1, top1, left2, right2, bottom2, top2;
@@ -338,15 +338,19 @@ struct CRForestDetectorClass
 			// Prepare results vector
 			points.clear();
 			points.resize(scales.size());
+			double minVal; double maxVal; 
 			for(int k=vImgDetect.size() - 1;k >= 0; --k)
 			{
 				// cout << k;
 				IplImage* scaled = cvCreateImage( cvSize(vImgDetect[k][0]->width,vImgDetect[k][0]->height) , IPL_DEPTH_8U , 1);
 
-				for(unsigned int c=0;c<vImgDetect[k].size(); ++c) {
-
+				for(unsigned int c=0;c<vImgDetect[k].size(); ++c) 
+				{
+					// Find confidence
+					cvMinMaxLoc(vImgDetect[k][c], &minVal, &maxVal);
+				
 					// Resize image
-					cvConvertScale( vImgDetect[k][c], scaled, out_scale);
+					cvConvertScale(vImgDetect[k][c], scaled, out_scale);
 					cvResize(scaled, temp);
 
 					// Save detection
@@ -399,15 +403,15 @@ struct CRForestDetectorClass
 							supressed = 1;
 						}
 
-						vector<int> temp;
-						temp.push_back(centerx);
-						temp.push_back(centery);
-						temp.push_back(minx);
-						temp.push_back(miny);
-						temp.push_back(maxx);
-						temp.push_back(maxy);
-						temp.push_back(0.0);
-						temp.push_back(supressed);
+						vector<float> temp;
+						temp.push_back((float) centerx);
+						temp.push_back((float) centery);
+						temp.push_back((float) minx);
+						temp.push_back((float) miny);
+						temp.push_back((float) maxx);
+						temp.push_back((float) maxy);
+						temp.push_back((float) maxVal);
+						temp.push_back((float) supressed);
 
 						points[k].push_back(temp);
 
@@ -474,8 +478,8 @@ struct CRForestDetectorClass
 
 			if(save_detection_images)
 			{
-				//sprintf_s(buffer,"%s_points.png", detection_result_filepath);
-				//cvSaveImage( buffer, img );
+				sprintf_s(buffer,"%s_points.png", detection_result_filepath);
+				cvSaveImage( buffer, img );
 
 				// Save accumulated detection image
 				sprintf_s(buffer,"%s_hough.png", detection_result_filepath);

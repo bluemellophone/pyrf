@@ -2,25 +2,16 @@
 from __future__ import absolute_import, division, print_function
 from os.path import join
 from pyrf import Random_Forest_Detector
+from detecttools.directory import Directory
 from pyrf.pyrf_helpers import rmtreedir, ensuredir
-
+import utool
 
 if __name__ == '__main__':
-    import utool
-    #detectmodels_url =
-    testdata_url = '~/code/pyrf/testdata_detect'
-    #testdata_dir = utool.grab_zipped_url(testdata_url)
-    detectmodels_dir = utool.grab_zipped_url('https://dl.dropboxusercontent.com/s/9814r3d2rkiq5t3/rf.zip')
-    detectmodels_dir = r'C:\Users\joncrall\AppData\Roaming\utool\rf'
-    detectmodels_dir = utool.get_app_resource_dir('utool', 'rf')
-    testdata_dir = utool.unixpath('~/code/pyrf/testdata_detect')
-
+    # testdata_dir = utool.unixpath('~/code/pyrf/testdata_detect')
+    testdata_dir = utool.unixpath('~/code/pyrf/results')
     assert utool.checkpath(testdata_dir)
-    assert utool.checkpath(detectmodels_dir)
-
-
+    
     if utool.get_flag('--vd'):
-        print(utool.ls(detectmodels_dir))
         print(utool.ls(testdata_dir))
 
     # Create detector
@@ -28,11 +19,12 @@ if __name__ == '__main__':
     category = 'zebra_grevys'
 
     dataset_path = '../IBEIS2014/'
-    pos_path    = join(detectmodels_dir, category, 'train-positives')
-    neg_path    = join(detectmodels_dir, category, 'train-negatives')
-    val_path    = join(detectmodels_dir, category, 'val')
-    detect_path = join(detectmodels_dir, category, 'detect')
-    trees_path  = join(detectmodels_dir, category)
+    pos_path    = join(testdata_dir, category, 'train-positives')
+    neg_path    = join(testdata_dir, category, 'train-negatives')
+    val_path    = join(testdata_dir, category, 'val')
+    test_path   = join(testdata_dir, category, 'test')
+    detect_path = join(testdata_dir, category, 'detect')
+    trees_path  = join(testdata_dir, category, 'trees')
     tree_prefix = category + '-'
 
     #=================================
@@ -66,24 +58,18 @@ if __name__ == '__main__':
     #=================================
 
     # _trees_path = join(trees_path, tree_prefix)
-    # detector.train(dataset_path, category, pos_path, neg_path, val_path, test_path, _trees_path, **train_config)
+    # detector.train(dataset_path, category, pos_path, neg_path, val_path, test_path, trees_path, **train_config)
 
     #=================================
     # Detect using Random Forest
     #=================================
 
-    print('[rf] Clearing Detect Cache Directories')
-    rmtreedir(detect_path)
-
-    print('[rf] Creating Detect Cache Directories')
-    ensuredir(detect_path)
-
     # Load forest, so we don't have to reload every time
     forest = detector.load(trees_path, tree_prefix)
 
     # Get input images
-    for ix, img_fname in enumerate(utool.list_images(testdata_dir)):
-        img_fpath = join(testdata_dir, img_fname)
+    for ix, img_fname in enumerate(utool.list_images(test_path)[150:]):
+        img_fpath = join(test_path, img_fname)
         dst_fpath = join(detect_path, img_fpath.split('/')[-1])
 
         results, timing = detector.detect(forest, img_fpath, dst_fpath,

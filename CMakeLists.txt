@@ -1,22 +1,21 @@
 cmake_minimum_required(VERSION 2.8)
-
-#######################################
-
-project(pyrf)
-set(CMAKE_BUILD_TYPE "Release")
+SET(CLANG2 Off)
 
 #######################################
 # Clang2 = Clang + OpenMP built for OSX Mavericks
 # http://goo.gl/1Tg0Zj
 
 if (APPLE AND CLANG2)
-    SET(CLANG2 On)
     message('Apple System')
     set(CMAKE_C_COMPILER "clang2")
     set(CMAKE_CXX_COMPILER "${CMAKE_C_COMPILER}")
 else()
     SET(CLANG2 Off)
 endif()
+
+#######################################
+project(pyrf) #### !!!!IMPORTANT!!!! THIS MUST BE DOWN HERE FOR CLANG2
+set(CMAKE_BUILD_TYPE "Release")
 
 if (APPLE)
     #MacPorts
@@ -46,8 +45,8 @@ ENDIF()
 #######################################
 if(APPLE AND CLANG2)    
     # Add flags to support clang2
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -stdlib=libstdc++")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp -stdlib=libstdc++")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -stdlib=libstdc++")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -lstdc++ -stdlib=libstdc++")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lstdc++ -stdlib=libstdc++")
 endif()
