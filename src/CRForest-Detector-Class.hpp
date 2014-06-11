@@ -106,6 +106,12 @@ struct CRForestDetectorClass
 			char*	param_ratios
 			)
 		{
+			#ifdef _OPENMP
+			cout << "\n\n-----------------------------\n\nRUNNING PROGRAM IN PARALLEL\n\n-----------------------------\n\n" << endl;
+			#else
+			cout << "\n\n-----------------------------\n\nRUNNING PROGRAM IN SERIAL\n\n-----------------------------\n\n" << endl;
+			#endif
+
 			patch_width = 				param_patch_width;
 			patch_height = 				param_patch_height;
 			out_scale = 				param_out_scale;
