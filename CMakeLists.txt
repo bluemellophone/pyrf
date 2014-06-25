@@ -6,7 +6,7 @@ SET(CLANG2 Off)
 # http://goo.gl/1Tg0Zj
 
 if (APPLE AND CLANG2)
-    message('Apple System')
+	message("Using clang2")
     set(CMAKE_C_COMPILER "clang2")
     set(CMAKE_CXX_COMPILER "${CMAKE_C_COMPILER}")
 else()
@@ -19,6 +19,7 @@ set(CMAKE_BUILD_TYPE "Release")
 
 if (APPLE)
     #MacPorts
+    message("Detected APPLE system")
     include_directories(/opt/local/include)
     link_directories(/opt/local/lib)
 endif()
@@ -44,6 +45,7 @@ ENDIF()
 
 #######################################
 if(APPLE AND CLANG2)    
+    message("APPLE + CLANG2: Adding stdlib flags for clang")
     # Add flags to support clang2
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp -stdlib=libstdc++")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -stdlib=libstdc++")
