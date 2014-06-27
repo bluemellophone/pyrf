@@ -4,13 +4,15 @@ SET(CLANG2 Off)
 #######################################
 # Clang2 = Clang + OpenMP built for OSX Mavericks
 # http://goo.gl/1Tg0Zj
+if (APPLE)
+    message("Detected APPLE system")
+    SET(CLANG2 Off)
+endif()
 
 if (APPLE AND CLANG2)
-    message('Apple System')
+	message("Using clang2")
     set(CMAKE_C_COMPILER "clang2")
-    set(CMAKE_CXX_COMPILER "${CMAKE_C_COMPILER}")
-else()
-    SET(CLANG2 Off)
+    set(CMAKE_CXX_COMPILER "clang2++")
 endif()
 
 #######################################
@@ -19,6 +21,7 @@ set(CMAKE_BUILD_TYPE "Release")
 
 if (APPLE)
     #MacPorts
+    message("USING MACPORTS")
     include_directories(/opt/local/include)
     link_directories(/opt/local/lib)
 endif()
@@ -27,6 +30,16 @@ endif()
 message(STATUS "Checking OpenCV")
 find_package( OpenCV REQUIRED )
 include_directories(${OpenCV_INCLUDE_DIRS})
+
+#######################################
+if(APPLE AND CLANG2)    
+    # Add flags to support clang2
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp -stdlib=libstdc++")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -stdlib=libstdc++")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -lstdc++ -stdlib=libstdc++")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lstdc++ -stdlib=libstdc++")
+endif()
+
 
 #######################################
 message(STATUS "Checking OpenMP")
@@ -41,15 +54,6 @@ IF(OPENMP_FOUND)
 ELSE()
     message("Missed OpenMP! x_x")
 ENDIF()
-
-#######################################
-if(APPLE AND CLANG2)    
-    # Add flags to support clang2
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp -stdlib=libstdc++")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -stdlib=libstdc++")
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -lstdc++ -stdlib=libstdc++")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lstdc++ -stdlib=libstdc++")
-endif()
 
 #######################################
 set(SOURCE_FILES 
