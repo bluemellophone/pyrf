@@ -79,9 +79,6 @@ def test_pyrf():
     # Detect using Random Forest
     #=================================
 
-    # Load forest, so we don't have to reload every time
-    forest = detector.load(trees_path, tree_prefix)
-
     # Get input images
     from vtool import image
     big_gpath_list = utool.list_images(test_path, fullpath=True, recursive=False)
@@ -99,6 +96,9 @@ def test_pyrf():
     num_images = len(std_gpath_list)
     assert num_images == 16
     print('Testing on %r images' % num_images)
+
+    # Load forest, so we don't have to reload every time
+    forest = detector.load(trees_path, tree_prefix)
     for ix, img_fname in enumerate(std_gpath_list):
         img_fpath = join(test_path, img_fname)
         dst_fpath = join(detect_path, img_fpath.split('/')[-1])
