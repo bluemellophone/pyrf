@@ -34,8 +34,9 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 #######################################
 if(APPLE AND CLANG2)    
     # Add flags to support clang2
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp -stdlib=libstdc++")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -stdlib=libstdc++")
+    message("APPLE + CLANG2: Adding stdlib flags for clang")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -stdlib=libstdc++")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -lstdc++ -stdlib=libstdc++")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lstdc++ -stdlib=libstdc++")
 endif()
@@ -47,8 +48,8 @@ find_package(OpenMP)
 IF(OPENMP_FOUND)
     message("Found OpenMP! ^_^")
     # add flags for OpenMP
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS} -fopenmp")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} -fopenmp")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${OpenMP_C_FLAGS} ${OpenMP_SHARED_LINKER_FLAGS}")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_C_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 ELSE()
@@ -56,6 +57,7 @@ ELSE()
 ENDIF()
 
 #######################################
+
 set(SOURCE_FILES 
     src/CRForestDetector.cpp
     src/CRPatch.cpp
