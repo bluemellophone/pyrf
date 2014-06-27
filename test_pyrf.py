@@ -91,8 +91,6 @@ def test_pyrf():
     #utool.view_directory(test_path)
     #utool.view_directory('.')
     print(std_gpath_list)
-    import sys
-    sys.exit(1)
     num_images = len(std_gpath_list)
     assert num_images == 16
     print('Testing on %r images' % num_images)
