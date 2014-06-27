@@ -87,11 +87,15 @@ def test_pyrf():
     big_gpath_list = utool.list_images(test_path, fullpath=True, recursive=False)
     print(big_gpath_list)
     # Resize images to standard size
+    output_dir = join(test_path, 'resized')
     std_gpath_list = image.resize_imagelist_to_sqrtarea(big_gpath_list,
-                                                        sqrt_area=800)
+                                                        sqrt_area=800,
+                                                        output_dir=output_dir)
     #utool.view_directory(test_path)
     #utool.view_directory('.')
     print(std_gpath_list)
+    import sys
+    sys.exit(1)
     num_images = len(std_gpath_list)
     assert num_images == 16
     print('Testing on %r images' % num_images)
