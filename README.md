@@ -11,5 +11,3 @@ REQUIRED:
 https://github.com/bluemellophone/detecttools
 
 https://github.com/bluemellophone/IBEIS2014
-
-EDIT ADDING DUMB TEXT
