@@ -7,6 +7,8 @@ import shutil
 from detecttools.ibeisdata import IBEIS_Data
 import cv2
 import os
+import utool
+from vtool import image as gtool
 
 
 def rmtreedir(path):
@@ -15,8 +17,7 @@ def rmtreedir(path):
 
 
 def ensuredir(path):
-    if isdir(path):
-        os.makedirs(path)
+    utool.ensuredir(path)
 
 
 def _build_shared_c_library(rebuild=False):
@@ -66,13 +67,10 @@ def _prepare_inventory(directory_path, images, total, category, train=True, posi
 
                 target_width = 128
                 if width > target_width:
-                    _width = int(target_width)
-                    _height = int((_width / width) * height)
-                    # Resize
-                    temp = cv2.resize(temp, (_width, _height),
-                                        interpolation=cv2.INTER_LANCZOS4)
-                    width = _width
-                    height = _height
+                    ratio = float(height) / width
+                    width = target_width
+                    height = int(target_width * ratio)
+                    temp = gtool.resize(temp, (width, height))
 
                 xmax = width
                 xmin = 0

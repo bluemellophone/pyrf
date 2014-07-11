@@ -7,6 +7,7 @@ from collections import OrderedDict as odict
 import ctypes as C
 # Scientific
 import numpy as np
+from os.path import join
 import detecttools.ctypes_interface as ctypes_interface
 from .pyrf_helpers import (ensuredir, rmtreedir, get_training_data_from_ibeis,
                            _build_shared_c_library)
@@ -160,6 +161,7 @@ class Random_Forest_Detector(object):
         ensuredir(val_path)
         ensuredir(test_path)
         ensuredir(trees_path)
+        trees_path = join(trees_path, category + '-')
 
         # Gather training data from IBEIS database
         fpath_pos, fpath_neg, fpath_val, fpath_test = get_training_data_from_ibeis(

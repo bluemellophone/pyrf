@@ -4,7 +4,7 @@ from os.path import join
 from pyrf import Random_Forest_Detector
 #from detecttools.directory import Directory
 #from pyrf.pyrf_helpers import rmtreedir, ensuredir
-import cv2
+# import cv2
 import utool
 
 TEST_DATA_DETECT_URL = 'https://www.dropbox.com/s/s4gkjyxjgghr18c/testdata_detect.zip'
@@ -13,34 +13,29 @@ TEST_DATA_MODEL_URL = 'https://dl.dropboxusercontent.com/s/9814r3d2rkiq5t3/rf.zi
 
 def test_pyrf():
     # testdata_dir = utool.unixpath('~/code/pyrf/testdata_detect')
-    #testdata_dir = utool.unixpath('~/code/pyrf/results')
+    testdata_dir = utool.unixpath('~/code/pyrf/results')
 
     #assert utool.checkpath(testdata_dir)
 
-    #if utool.get_flag('--vd'):
-        #print(utool.ls(testdata_dir))
+    # if utool.get_flag('--vd'):
+    #     print(utool.ls(testdata_dir))
 
     # Create detector
     detector = Random_Forest_Detector()
-    category = 'zebra_grevys'
+    category = 'giraffe'
 
-    #dataset_path = '../IBEIS2014/'
-    #pos_path    = join(testdata_dir, category, 'train-positives')
-    #neg_path    = join(testdata_dir, category, 'train-negatives')
-    #val_path    = join(testdata_dir, category, 'val')
-    #test_path   = join(testdata_dir, category, 'test')
-    #detect_path = join(testdata_dir, category, 'detect')
-    #trees_path  = join(testdata_dir, category, 'trees')
-    tree_prefix = category + '-'
+    dataset_path = '../IBEIS2014/'
+    pos_path    = join(testdata_dir, category, 'train-positives')
+    neg_path    = join(testdata_dir, category, 'train-negatives')
+    val_path    = join(testdata_dir, category, 'val')
+    test_path   = join(testdata_dir, category, 'test')
+    detect_path = join(testdata_dir, category, 'detect')
+    trees_path  = join(testdata_dir, category, 'trees')
 
-    test_path = utool.grab_zipped_url(TEST_DATA_DETECT_URL, appname='utool')
-    models_path = utool.grab_zipped_url(TEST_DATA_MODEL_URL, appname='utool')
-    trees_path = join(models_path, category)
-    detect_path = join(test_path, category, 'detect')
-    utool.ensuredir(detect_path)
-
-    utool.assertpath(test_path, verbose=True)
-    utool.assertpath(trees_path, verbose=True)
+    # test_path = utool.grab_zipped_url(TEST_DATA_DETECT_URL, appname='utool')
+    # models_path = utool.grab_zipped_url(TEST_DATA_MODEL_URL, appname='utool')
+    # trees_path = join(models_path, category)
+    # detect_path = join(test_path, category, 'detect')
 
     #=================================
     # Train / Detect Configurations
@@ -52,7 +47,7 @@ def test_pyrf():
         'neg_exclude_categories':       [category],
 
         'mine_negatives':               True,
-        'mine_max_keep':                10,
+        'mine_max_keep':                3,
         'mine_exclude_categories':      [category],
         'mine_width_min':               128,
         'mine_width_max':               512,
@@ -60,7 +55,7 @@ def test_pyrf():
         'mine_height_max':              512,
 
         'max_rois_pos':                 None,
-        'max_rois_neg':                 'auto',
+        'max_rois_neg':                 1200,
     }
 
     detect_config = {
@@ -72,7 +67,6 @@ def test_pyrf():
     # Train Random Forest
     #=================================
 
-    # _trees_path = join(trees_path, tree_prefix)
     # detector.train(dataset_path, category, pos_path, neg_path, val_path, test_path, trees_path, **train_config)
 
     #=================================
@@ -92,12 +86,13 @@ def test_pyrf():
     #utool.view_directory('.')
     print(std_gpath_list)
     num_images = len(std_gpath_list)
-    assert num_images == 16
+    # assert num_images == 16
     print('Testing on %r images' % num_images)
 
     # Load forest, so we don't have to reload every time
-    forest = detector.load(trees_path, tree_prefix)
-    for ix, img_fname in enumerate(std_gpath_list):
+    forest = detector.load(trees_path, category + '-')
+    # for ix, img_fname in enumerate(std_gpath_list):
+    for ix, img_fname in enumerate(std_gpath_list[::-1]):
         img_fpath = join(test_path, img_fname)
         dst_fpath = join(detect_path, img_fpath.split('/')[-1])
 
