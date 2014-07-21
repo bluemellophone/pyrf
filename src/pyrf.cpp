@@ -140,6 +140,7 @@ typedef unsigned char uint8;
         {
             int index;
             #pragma omp parallel for
+            std::cout << "[c++] start detect_many batch" << std::endl;
             for(index=0;index < nImgs;++index)
             {
                  int length = detector->run_detect(
@@ -157,9 +158,10 @@ typedef unsigned char uint8;
                         min_contour_area
                         );
                  length_array[index] = length;
-                 results_array[index] = new float[length];
+                 results_array[index] = new float[8 * length];  // will be cast to a 2d array in python
                  detector->detect_results(results_array[index]);
             }
+            std::cout << "[c++] end detect_many batch" << std::endl;
         }
 
         PYTHON_RANDOM_FOREST void detect_results(

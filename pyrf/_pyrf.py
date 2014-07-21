@@ -265,7 +265,7 @@ class Random_Forest_Detector(object):
 
     def detect_many(rf, forest, image_fpath_list, result_fpath_list):
         """ WIP """
-        OPENMP_SOLUTION = False
+        OPENMP_SOLUTION = True
         if OPENMP_SOLUTION:
             # OPENMP SOLUTION
             nImgs = len(image_fpath_list)
