@@ -9,7 +9,7 @@ TO BEGIN:
 
 3.) Include all C++ header files for the algorithm you intend to wrap
 
-4.) Change the wrapper functions for all of the pre-set functions to 
+4.) Change the wrapper functions for all of the pre-set functions to
     match the appropriate functions in the algorithm's C++ code
 */
 #include <iostream>
@@ -69,14 +69,14 @@ typedef unsigned char uint8;
         PYTHON_RANDOM_FOREST void train(
                 CRForestDetectorClass* detector,
                 char* tree_path,
-                int num_trees,  
+                int num_trees,
                 char* training_inventory_pos,
                 char* training_inventory_neg
             )
         {
             detector->run_train(
                 tree_path,
-                num_trees,  
+                num_trees,
                 training_inventory_pos,
                 training_inventory_neg
             );
@@ -85,10 +85,10 @@ typedef unsigned char uint8;
         //=============================
         // Run Algorithm
         //=============================
-        
+
         PYTHON_RANDOM_FOREST int detect(
-                CRForestDetectorClass* detector, 
-                CRForest* forest,  
+                CRForestDetectorClass* detector,
+                CRForest* forest,
                 char* detection_image_filepath,
                 char* detection_result_filepath,
                 bool save_detection_images,
@@ -103,13 +103,13 @@ typedef unsigned char uint8;
             )
         {
             return detector->run_detect(
-                forest, 
-                detection_image_filepath,  
+                forest,
+                detection_image_filepath,
                 detection_result_filepath,
                 save_detection_images,
                 save_scales,
                 draw_supressed,
-                detection_width, 
+                detection_width,
                 detection_height,
                 percentage_left,
                 percentage_top,
@@ -117,9 +117,53 @@ typedef unsigned char uint8;
                 min_contour_area
             );
         }
-        
+
+
+        PYTHON_RANDOM_FOREST void detect_many(
+                CRForestDetectorClass* detector,
+                CRForest* forest,
+                int nImgs,
+                char** detection_image_filepath_list,
+                char** detection_result_filepath_list,
+                int* length_array,
+                float** results_array,
+                bool save_detection_images,
+                bool save_scales,
+                bool draw_supressed,
+                int detection_width,
+                int detection_height,
+                float percentage_left,
+                float percentage_top,
+                float nms_margin_percentage,
+                int min_contour_area
+            )
+        {
+            int index;
+            #pragma omp parallel for
+            for(index=0;index < nImgs;++index)
+            {
+                 int length = detector->run_detect(
+                        forest,
+                        detection_image_filepath_list[index],
+                        detection_result_filepath_list[index],
+                        save_detection_images,
+                        save_scales,
+                        draw_supressed,
+                        detection_width,
+                        detection_height,
+                        percentage_left,
+                        percentage_top,
+                        nms_margin_percentage,
+                        min_contour_area
+                        );
+                 length_array[index] = length;
+                 results_array[index] = new float[length];
+                 detector->detect_results(results_array[index]);
+            }
+        }
+
         PYTHON_RANDOM_FOREST void detect_results(
-                CRForestDetectorClass* detector, 
+                CRForestDetectorClass* detector,
                 float *results
             )
         {
@@ -127,7 +171,7 @@ typedef unsigned char uint8;
                 results
             );
         }
-        
+
 
         PYTHON_RANDOM_FOREST void segment(CRForestDetectorClass* detector)
         {
@@ -139,9 +183,9 @@ typedef unsigned char uint8;
         //=============================
 
         PYTHON_RANDOM_FOREST CRForest* load(
-                CRForestDetectorClass* detector, 
-                char* tree_path, 
-                char* prefix, 
+                CRForestDetectorClass* detector,
+                char* tree_path,
+                char* prefix,
                 int num_trees
             )
         {

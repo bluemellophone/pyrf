@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function
 # Standard
-import time
+#import time
+from itertools import izip
 import threading
 from os.path import dirname, realpath
 from collections import OrderedDict as odict
@@ -29,6 +30,19 @@ CCHAR    = C.c_char_p
 CINT     = C.c_int
 CBOOL    = C.c_bool
 CFLOAT   = C.c_float
+
+# hesaff style
+str_t     = C.c_char_p
+int_t     = C.c_int
+byte_t    = C.c_char
+float_t   = C.c_float
+str_list_t   = C.POINTER(str_t)
+int_array_t  = np.ctypeslib.ndpointer(dtype=int_t, ndim=1, flags=FLAGS_RW)
+float_array_t  = np.ctypeslib.ndpointer(dtype=float_t, ndim=1, flags=FLAGS_RW)
+
+results_dtype   = np.float32
+results_t       = np.ctypeslib.ndpointer(dtype=results_dtype, ndim=2, flags=FLAGS_RW)
+results_array_t = np.ctypeslib.ndpointer(dtype=results_t, ndim=1, flags=FLAGS_RW)
 
 
 #=================================
@@ -72,6 +86,10 @@ PARAM_ODICT = odict([(key, val) for (_type, key, val) in constructor_parameters]
 PARAM_TYPES = [_type for (_type, key, val) in constructor_parameters]
 
 
+DETECT_PARAM_TYPES = [CBOOL, CBOOL, CBOOL, CINT, CINT, CFLOAT, CFLOAT, CFLOAT,
+                      CINT]
+
+
 def load_pyrf_clib(rebuild=False):
     """ Loads the pyrf dynamic library and defines its functions """
     #if VERBOSE:
@@ -94,9 +112,9 @@ def load_pyrf_clib(rebuild=False):
     """
     def_cfunc(COBJ, 'constructor',      PARAM_TYPES)
     def_cfunc(None, 'train',            [COBJ, CCHAR, CINT, CCHAR, CCHAR])
-    def_cfunc(CINT, 'detect',           [COBJ, COBJ, CCHAR, CCHAR, CBOOL, CBOOL,
-                                         CBOOL, CINT, CINT, CFLOAT, CFLOAT,
-                                         CFLOAT, CINT])
+    def_cfunc(CINT, 'detect',           [COBJ, COBJ, CCHAR, CCHAR] + DETECT_PARAM_TYPES )
+    def_cfunc(None, 'detect_many',      [COBJ, COBJ, int_t, str_list_t, str_list_t,
+                                         int_array_t, results_array_t] + DETECT_PARAM_TYPES)
     def_cfunc(None, 'detect_results',   [COBJ, CNPFLOAT])
     def_cfunc(None, 'segment',          [COBJ])
     def_cfunc(COBJ, 'load',             [COBJ, CCHAR, CCHAR, CINT])
@@ -127,12 +145,78 @@ def _kwargs(kwargs, key, value):
         kwargs[key] = value
 
 
+def _cast_strlist_to_C(py_strlist):
+    """
+    Converts a python list of strings into a c array of strings
+    adapted from "http://stackoverflow.com/questions/3494598/passing-a-list-of
+    -strings-to-from-python-ctypes-to-c-function-expecting-char"
+    Avi's code
+    """
+    c_strarr = (str_t * len(py_strlist))()
+    c_strarr[:] = py_strlist
+    return c_strarr
+
+
+def arrptr_to_np(c_arrptr, shape, arr_t, dtype):
+    """
+    Casts an array pointer from C to numpy
+    Input:
+        c_arrpt - an array pointer returned from C
+        shape   - shape of that array pointer
+        arr_t   - the ctypes datatype of c_arrptr
+    Avi's code
+    """
+    arr_t_size = C.POINTER(byte_t * dtype().itemsize)  # size of each item
+    c_arr = C.cast(c_arrptr.astype(int), arr_t_size)   # cast to ctypes
+    np_arr = np.ctypeslib.as_array(c_arr, shape)       # cast to numpy
+    np_arr.dtype = dtype                               # fix numpy dtype
+    return np_arr
+
+
+def extract_2darr_list(size_list, ptr_list, arr_t, arr_dtype,
+                        arr_dim):
+    """
+    size_list - contains the size of each output 2d array
+    ptr_list  - an array of pointers to the head of each output 2d
+                array (which was allocated in C)
+    arr_t     - the C pointer type
+    arr_dtype - the numpy array type
+    arr_dim   - the number of columns in each output 2d array
+    """
+    arr_list = [arrptr_to_np(arr_ptr, (size, arr_dim), arr_t, arr_dtype)
+                    for (arr_ptr, size) in izip(ptr_list, size_list)]
+    return arr_list
+
+
 class Random_Forest_Detector(object):
+    #TODO: Picklize me!
+    #dump(object, file)
+    #dumps(object) -> string
+    #load(file) -> object
+    #loads(string) -> object
+
     #=============================
     # Algorithm Constructor
     #=============================
     def __init__(rf, **kwargs):
         rf.pyrf_ptr = _new_pyrf(**kwargs)
+        rf.detect_params = None  # must be set before running detection
+
+    def set_detect_params(rf, **kwargs):
+        # Default params
+        default_param_dict = odict([
+            ('save_detection_images',   False),
+            ('save_scales',             False),
+            ('draw_supressed',          False),
+            ('detection_width',         128),
+            ('detection_height',        80),
+            ('percentage_left',         0.50),
+            ('percentage_top',          0.50),
+            ('nms_margin_percentage',   0.75),
+            ('min_contour_area',        300),
+        ])
+        default_param_dict.update(kwargs)
+        rf.detect_params = default_param_dict.values()
 
     def _run(rf, target, args):
         t = threading.Thread(target=target, args=args)
@@ -179,40 +263,91 @@ class Random_Forest_Detector(object):
     # Run Algorithm
     #=============================
 
-    def detect(rf, forest, image_fpath, result_fpath, **kwargs):
-        start = time.time()
+    def detect_many(rf, forest, image_fpath_list, result_fpath_list):
+        """ WIP """
+        OPENMP_SOLUTION = False
+        if OPENMP_SOLUTION:
+            # OPENMP SOLUTION
+            nImgs = len(image_fpath_list)
+            c_src_strs = _cast_strlist_to_C(map(realpath, image_fpath_list))
+            c_dst_strs = _cast_strlist_to_C(map(realpath, result_fpath_list))
+            results_ptr_arr = np.empty(nImgs, results_t)  # outvar of results ptrs
+            length_arr = np.empty(nImgs, int_t)  # outvar of lengths
+            # Execute batch detection
+            RF_CLIB.detect_many(
+                rf.pyrf_ptr,
+                forest,
+                nImgs,
+                c_src_strs,
+                c_dst_strs,
+                length_arr,
+                results_ptr_arr,
+                *rf.detect_params)
 
-        _kwargs(kwargs, 'save_detection_images',   False)
-        _kwargs(kwargs, 'save_scales',             False)
-        _kwargs(kwargs, 'draw_supressed',          False)
-        _kwargs(kwargs, 'detection_width',         128)
-        _kwargs(kwargs, 'detection_height',        80)
-        _kwargs(kwargs, 'percentage_left',         0.50)
-        _kwargs(kwargs, 'percentage_top',          0.50)
-        _kwargs(kwargs, 'nms_margin_percentage',   0.75)
-        _kwargs(kwargs, 'min_contour_area',        300)
+            results_list = extract_2darr_list(length_arr, results_ptr_arr, results_t, results_dtype, 8)
 
+            # Finish getting results using lengths and heads of arrays
+            #results_list = [arrptr_to_np(results_ptr, (len_, 8), results_t,
+            #                             np.float32)
+            #                for (results_ptr, len_) in izip(results_ptr_arr, length_arr)]
+        else:
+            # FOR LOOP SOLUTION
+
+            results_list = []
+            for image_fpath, result_fpath in izip(image_fpath_list, result_fpath_list):
+                # Execute detection
+                length = RF_CLIB.detect(
+                    rf.pyrf_ptr,
+                    forest,
+                    image_fpath,
+                    result_fpath,
+                    *rf.detect_params)
+                # Read results
+                results = np.empty((length, 8), np.float32)
+                RF_CLIB.detect_results(rf.pyrf_ptr, results)
+                results_list.append(results)
+        return results_list
+
+    def detect(rf, forest, image_fpath, result_fpath):
+        # Removed to simplify inner loop. User a Timer object around this instead.
+        #start = time.time()
+
+        # Removed because this will be interpreted as individual
+        # function calls, which is not very python efficient
+        #_kwargs(kwargs, 'save_detection_images',   False)
+        #_kwargs(kwargs, 'save_scales',             False)
+        #_kwargs(kwargs, 'draw_supressed',          False)
+        #_kwargs(kwargs, 'detection_width',         128)
+        #_kwargs(kwargs, 'detection_height',        80)
+        #_kwargs(kwargs, 'percentage_left',         0.50)
+        #_kwargs(kwargs, 'percentage_top',          0.50)
+        #_kwargs(kwargs, 'nms_margin_percentage',   0.75)
+        #_kwargs(kwargs, 'min_contour_area',        300)
+
+        # Execute detection
         length = RF_CLIB.detect(
             rf.pyrf_ptr,
             forest,
             image_fpath,
             result_fpath,
-            kwargs['save_detection_images'],
-            kwargs['save_scales'],
-            kwargs['draw_supressed'],
-            kwargs['detection_width'],
-            kwargs['detection_height'],
-            kwargs['percentage_left'],
-            kwargs['percentage_top'],
-            kwargs['nms_margin_percentage'],
-            kwargs['min_contour_area'],
-        )
+            *rf.detect_params)
+        #    kwargs['save_detection_images'],
+        #    kwargs['save_scales'],
+        #    kwargs['draw_supressed'],
+        #    kwargs['detection_width'],
+        #    kwargs['detection_height'],
+        #    kwargs['percentage_left'],
+        #    kwargs['percentage_top'],
+        #    kwargs['nms_margin_percentage'],
+        #    kwargs['min_contour_area'],
+        #)
 
+        # Read results
         results = np.empty((length, 8), np.float32)
         RF_CLIB.detect_results(rf.pyrf_ptr, results)
 
-        done = time.time()
-        return results, done - start
+        #done = time.time()
+        return results  # , done - start
 
     def segment(rf):
         rf._run(RF_CLIB.segment, [rf.pyrf_ptr])

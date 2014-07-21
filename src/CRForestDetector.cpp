@@ -196,11 +196,3 @@ void CRForestDetector::detectPyramid(IplImage *img, vector<vector<IplImage*> >& 
 	}
 
 }
-
-
-
-
-
-
-
-
