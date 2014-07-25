@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function
 from utool.util_setup import setuptools_setup
 from utool import util_cplat
+from setuptools import setup
 
 
 def build_command():
@@ -17,7 +18,7 @@ INSTALL_REQUIRES = [
 ]
 
 if __name__ == '__main__':
-    setuptools_setup(
+    kwargs = setuptools_setup(
         name='pyrf',
         build_command=build_command,
         description=('Detects objects in images using random forests'),
@@ -29,3 +30,4 @@ if __name__ == '__main__':
         package_data={'build': util_cplat.get_dynamic_lib_globstrs()},
         setup_fpath=__file__,
     )
+    setup(**kwargs)
