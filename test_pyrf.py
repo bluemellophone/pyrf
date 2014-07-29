@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 from __future__ import absolute_import, division, print_function
 from os.path import join, split
 from pyrf import Random_Forest_Detector
@@ -108,12 +108,12 @@ def test_pyrf():
         #dst_fpath = join(detect_path, img_fname)
         print(img_fpath)
         print(dst_fpath)
-        #with utool.Timer('[rf] img_fpath=%r' % (img_fpath,)):
-        #    results = detector.detect(forest, img_fpath, dst_fpath)
+        with utool.Timer('[test_pyrf] detector.detect(img_fpath=%r)' % (img_fpath,)):
+            results = detector.detect(forest, img_fpath, dst_fpath)
         #print('[rf] %s | Time: %.3f' % (img_fpath, timing))
-        #print(results)
+        print(results)
 
-    with utool.Timer('[rf] parallel'):
+    with utool.Timer('[test_pyrf] detector.detect_many'):
         parallel_results = detector.detect_many(forest, std_gpath_list, dst_gpath_list)
     print(parallel_results)
 
