@@ -20,22 +20,31 @@ def test_pyrf():
     # if utool.get_flag('--vd'):
     #     print(utool.ls(testdata_dir))
 
+    # STOP: This is not a training file. This is a test script and should
+    # remain stable. Fork it into train_pyrf if you want to use it for that
+    # purpose
+
     # Create detector
     detector = Random_Forest_Detector()
-    category = 'giraffe'
+    #category = 'giraffe'
+    category = 'zebra_grevys'
 
-    dataset_path = '../IBEIS2014/'
-    pos_path    = join(testdata_dir, category, 'train-positives')
-    neg_path    = join(testdata_dir, category, 'train-negatives')
-    val_path    = join(testdata_dir, category, 'val')
-    test_path   = join(testdata_dir, category, 'test')
-    detect_path = join(testdata_dir, category, 'detect')
-    trees_path  = join(testdata_dir, category, 'trees')
+    #dataset_path = '../IBEIS2014/'
+    #pos_path    = join(testdata_dir, category, 'train-positives')
+    #neg_path    = join(testdata_dir, category, 'train-negatives')
+    #val_path    = join(testdata_dir, category, 'val')
+    #test_path   = join(testdata_dir, category, 'test')
+    #detect_path = join(testdata_dir, category, 'detect')
+    #trees_path  = join(testdata_dir, category, 'trees')
 
-    # test_path = utool.grab_zipped_url(TEST_DATA_DETECT_URL, appname='utool')
-    # models_path = utool.grab_zipped_url(TEST_DATA_MODEL_URL, appname='utool')
-    # trees_path = join(models_path, category)
-    # detect_path = join(test_path, category, 'detect')
+    test_path = utool.grab_zipped_url(TEST_DATA_DETECT_URL, appname='utool')
+    models_path = utool.grab_zipped_url(TEST_DATA_MODEL_URL, appname='utool')
+    trees_path = join(models_path, category)
+    detect_path = join(test_path, category, 'detect')
+    utool.ensuredir(detect_path)
+
+    utool.assertpath(test_path, verbose=True)
+    utool.assertpath(trees_path, verbose=True)
 
     #=================================
     # Train / Detect Configurations
@@ -86,20 +95,20 @@ def test_pyrf():
     #utool.view_directory('.')
     print(std_gpath_list)
     num_images = len(std_gpath_list)
-    # assert num_images == 16
+    assert num_images == 16, 'the test has diverged!'
     print('Testing on %r images' % num_images)
 
     # Load forest, so we don't have to reload every time
     forest = detector.load(trees_path, category + '-')
-    # for ix, img_fname in enumerate(std_gpath_list):
-    for ix, img_fname in enumerate(std_gpath_list[::-1]):
+    detector.set_detect_params(**detect_config)
+    #for ix, img_fname in enumerate(std_gpath_list[::-1]):
+    for ix, img_fname in enumerate(std_gpath_list):
         img_fpath = join(test_path, img_fname)
         dst_fpath = join(detect_path, img_fpath.split('/')[-1])
 
-        results, timing = detector.detect(forest, img_fpath, dst_fpath,
-                                          **detect_config)
-
-        print('[rf] %s | Time: %.3f' % (img_fpath, timing))
+        with utool.Timer('[rf] img_fpath=%r' % (img_fpath,)):
+            results = detector.detect(forest, img_fpath, dst_fpath)
+        #print('[rf] %s | Time: %.3f' % (img_fpath, timing))
         print(results)
     return locals()
 

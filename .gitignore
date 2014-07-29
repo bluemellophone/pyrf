@@ -56,3 +56,5 @@ nosetests.xml
 
 *.flann
 *.npz
+
+test_times.txt
