@@ -1,7 +1,8 @@
 from __future__ import absolute_import, division, print_function
 # Standard
 #import time
-from itertools import izip
+import sys
+from six.moves import zip
 import threading
 from os.path import dirname, realpath
 from collections import OrderedDict as odict
@@ -184,7 +185,7 @@ def extract_2darr_list(size_list, ptr_list, arr_t, arr_dtype,
     arr_dim   - the number of columns in each output 2d array
     """
     arr_list = [arrptr_to_np(arr_ptr, (size, arr_dim), arr_t, arr_dtype)
-                    for (arr_ptr, size) in izip(ptr_list, size_list)]
+                    for (arr_ptr, size) in zip(ptr_list, size_list)]
     return arr_list
 
 
@@ -265,7 +266,7 @@ class Random_Forest_Detector(object):
 
     def detect_many(rf, forest, image_fpath_list, result_fpath_list):
         """ WIP """
-        OPENMP_SOLUTION = True
+        OPENMP_SOLUTION = '--pyrf-openmp' in sys.argv
         if OPENMP_SOLUTION:
             # OPENMP SOLUTION
             nImgs = len(image_fpath_list)
@@ -289,12 +290,11 @@ class Random_Forest_Detector(object):
             # Finish getting results using lengths and heads of arrays
             #results_list = [arrptr_to_np(results_ptr, (len_, 8), results_t,
             #                             np.float32)
-            #                for (results_ptr, len_) in izip(results_ptr_arr, length_arr)]
+            #                for (results_ptr, len_) in zip(results_ptr_arr, length_arr)]
         else:
             # FOR LOOP SOLUTION
-
             results_list = []
-            for image_fpath, result_fpath in izip(image_fpath_list, result_fpath_list):
+            for image_fpath, result_fpath in zip(image_fpath_list, result_fpath_list):
                 # Execute detection
                 length = RF_CLIB.detect(
                     rf.pyrf_ptr,

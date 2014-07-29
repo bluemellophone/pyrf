@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from __future__ import absolute_import, division, print_function
-from os.path import join
+from os.path import join, split
 from pyrf import Random_Forest_Detector
 #from detecttools.directory import Directory
 #from pyrf.pyrf_helpers import rmtreedir, ensuredir
@@ -91,6 +91,7 @@ def test_pyrf():
     std_gpath_list = image.resize_imagelist_to_sqrtarea(big_gpath_list,
                                                         sqrt_area=800,
                                                         output_dir=output_dir)
+    dst_gpath_list = [join(detect_path, split(gpath)[1]) for gpath in std_gpath_list]
     #utool.view_directory(test_path)
     #utool.view_directory('.')
     print(std_gpath_list)
@@ -102,14 +103,20 @@ def test_pyrf():
     forest = detector.load(trees_path, category + '-')
     detector.set_detect_params(**detect_config)
     #for ix, img_fname in enumerate(std_gpath_list[::-1]):
-    for ix, img_fname in enumerate(std_gpath_list):
-        img_fpath = join(test_path, img_fname)
-        dst_fpath = join(detect_path, img_fpath.split('/')[-1])
-
-        with utool.Timer('[rf] img_fpath=%r' % (img_fpath,)):
-            results = detector.detect(forest, img_fpath, dst_fpath)
+    for ix, (img_fpath, dst_fpath) in enumerate(zip(std_gpath_list, dst_gpath_list)):
+        #img_fname = split(img_fpath)[1]
+        #dst_fpath = join(detect_path, img_fname)
+        print(img_fpath)
+        print(dst_fpath)
+        #with utool.Timer('[rf] img_fpath=%r' % (img_fpath,)):
+        #    results = detector.detect(forest, img_fpath, dst_fpath)
         #print('[rf] %s | Time: %.3f' % (img_fpath, timing))
-        print(results)
+        #print(results)
+
+    with utool.Timer('[rf] parallel'):
+        parallel_results = detector.detect_many(forest, std_gpath_list, dst_gpath_list)
+    print(parallel_results)
+
     return locals()
 
 

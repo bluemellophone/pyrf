@@ -139,6 +139,7 @@ typedef unsigned char uint8;
             )
         {
             int index;
+            std::cout << "[pyrf.cpp] detect_many " << nImgs << std::endl;
             #pragma omp parallel for
             for(index=0;index < nImgs;++index)
             {
