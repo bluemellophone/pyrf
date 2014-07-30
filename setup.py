@@ -14,7 +14,7 @@ def build_command():
 
 
 INSTALL_REQUIRES = [
-    'detecttools >= 1.0.0.dev1'
+    'detecttools >= 1.0.0.dev1',
 ]
 
 if __name__ == '__main__':
@@ -25,7 +25,7 @@ if __name__ == '__main__':
         url='https://github.com/bluemellophone/pyrf',
         author='Jason Parham',
         author_email='bluemellophone@gmail.com',
-        packages=['pyrf'],
+        packages=['pyrf', 'build'],
         install_requires=INSTALL_REQUIRES,
         package_data={'build': util_cplat.get_dynamic_lib_globstrs()},
         setup_fpath=__file__,
