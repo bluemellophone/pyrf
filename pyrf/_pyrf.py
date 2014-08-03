@@ -2,6 +2,7 @@ from __future__ import absolute_import, division, print_function
 # Standard
 #import time
 import sys
+import six
 from six.moves import zip
 import threading
 from os.path import dirname, realpath
@@ -266,6 +267,9 @@ class Random_Forest_Detector(object):
 
     def detect_many(rf, forest, image_fpath_list, result_fpath_list):
         """ WIP """
+        if six.PY3:
+            image_fpath_list = [path.encode('ascii') for path in image_fpath_list]
+            result_fpath_list = [path.encode('ascii') for path in result_fpath_list]
         OPENMP_SOLUTION = '--pyrf-openmp' in sys.argv
         if OPENMP_SOLUTION:
             # OPENMP SOLUTION
@@ -323,6 +327,9 @@ class Random_Forest_Detector(object):
         #_kwargs(kwargs, 'percentage_top',          0.50)
         #_kwargs(kwargs, 'nms_margin_percentage',   0.75)
         #_kwargs(kwargs, 'min_contour_area',        300)
+        if six.PY3:
+            image_fpath = image_fpath.encode('ascii')
+            result_fpath = result_fpath.encode('ascii')
 
         # Execute detection
         length = RF_CLIB.detect(
