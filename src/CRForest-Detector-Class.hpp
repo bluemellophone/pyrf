@@ -344,17 +344,17 @@ struct CRForestDetectorClass
 			// Prepare results vector
 			points.clear();
 			points.resize(scales.size());
-			double minVal; double maxVal; 
+			double minVal; double maxVal;
 			for(int k=vImgDetect.size() - 1;k >= 0; --k)
 			{
 				// cout << k;
 				IplImage* scaled = cvCreateImage( cvSize(vImgDetect[k][0]->width,vImgDetect[k][0]->height) , IPL_DEPTH_8U , 1);
 
-				for(unsigned int c=0;c<vImgDetect[k].size(); ++c) 
+				for(unsigned int c=0;c<vImgDetect[k].size(); ++c)
 				{
 					// Find confidence
 					cvMinMaxLoc(vImgDetect[k][c], &minVal, &maxVal);
-				
+
 					// Resize image
 					cvConvertScale(vImgDetect[k][c], scaled, out_scale);
 					cvResize(scaled, temp);

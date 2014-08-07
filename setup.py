@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 from __future__ import absolute_import, division, print_function
-from utool.util_setup import setuptools_setup
 from utool import util_cplat
 from setuptools import setup
+from utool import util_setup
 
 
 def build_command():
@@ -18,16 +18,20 @@ INSTALL_REQUIRES = [
 ]
 
 if __name__ == '__main__':
-    kwargs = setuptools_setup(
+    kwargs = util_setup.setuptools_setup(
         name='pyrf',
-        build_command=build_command,
+        packages=['pyrf', 'build'],
+        #packages=util_setup.find_packages(),
+        version=util_setup.parse_package_for_version('pyrf'),
+        licence=util_setup.read_license('LICENSE'),
+        long_description=util_setup.parse_readme('README.md'),
         description=('Detects objects in images using random forests'),
         url='https://github.com/bluemellophone/pyrf',
         author='Jason Parham',
         author_email='bluemellophone@gmail.com',
-        packages=['pyrf', 'build'],
         install_requires=INSTALL_REQUIRES,
         package_data={'build': util_cplat.get_dynamic_lib_globstrs()},
+        build_command=build_command,
         setup_fpath=__file__,
     )
     setup(**kwargs)

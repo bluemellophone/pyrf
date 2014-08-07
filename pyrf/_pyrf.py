@@ -20,6 +20,7 @@ from .pyrf_helpers import (ensuredir, rmtreedir, get_training_data_from_ibeis,
 # CTypes Interface Data Types
 #============================
 
+DETECT_MANY_OPENMP = '--pyrf-openmp' in sys.argv
 
 # Bindings for Numpy Arrays
 FLAGS_RW = 'aligned, c_contiguous, writeable'
@@ -45,6 +46,8 @@ float_array_t  = np.ctypeslib.ndpointer(dtype=float_t, ndim=1, flags=FLAGS_RW)
 results_dtype   = np.float32
 results_t       = np.ctypeslib.ndpointer(dtype=results_dtype, ndim=2, flags=FLAGS_RW)
 results_array_t = np.ctypeslib.ndpointer(dtype=results_t, ndim=1, flags=FLAGS_RW)
+
+RESULTS_DIM = 8
 
 
 #=================================
@@ -265,13 +268,13 @@ class Random_Forest_Detector(object):
     # Run Algorithm
     #=============================
 
-    def detect_many(rf, forest, image_fpath_list, result_fpath_list):
+    def detect_many(rf, forest, image_fpath_list, result_fpath_list,
+                    use_openmp=DETECT_MANY_OPENMP):
         """ WIP """
         if six.PY3:
             image_fpath_list = [path.encode('ascii') for path in image_fpath_list]
             result_fpath_list = [path.encode('ascii') for path in result_fpath_list]
-        OPENMP_SOLUTION = '--pyrf-openmp' in sys.argv
-        if OPENMP_SOLUTION:
+        if use_openmp:
             # OPENMP SOLUTION
             nImgs = len(image_fpath_list)
             c_src_strs = _cast_strlist_to_C(map(realpath, image_fpath_list))
@@ -289,10 +292,12 @@ class Random_Forest_Detector(object):
                 results_ptr_arr,
                 *rf.detect_params)
 
-            results_list = extract_2darr_list(length_arr, results_ptr_arr, results_t, results_dtype, 8)
-
+            results_list = extract_2darr_list(length_arr, results_ptr_arr,
+                                              results_t, results_dtype,
+                                              RESULTS_DIM)
+            return results_list
             # Finish getting results using lengths and heads of arrays
-            #results_list = [arrptr_to_np(results_ptr, (len_, 8), results_t,
+            #results_list = [arrptr_to_np(results_ptr, (len_, RESULTS_DIM), results_t,
             #                             np.float32)
             #                for (results_ptr, len_) in zip(results_ptr_arr, length_arr)]
         else:
@@ -307,26 +312,12 @@ class Random_Forest_Detector(object):
                     result_fpath,
                     *rf.detect_params)
                 # Read results
-                results = np.empty((length, 8), np.float32)
+                results = np.empty((length, RESULTS_DIM), np.float32)
                 RF_CLIB.detect_results(rf.pyrf_ptr, results)
                 results_list.append(results)
-        return results_list
+            return results_list
 
     def detect(rf, forest, image_fpath, result_fpath):
-        # Removed to simplify inner loop. User a Timer object around this instead.
-        #start = time.time()
-
-        # Removed because this will be interpreted as individual
-        # function calls, which is not very python efficient
-        #_kwargs(kwargs, 'save_detection_images',   False)
-        #_kwargs(kwargs, 'save_scales',             False)
-        #_kwargs(kwargs, 'draw_supressed',          False)
-        #_kwargs(kwargs, 'detection_width',         128)
-        #_kwargs(kwargs, 'detection_height',        80)
-        #_kwargs(kwargs, 'percentage_left',         0.50)
-        #_kwargs(kwargs, 'percentage_top',          0.50)
-        #_kwargs(kwargs, 'nms_margin_percentage',   0.75)
-        #_kwargs(kwargs, 'min_contour_area',        300)
         if six.PY3:
             image_fpath = image_fpath.encode('ascii')
             result_fpath = result_fpath.encode('ascii')
@@ -338,23 +329,12 @@ class Random_Forest_Detector(object):
             image_fpath,
             result_fpath,
             *rf.detect_params)
-        #    kwargs['save_detection_images'],
-        #    kwargs['save_scales'],
-        #    kwargs['draw_supressed'],
-        #    kwargs['detection_width'],
-        #    kwargs['detection_height'],
-        #    kwargs['percentage_left'],
-        #    kwargs['percentage_top'],
-        #    kwargs['nms_margin_percentage'],
-        #    kwargs['min_contour_area'],
-        #)
 
         # Read results
-        results = np.empty((length, 8), np.float32)
+        results = np.empty((length, RESULTS_DIM), np.float32)
         RF_CLIB.detect_results(rf.pyrf_ptr, results)
 
-        #done = time.time()
-        return results  # , done - start
+        return results
 
     def segment(rf):
         rf._run(RF_CLIB.segment, [rf.pyrf_ptr])

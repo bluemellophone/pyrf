@@ -24,6 +24,7 @@ TO BEGIN:
 #include "CRForest.h"
 
 typedef unsigned char uint8;
+int RESULTS_DIM = 8;
 
 #ifdef __cplusplus
     extern "C" {
@@ -139,7 +140,21 @@ typedef unsigned char uint8;
             )
         {
             int index;
-            std::cout << "[pyrf.cpp] detect_many " << nImgs << std::endl;
+            #ifdef CMAKE_BUILD_TYPE
+                printf("[pyrf.c] CMAKE_BUILD_TYPE=%s", CMAKE_BUILD_TYPE);
+            #endif
+            //#if CMAKE_BUILD_TYPE == Debug
+            //printf("[pyrf.c] DEBUG MODE\n");
+            //#else
+                //#if CMAKE_BUILD_TYPE == Release
+                //printf("[pyrf.c] RELEASE MODE\n");
+                //#else
+                //printf("[pyrf.c] UNKNOWN MODE\n");
+                //#endif
+            //#endif
+
+            printf("[pyrf.c] detect_many nImgs=%d\n", nImgs);
+            //std::cout << "[pyrf.cpp] detect_many " << nImgs << std::endl;
             #pragma omp parallel for
             for(index=0;index < nImgs;++index)
             {
@@ -158,9 +173,10 @@ typedef unsigned char uint8;
                         min_contour_area
                         );
                  length_array[index] = length;
-                 results_array[index] = new float[8 * length];  // will be cast to a 2d array in python
+                 results_array[index] = new float[RESULTS_DIM * length];  // will be cast to a 2d array in python
                  detector->detect_results(results_array[index]);
             }
+            printf("[pyrf.c] finished detect_many  nImgs=%d\n", nImgs);
         }
 
         PYTHON_RANDOM_FOREST void detect_results(
