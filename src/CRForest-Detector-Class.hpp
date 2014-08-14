@@ -145,6 +145,22 @@ struct CRForestDetectorClass
 
 		}
 
+        CRForestDetectorClass(const CRForestDetectorClass& other)
+        {
+            this->patch_width              = other.patch_width;
+            this->patch_height             = other.patch_height;
+            this->out_scale                = other.out_scale;
+            this->default_split            = other.default_split;
+            this->positive_like            = other.positive_like;
+            this->legacy                   = other.legacy;
+            this->include_horizontal_flip  = other.include_horizontal_flip;
+            this->patch_sample_density_pos = other.patch_sample_density_pos;
+            this->patch_sample_density_neg = other.patch_sample_density_neg;
+            this->scales = other.scales;
+            this->ratios = other.ratios;
+            //this->points = other.points;
+        }
+
 		// load test image filenames
 		void loadImFile(std::vector<string>& vFilenames, string detection_inventory) {
 
@@ -257,10 +273,7 @@ struct CRForestDetectorClass
 						  cout << vFilenames[i] << endl;
 						  exit(-1);
 						}
-
 					}
-
-
 				}
 
 				in.close();
