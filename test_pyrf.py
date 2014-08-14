@@ -77,7 +77,8 @@ def test_pyrf():
     big_gpath_list = utool.list_images(test_path, fullpath=True, recursive=False)
     print(big_gpath_list)
     # Resize images to standard size
-    #big_gpath_list = big_gpath_list[0:8]
+    if utool.get_flag('--small'):
+        big_gpath_list = big_gpath_list[0:8]
     #big_gpath_list = big_gpath_list[0:8]
     output_dir = join(test_path, 'resized')
     std_gpath_list = image.resize_imagelist_to_sqrtarea(big_gpath_list,
