@@ -176,6 +176,10 @@ int RESULTS_DIM = 8;
                 length_array[index] = length;
                 results_array[index] = new float[RESULTS_DIM * length];  // will be cast to a 2d array in python
                 detector_copy.detect_results(results_array[index]);
+                if(length > 0)
+                {
+                    printf("[pyrf.c] made %d detections.\n", length);
+                }
             }
             printf("[pyrf.c] finished detect_many  nImgs=%d\n", nImgs);
         }

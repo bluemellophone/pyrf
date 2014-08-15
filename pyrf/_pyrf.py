@@ -20,7 +20,8 @@ from .pyrf_helpers import (ensuredir, rmtreedir, get_training_data_from_ibeis,
 # CTypes Interface Data Types
 #============================
 
-DETECT_MANY_OPENMP = '--pyrf-openmp' in sys.argv
+#DETECT_MANY_OPENMP = '--pyrf-openmp' in sys.argv
+DETECT_MANY_OPENMP = '--no-pyrf-openmp' not in sys.argv
 
 # Bindings for Numpy Arrays
 FLAGS_RW = 'aligned, c_contiguous, writeable'
