@@ -70,3 +70,6 @@ failed.txt
 *_cyth.html
 *_cyth_bench.py
 run_cyth_benchmarks.sh
+
+CMakeFiles
+CmakeCache.txt

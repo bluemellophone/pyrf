@@ -71,10 +71,12 @@ RESULTS_DIM = 8
 constructor_parameters = [
     (CINT,  'patch_width',              32),
     (CINT,  'patch_height',             32),
-    (CINT,  'out_scale',                128),
+    # (CINT,  'out_scale',                128),
+    (CINT,  'out_scale',                255),
     (CINT,  'default_split',            -1),
 
-    (CINT,  'pos_like',                 0),
+    # (CINT,  'pos_like',                 0),
+    (CINT,  'pos_like',                 1),
     # 0 - Hough
     # 1 - Classification
     # 2 - Regression

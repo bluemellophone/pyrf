@@ -498,7 +498,8 @@ struct CRForestDetectorClass
 			if(save_detection_images)
 			{
 				//cvSmooth(combined, combined, CV_GAUSSIAN, 3);
-				cvSaveImage( detection_result_filepath, combined );
+				sprintf_s(buffer,"%s.png", detection_result_filepath);
+				cvSaveImage( buffer, combined );
 
 				sprintf_s(buffer,"%s_points.png", detection_result_filepath);
 				cvSaveImage( buffer, img );
