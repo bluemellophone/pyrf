@@ -58,3 +58,5 @@ nosetests.xml
 *.npz
 
 test_times.txt
+CMakeCache.txt
+CMakeFiles
