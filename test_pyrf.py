@@ -12,7 +12,7 @@ def test_pyrf():
     # testdata_dir = utool.unixpath('~/code/pyrf/testdata_detect')
     testdata_dir = utool.unixpath('~/code/pyrf/results')
     #assert utool.checkpath(testdata_dir)
-    if utool.get_flag('--vd'):
+    if utool.get_argflag('--vd'):
         print(utool.ls(testdata_dir))
 
     # Create detector
@@ -77,7 +77,7 @@ def test_pyrf():
     big_gpath_list = utool.list_images(test_path, fullpath=True, recursive=False)
     print(big_gpath_list)
     # Resize images to standard size
-    if utool.get_flag('--small'):
+    if utool.get_argflag('--small'):
         big_gpath_list = big_gpath_list[0:8]
     #big_gpath_list = big_gpath_list[0:8]
     output_dir = join(test_path, 'resized')
@@ -98,7 +98,7 @@ def test_pyrf():
     detector.set_detect_params(**detect_config)
     results_list1 = []
     with utool.Timer('[test_pyrf] for loop detector.detect') as t1:
-        if not utool.get_flag('--skip1'):
+        if not utool.get_argflag('--skip1'):
             for ix, (img_fpath, dst_fpath) in enumerate(zip(std_gpath_list, dst_gpath_list)):
                 #img_fname = split(img_fpath)[1]
                 #dst_fpath = join(detect_path, img_fname)
