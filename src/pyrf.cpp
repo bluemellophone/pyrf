@@ -180,8 +180,12 @@ int RESULTS_DIM = 8;
                 {
                     printf("[pyrf.c] made %d detections.\n", length);
                 }
+                else
+                {
+                    printf("[pyrf.c] made no detections.\n");   
+                }
             }
-            printf("[pyrf.c] finished detect_many  nImgs=%d\n", nImgs);
+            printf("[pyrf.c] finished detect_many nImgs=%d\n", nImgs);
         }
 
         PYTHON_RANDOM_FOREST void detect_results(

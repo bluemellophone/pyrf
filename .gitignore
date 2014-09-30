@@ -73,5 +73,6 @@ run_cyth_benchmarks.sh
 
 CMakeFiles
 CmakeCache.txt
+cmake_install.cmake
 *.orig
 
