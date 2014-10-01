@@ -145,6 +145,22 @@ struct CRForestDetectorClass
 
 		}
 
+        CRForestDetectorClass(const CRForestDetectorClass& other)
+        {
+            this->patch_width              = other.patch_width;
+            this->patch_height             = other.patch_height;
+            this->out_scale                = other.out_scale;
+            this->default_split            = other.default_split;
+            this->positive_like            = other.positive_like;
+            this->legacy                   = other.legacy;
+            this->include_horizontal_flip  = other.include_horizontal_flip;
+            this->patch_sample_density_pos = other.patch_sample_density_pos;
+            this->patch_sample_density_neg = other.patch_sample_density_neg;
+            this->scales = other.scales;
+            this->ratios = other.ratios;
+            //this->points = other.points;
+        }
+
 		// load test image filenames
 		void loadImFile(std::vector<string>& vFilenames, string detection_inventory) {
 
@@ -257,10 +273,7 @@ struct CRForestDetectorClass
 						  cout << vFilenames[i] << endl;
 						  exit(-1);
 						}
-
 					}
-
-
 				}
 
 				in.close();
@@ -344,17 +357,17 @@ struct CRForestDetectorClass
 			// Prepare results vector
 			points.clear();
 			points.resize(scales.size());
-			double minVal; double maxVal; 
+			double minVal; double maxVal;
 			for(int k=vImgDetect.size() - 1;k >= 0; --k)
 			{
 				// cout << k;
 				IplImage* scaled = cvCreateImage( cvSize(vImgDetect[k][0]->width,vImgDetect[k][0]->height) , IPL_DEPTH_8U , 1);
 
-				for(unsigned int c=0;c<vImgDetect[k].size(); ++c) 
+				for(unsigned int c=0;c<vImgDetect[k].size(); ++c)
 				{
 					// Find confidence
 					cvMinMaxLoc(vImgDetect[k][c], &minVal, &maxVal);
-				
+
 					// Resize image
 					cvConvertScale(vImgDetect[k][c], scaled, out_scale);
 					cvResize(scaled, temp);
@@ -484,13 +497,12 @@ struct CRForestDetectorClass
 
 			if(save_detection_images)
 			{
+				//cvSmooth(combined, combined, CV_GAUSSIAN, 3);
+				sprintf_s(buffer,"%s.png", detection_result_filepath);
+				cvSaveImage( buffer, combined );
+
 				sprintf_s(buffer,"%s_points.png", detection_result_filepath);
 				cvSaveImage( buffer, img );
-
-				// Save accumulated detection image
-				sprintf_s(buffer,"%s_hough.png", detection_result_filepath);
-                //cvSmooth(combined, combined, CV_GAUSSIAN, 3);
-				cvSaveImage( buffer, combined );
 			}
 
 			// Release image
