@@ -230,32 +230,51 @@ class Random_Forest_Detector(object):
     # Train Algorithm with Data
     #=============================
 
-    def train(rf, database_path, category, pos_path, neg_path,
-              val_path, test_path, trees_path, **kwargs):
-        _kwargs(kwargs, 'num_trees', 10)
-
-        print('[rf] Clearing Test Cache Directories')
-        rmtreedir(pos_path)
-        rmtreedir(neg_path)
-        rmtreedir(val_path)
-        rmtreedir(test_path)
-
-        print('[rf] Creating Test Cache Directories')
-        ensuredir(pos_path)
-        ensuredir(neg_path)
-        ensuredir(val_path)
-        ensuredir(test_path)
-        ensuredir(trees_path)
-        trees_path = join(trees_path, category + '-')
+    def train(rf, dataset, category, pos_path, neg_path,
+              val_path, test_path, test_pos_path, test_neg_path,
+              trees_path, reshuffle=True, **kwargs):
+        _kwargs(kwargs, 'num_trees', 5)
 
         # Gather training data from IBEIS database
-        fpath_pos, fpath_neg, fpath_val, fpath_test = get_training_data_from_ibeis(
-            database_path, category, pos_path, neg_path, val_path,
-            test_path, **kwargs)
+        if reshuffle:
+            print('[rf] Clearing Test Cache Directories')
+            rmtreedir(pos_path)
+            rmtreedir(neg_path)
+            rmtreedir(val_path)
+            rmtreedir(test_path)
+            rmtreedir(test_pos_path)
+            rmtreedir(test_neg_path)
+
+            print('[rf] Creating Test Cache Directories')
+            ensuredir(pos_path)
+            ensuredir(neg_path)
+            ensuredir(val_path)
+            ensuredir(test_path)
+            ensuredir(test_pos_path)
+            ensuredir(test_neg_path)
+            ensuredir(trees_path)
+            trees_path = join(trees_path, category + '-')
+
+            fpath_pos, fpath_neg, fpath_val, fpath_test, fpath_test_pos, fpath_test_neg = get_training_data_from_ibeis(
+                dataset, category, pos_path, neg_path, val_path,
+                test_path, test_pos_path, test_neg_path, **kwargs)
+        else:
+            print('[rf] Using Previous Test Cache Directories')
+            fpath_pos, fpath_neg, fpath_val, fpath_test, fpath_test_pos, fpath_test_neg = (
+                pos_path      + '.txt',
+                neg_path      + '.txt',
+                val_path      + '.txt',
+                test_path     + '.txt',
+                test_pos_path + '.txt',
+                test_neg_path + '.txt',
+            )
 
         # Run training algorithm
         params = [rf.pyrf_ptr, trees_path, kwargs['num_trees'], fpath_pos, fpath_neg]
         rf._run(RF_CLIB.train, params)
+
+    def boosting(rf):
+        pass
 
     def retrain(rf):
         rf._run(RF_CLIB.retrain, [rf.pyrf_ptr])
@@ -264,9 +283,9 @@ class Random_Forest_Detector(object):
     # Run Algorithm
     #=============================
 
-    def detect_many(rf, forest, image_fpath_list, result_fpath_list):
+    def detect_many(rf, forest, image_fpath_list, result_fpath_list, use_openmp=False):
         """ WIP """
-        OPENMP_SOLUTION = '--pyrf-openmp' in sys.argv
+        OPENMP_SOLUTION = '--pyrf-openmp' in sys.argv or use_openmp
         if OPENMP_SOLUTION:
             # OPENMP SOLUTION
             nImgs = len(image_fpath_list)

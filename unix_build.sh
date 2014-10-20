@@ -22,4 +22,4 @@ make -w -j$NCPUS || { echo "FAILED MAKE" ; exit 1; }
 
 cd ..
 #python -c "import utool; print(utool.truepath('build/libpyrf'))"
-cp build/libpyrf* pyrf --verbose
+cp -v build/libpyrf* pyrf/

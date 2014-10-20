@@ -4,7 +4,6 @@
 import sys
 from os.path import join, isdir, realpath, dirname
 import shutil
-from detecttools.ibeisdata import IBEIS_Data
 import cv2
 import os
 import utool
@@ -97,23 +96,21 @@ def _prepare_inventory(directory_path, images, total, category, train=True, posi
     return output_fpath
 
 
-def get_training_data_from_ibeis(dataset_path, category, pos_path, neg_path,
-                                 val_path, test_path, **kwargs):
-
-    dataset = IBEIS_Data(dataset_path, **kwargs)
-
+def get_training_data_from_ibeis(dataset, category, pos_path, neg_path,
+                                 val_path, test_path, test_pos_path,
+                                 tast_neg_path, **kwargs):
     # How does the data look like?
     dataset.print_distribution()
 
     # Get all images using a specific positive set
-    data = dataset.dataset(
+    (pos, pos_rois), (neg, neg_rois), val, test = dataset.dataset(
         category,
         neg_exclude_categories=kwargs['neg_exclude_categories'],
         max_rois_pos=kwargs['max_rois_pos'],
         max_rois_neg=kwargs['max_rois_neg'],
     )
 
-    (pos, pos_rois), (neg, neg_rois), val, test = data
+    raw_input("Continue...")
 
     print('[rf] Caching Positives')
     pos_fpath = _prepare_inventory(pos_path, pos, pos_rois, category)
@@ -127,4 +124,10 @@ def get_training_data_from_ibeis(dataset_path, category, pos_path, neg_path,
     print('[rf] Caching Test')
     test_fpath = _prepare_inventory(test_path, test, len(test), category, train=False)
 
-    return pos_fpath, neg_fpath, val_fpath, test_fpath
+    print('[rf] Caching Test Positives')
+    test_pos_fpath = _prepare_inventory(test_pos_path, pos, len(pos), category, train=False)
+
+    print('[rf] Caching Test Negatives')
+    test_neg_fpath = _prepare_inventory(tast_neg_path, neg, len(neg), category, train=False)
+
+    return pos_fpath, neg_fpath, val_fpath, test_fpath, test_pos_fpath, test_neg_fpath

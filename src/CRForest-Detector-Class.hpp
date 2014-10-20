@@ -533,9 +533,11 @@ struct CRForestDetectorClass
 			// load postive images and extract patches
 			for(int i=0; i<(int)vFilenames.size(); ++i) {
 
+				cout << "0.";
 			  	if(i%10==0) cout << i << " " << flush;
 				// cout << i << " " << (int)vFilenames.size() << " " << vFilenames[i] << endl;
 
+				cout << "1.";
 				// Load image
 				IplImage *img = 0;
 				img = cvLoadImage(vFilenames[i].c_str(),CV_LOAD_IMAGE_COLOR);
@@ -543,10 +545,13 @@ struct CRForestDetectorClass
 					cout << "Could not load image file: " << vFilenames[i].c_str() << endl;
 					exit(-1);
 				}
+				cout << ".1";
 
 				// Extract positive training patches
+				cout << "2.";
 				Train.extractPatches(img, patch_sample_density_pos, 1, &vBBox[i], &vCenter[i], legacy);
 
+				cout << "3.";
 				if(include_horizontal_flip)
 				{
 					IplImage *img2 = 0;
