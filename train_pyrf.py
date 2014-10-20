@@ -1,10 +1,21 @@
 #!/usr/bin/env python2.7
 from __future__ import absolute_import, division, print_function
-from os.path import join, split
+from os.path import join, split, isdir
 from pyrf import Random_Forest_Detector
 from detecttools.directory import Directory
 from detecttools.ibeisdata import IBEIS_Data
 import utool
+import sys
+import shutil
+
+
+def rmtreedir(path):
+    if isdir(path):
+        shutil.rmtree(path)
+
+
+def ensuredir(path):
+    utool.ensuredir(path)
 
 
 def train_pyrf():
@@ -60,49 +71,63 @@ def train_pyrf():
     detect_path   = join(results_path, 'detect')
     trees_path    = join(results_path, 'trees')
 
+    # Use pre-trained trees?
+    # TEST_DATA_MODEL_URL = 'https://dl.dropboxusercontent.com/s/9814r3d2rkiq5t3/rf.zip'
+    # models_path = utool.grab_zipped_url(TEST_DATA_MODEL_URL, appname='utool')
+    # trees_path = join(models_path, category)
+
+    # Ensure result path for the category
+    rmtreedir(results_path)
+    ensuredir(results_path)
+
     for phase in range(1, boosting + 1):
         print("*********************")
         print("Phase: %s" % phase)
         print("*********************")
         raw_input()
-        #=================================
+        # =================================
         # Train Random Forest
         #=================================
         detector.train(dataset, category, pos_path, neg_path, val_path,
                         test_path, test_pos_path, test_neg_path,
-                        trees_path, reshuffle=(phase == 0), **train_config)
+                        trees_path, reshuffle=(phase == 1), **train_config)
 
         #=================================
         # Detect using Random Forest
         #=================================
-        # TEST_DATA_MODEL_URL = 'https://dl.dropboxusercontent.com/s/9814r3d2rkiq5t3/rf.zip'
-        # models_path = utool.grab_zipped_url(TEST_DATA_MODEL_URL, appname='utool')
-        # trees_path = join(models_path, category)
 
         # Load forest, so we don't have to reload every time
         forest = detector.load(trees_path, category + '-', num_trees=(phase * num_trees))
         detector.set_detect_params(**detect_config)
 
-        # Calculate error on test set
-        direct = Directory(test_path , include_file_extensions=["jpg"])
-        accuracy_list = []
-        image_filepath_list = direct.files()
-        for index, image_filepath in enumerate(image_filepath_list):
-            image_path, image_filename = split(image_filepath)
-            predictions = detector.detect(forest, image_filepath, join(detect_path, image_filename))
-            image = dataset[image_filename]
-            accuracy, true_pos, false_pos, false_neg = image.accuracy(predictions, category)
-            accuracy_list.append(accuracy)
-            progress = "%0.2f" % (float(index) / len(image_filepath_list))
-            print(image, accuracy, progress)
-            # image.show(prediction_list=predictions, category=category)
-        print(sum(accuracy_list) / len(accuracy_list))
+        # Ensure output detection paths
+        rmtreedir(detect_path)
+        ensuredir(detect_path)
+
+        # # Calculate error on test set
+        # direct = Directory(test_path, include_file_extensions=["jpg"])
+        # accuracy_list = []
+        # image_filepath_list = direct.files()
+        # for index, image_filepath in enumerate(image_filepath_list):
+        #     image_path, image_filename = split(image_filepath)
+        #     predictions = detector.detect(forest, image_filepath, join(detect_path, image_filename))
+        #     image = dataset[image_filename]
+        #     accuracy, true_pos, false_pos, false_neg = image.accuracy(predictions, category)
+        #     accuracy_list.append(accuracy)
+        #     progress = "%0.2f" % (float(index) / len(image_filepath_list))
+        #     print("TEST %s %0.4f %s" % (image, accuracy, progress), end='\r')
+        #     sys.stdout.flush()
+        #     # image.show(prediction_list=predictions, category=category)
+        # print(' ' * 1000, end='\r')
+        # print("TEST ERROR: %0.4f" % (1.0 - (float(sum(accuracy_list)) / len(accuracy_list))))
 
         #=================================
         # Eval and prep boosting train set
         #=================================
         if phase < boosting:
-            detector.boosting()
+            detector.boosting(phase, forest, dataset, category, pos_path, neg_path,
+                              test_pos_path, test_neg_path, detect_path)
+
 
 if __name__ == '__main__':
     train_pyrf()

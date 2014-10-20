@@ -178,7 +178,12 @@ void CRTree::grow(const vector<vector<const PatchFeature*> >& TrainSet, int node
 			else
 				measure_mode = 1;
 		}
-		cout << "MeasureMode " << depth << " " << measure_mode << " " << TrainSet[0].size() << " " << TrainSet[1].size() << endl;
+		bool verbose = depth <= 2;
+
+		if(verbose)
+		{
+			cout << "MeasureMode " << depth << " " << measure_mode << " " << TrainSet[0].size() << " " << TrainSet[1].size() << endl;
+		}
 	
 		// Find optimal test
 		if( optimizeTest(SetA, SetB, TrainSet, test, samples, measure_mode) ) {
@@ -192,17 +197,33 @@ void CRTree::grow(const vector<vector<const PatchFeature*> >& TrainSet, int node
 			double countA = 0;
 			double countB = 0;
 			for(unsigned int l=0; l<TrainSet.size(); ++l) {
-				cout << "Final_Split A/B " << l << " " << SetA[l].size() << " " << SetB[l].size() << endl; 
+				if(verbose)
+				{
+					cout << "Final_Split A/B " << l << " " << SetA[l].size() << " " << SetB[l].size() << endl; 
+				}
 				countA += SetA[l].size(); countB += SetB[l].size();
 			}
 			for(unsigned int l=0; l<TrainSet.size(); ++l) {
-				cout << "Final_SplitA: " << SetA[l].size()/countA << "% "; 
+				if(verbose)
+				{
+					cout << "Final_SplitA: " << SetA[l].size()/countA << "% "; 
+				}
 			}
-			cout << endl;
+			if(verbose)
+			{
+				cout << endl;
+			}
 			for(unsigned int l=0; l<TrainSet.size(); ++l) {
-				cout << "Final_SplitB: " << SetB[l].size()/countB << "% "; 
+
+				if(verbose)
+				{
+					cout << "Final_SplitB: " << SetB[l].size()/countB << "% "; 
+				}
 			}
-			cout << endl;
+			if(verbose)
+			{
+				cout << endl;
+			}
 
 			// Go left
 			// If enough patches are left continue growing else stop

@@ -533,11 +533,9 @@ struct CRForestDetectorClass
 			// load postive images and extract patches
 			for(int i=0; i<(int)vFilenames.size(); ++i) {
 
-				cout << "0.";
-			  	if(i%10==0) cout << i << " " << flush;
+				if(i%10==0) cout << i << " " << flush;
 				// cout << i << " " << (int)vFilenames.size() << " " << vFilenames[i] << endl;
 
-				cout << "1.";
 				// Load image
 				IplImage *img = 0;
 				img = cvLoadImage(vFilenames[i].c_str(),CV_LOAD_IMAGE_COLOR);
@@ -545,13 +543,10 @@ struct CRForestDetectorClass
 					cout << "Could not load image file: " << vFilenames[i].c_str() << endl;
 					exit(-1);
 				}
-				cout << ".1";
-
+				
 				// Extract positive training patches
-				cout << "2.";
 				Train.extractPatches(img, patch_sample_density_pos, 1, &vBBox[i], &vCenter[i], legacy);
-
-				cout << "3.";
+				
 				if(include_horizontal_flip)
 				{
 					IplImage *img2 = 0;
@@ -562,11 +557,9 @@ struct CRForestDetectorClass
 
 					cvReleaseImage(&img2);
 				}
-
+				
 				// Release image
 				cvReleaseImage(&img);
-
-
 			}
 			cout << endl;
 
@@ -611,14 +604,10 @@ struct CRForestDetectorClass
 					cvReleaseImage(&img2);
 				}
 
-
 				// Release image
 				cvReleaseImage(&img);
-
-
 			}
 			cout << endl;
-
 		}
 
 		CRForest* load_forest(char* tree_path, char* prefix, int num_trees)
@@ -689,6 +678,7 @@ struct CRForestDetectorClass
 		// Init and start training
 		void run_train(	char* tree_path,
 						int num_trees,
+						int offset,
 						char* training_inventory_pos,
 						char* training_inventory_neg
 						)
@@ -720,7 +710,7 @@ struct CRForestDetectorClass
 							training_inventory_neg);
 
 			// Train forest
-			crForest.trainForest(20, 15, &cvRNG, Train, 2000, default_split, tree_path, 0);
+			crForest.trainForest(20, 15, &cvRNG, Train, 2000, default_split, tree_path, offset);
 
 			// Save forest
 			// crForest.saveForest(tree_path, 0);

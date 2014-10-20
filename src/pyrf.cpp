@@ -71,6 +71,7 @@ int RESULTS_DIM = 8;
                 CRForestDetectorClass* detector,
                 char* tree_path,
                 int num_trees,
+                int offset,
                 char* training_inventory_pos,
                 char* training_inventory_neg
             )
@@ -78,6 +79,7 @@ int RESULTS_DIM = 8;
             detector->run_train(
                 tree_path,
                 num_trees,
+                offset,
                 training_inventory_pos,
                 training_inventory_neg
             );
