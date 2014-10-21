@@ -39,10 +39,8 @@ def train_pyrf():
         'mine_height_max':              512,
 
         'neg_exclude_categories':       [category],
-        # 'max_rois_pos':                 1200,
-        # 'max_rois_neg':                 1200,
-        'max_rois_pos':                 50,
-        'max_rois_neg':                 50,
+        'max_rois_pos':                 800,
+        'max_rois_neg':                 500,
         'num_trees':                    num_trees,
     }
 
@@ -84,7 +82,7 @@ def train_pyrf():
         print("*********************")
         print("Phase: %s" % phase)
         print("*********************")
-        raw_input()
+        # raw_input()
         # =================================
         # Train Random Forest
         #=================================
@@ -104,22 +102,22 @@ def train_pyrf():
         rmtreedir(detect_path)
         ensuredir(detect_path)
 
-        # # Calculate error on test set
-        # direct = Directory(test_path, include_file_extensions=["jpg"])
-        # accuracy_list = []
-        # image_filepath_list = direct.files()
-        # for index, image_filepath in enumerate(image_filepath_list):
-        #     image_path, image_filename = split(image_filepath)
-        #     predictions = detector.detect(forest, image_filepath, join(detect_path, image_filename))
-        #     image = dataset[image_filename]
-        #     accuracy, true_pos, false_pos, false_neg = image.accuracy(predictions, category)
-        #     accuracy_list.append(accuracy)
-        #     progress = "%0.2f" % (float(index) / len(image_filepath_list))
-        #     print("TEST %s %0.4f %s" % (image, accuracy, progress), end='\r')
-        #     sys.stdout.flush()
-        #     # image.show(prediction_list=predictions, category=category)
-        # print(' ' * 1000, end='\r')
-        # print("TEST ERROR: %0.4f" % (1.0 - (float(sum(accuracy_list)) / len(accuracy_list))))
+        # Calculate error on test set
+        direct = Directory(test_path, include_file_extensions=["jpg"])
+        accuracy_list = []
+        image_filepath_list = direct.files()
+        for index, image_filepath in enumerate(image_filepath_list):
+            image_path, image_filename = split(image_filepath)
+            predictions = detector.detect(forest, image_filepath, join(detect_path, image_filename))
+            image = dataset[image_filename]
+            accuracy, true_pos, false_pos, false_neg = image.accuracy(predictions, category)
+            accuracy_list.append(accuracy)
+            progress = "%0.2f" % (float(index) / len(image_filepath_list))
+            print("TEST %s %0.4f %s" % (image, accuracy, progress), end='\r')
+            sys.stdout.flush()
+            # image.show(prediction_list=predictions, category=category)
+        print(' ' * 1000, end='\r')
+        print("TEST ERROR: %0.4f" % (1.0 - (float(sum(accuracy_list)) / len(accuracy_list))))
 
         #=================================
         # Eval and prep boosting train set

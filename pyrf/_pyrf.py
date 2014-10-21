@@ -328,7 +328,7 @@ class Random_Forest_Detector(object):
             print("TEST %s ERROR: %0.4f" % (_type , 1.0 - (float(sum(accuracy_list)) / len(accuracy_list))))
             print("TEST %s RETRAIN: %d / %d" % (_type , len(image_filepath_list) - counter, len(image_filepath_list)))
             temp = open(manifest_path, 'w')
-            temp.write("%d 1\n%s\n" % (len(line_list), ''.join(line_list),))
+            temp.write("%d 1\n%s" % (len(line_list), ''.join(line_list),))
             temp.close()
             return counter
 

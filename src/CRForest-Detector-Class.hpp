@@ -530,6 +530,7 @@ struct CRForestDetectorClass
 			// load positive file list
 			loadTrainPosFile(vFilenames,  vBBox, vCenter, training_inventory_pos);
 
+			bool flag;
 			// load postive images and extract patches
 			for(int i=0; i<(int)vFilenames.size(); ++i) {
 
@@ -544,19 +545,18 @@ struct CRForestDetectorClass
 					exit(-1);
 				}
 				
-				// Extract positive training patches
-				Train.extractPatches(img, patch_sample_density_pos, 1, &vBBox[i], &vCenter[i], legacy);
-				
+				// Flip coin, or always use regular rotation
 				if(include_horizontal_flip)
 				{
-					IplImage *img2 = 0;
-					img2 = cvLoadImage(vFilenames[i].c_str(),CV_LOAD_IMAGE_COLOR);
-					cvFlip(img2, img2, 1);
-
-					Train.extractPatches(img2, patch_sample_density_pos, 1, &vBBox[i], &vCenter[i], legacy);
-
-					cvReleaseImage(&img2);
+					flag = cvRandInt( pRNG ) % 2 == 0;
+					if(flag)
+					{
+						cvFlip(img, img, 1);
+					}
 				}
+
+				// Extract patches
+				Train.extractPatches(img, patch_sample_density_pos, 1, &vBBox[i], &vCenter[i], legacy);
 				
 				// Release image
 				cvReleaseImage(&img);
@@ -569,7 +569,6 @@ struct CRForestDetectorClass
 			loadTrainNegFile(vFilenames, vBBox, training_inventory_neg);
 
 			// load negative images and extract patches
-
 			for(int i=0; i<(int)vFilenames.size(); ++i) {
 
 				if(i%10==0) cout << i << " " << flush;
@@ -578,10 +577,19 @@ struct CRForestDetectorClass
 				// Load image
 				IplImage *img = 0;
 				img = cvLoadImage(vFilenames[i].c_str(),CV_LOAD_IMAGE_COLOR);
-
 				if(!img) {
 					cout << "Could not load image file: " << vFilenames[i].c_str() << endl;
 					exit(-1);
+				}
+
+				// Flip coin, or always use regular rotation
+				if(include_horizontal_flip)
+				{
+					flag = cvRandInt( pRNG ) % 2 == 0;
+					if(flag)
+					{
+						cvFlip(img, img, 1);
+					}
 				}
 
 				// Extract negative training patches
@@ -589,20 +597,6 @@ struct CRForestDetectorClass
 					Train.extractPatches(img, patch_sample_density_neg, 0, &vBBox[i], 0, legacy);
 				else
 					Train.extractPatches(img, patch_sample_density_neg, 0, 0, 0, legacy);
-
-				if(include_horizontal_flip && false)
-				{
-					IplImage *img2 = 0;
-					img2 = cvLoadImage(vFilenames[i].c_str(),CV_LOAD_IMAGE_COLOR);
-					cvFlip(img2, img2, 1);
-
-					if(vBBox.size()==vFilenames.size())
-						Train.extractPatches(img2, patch_sample_density_neg, 0, &vBBox[i], 0, legacy);
-					else
-						Train.extractPatches(img2, patch_sample_density_neg, 0, 0, 0, legacy);
-
-					cvReleaseImage(&img2);
-				}
 
 				// Release image
 				cvReleaseImage(&img);
