@@ -4,6 +4,18 @@ from utool import util_cplat
 from setuptools import setup
 from utool import util_setup
 
+#delete_on_clean = ['libpyrf.dll', 'libpyrf.dll.a', 'libpyrf.so', 'libpyrf.dylib', 'build/']
+delete_on_clean = [
+    'libpyrf.dll',
+    'libpyrf.dll.a',
+    'libpyrf.so',
+    'libpyrf.dylib',
+    'pyrf.egg-info',
+    'build/',
+    '*.pyo',
+    '*.pyc'
+]
+
 
 def build_command():
     """ Build command run by utool.util_setup """
@@ -14,7 +26,7 @@ def build_command():
 
 
 INSTALL_REQUIRES = [
-    'detecttools >= 1.0.0.dev1',
+    #'detecttools >= 1.0.0.dev1',
 ]
 
 if __name__ == '__main__':
