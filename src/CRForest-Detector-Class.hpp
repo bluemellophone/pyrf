@@ -107,9 +107,9 @@ struct CRForestDetectorClass
 			)
 		{
 			#ifdef _OPENMP
-			cout << "\n\n-----------------------------\n\nRUNNING PROGRAM IN PARALLEL\n\n-----------------------------\n\n" << endl;
+			cout << "\n\n[pyrf.cpp]  --- RUNNING PYRF DETECTOR IN PARALLEL ---\n\n" << endl;
 			#else
-			cout << "\n\n-----------------------------\n\nRUNNING PROGRAM IN SERIAL\n\n-----------------------------\n\n" << endl;
+			cout << "\n\n[pyrf.cpp]  --- RUNNING PYRF DETECTOR IN SERIAL ---\n\n" << endl;
 			#endif
 
 			patch_width = 				param_patch_width;
@@ -334,7 +334,7 @@ struct CRForestDetectorClass
 			IplImage *img = 0;
 			img = cvLoadImage(detection_image_filepath,CV_LOAD_IMAGE_COLOR);
 			if(!img) {
-				cout << "Could not load image file: " << detection_image_filepath << endl;
+				cout << "[pyrf.cpp] Could not load image file: " << detection_image_filepath << endl;
 				exit(-1);
 			}
 
@@ -541,7 +541,7 @@ struct CRForestDetectorClass
 				IplImage *img = 0;
 				img = cvLoadImage(vFilenames[i].c_str(),CV_LOAD_IMAGE_COLOR);
 				if(!img) {
-					cout << "Could not load image file: " << vFilenames[i].c_str() << endl;
+					cout << "[pyrf.cpp] Could not load image file: " << vFilenames[i].c_str() << endl;
 					exit(-1);
 				}
 				
@@ -578,7 +578,7 @@ struct CRForestDetectorClass
 				IplImage *img = 0;
 				img = cvLoadImage(vFilenames[i].c_str(),CV_LOAD_IMAGE_COLOR);
 				if(!img) {
-					cout << "Could not load image file: " << vFilenames[i].c_str() << endl;
+					cout << "[pyrf.cpp] Could not load image file: " << vFilenames[i].c_str() << endl;
 					exit(-1);
 				}
 

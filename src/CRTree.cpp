@@ -14,7 +14,7 @@ using namespace std;
 
 // Read tree from file
 CRTree::CRTree(const char* filename) {
-	cout << "Load Tree " << filename << endl;
+	cout << "[pyrf.cpp] Load Tree " << filename << endl;
 
 	int dummy;
 
@@ -61,7 +61,7 @@ CRTree::CRTree(const char* filename) {
 		}
 
 	} else {
-		cerr << "Could not read tree: " << filename << endl;
+		cerr << "[pyrf.cpp] Could not read tree: " << filename << endl;
 	}
 
 	in.close();
@@ -72,7 +72,7 @@ CRTree::CRTree(const char* filename) {
 /////////////////////// IO Function /////////////////////////////
 
 bool CRTree::saveTree(const char* filename) const {
-	cout << "Save Tree " << filename << endl;
+	cout << "[pyrf.cpp] Save Tree " << filename << endl;
 
 	bool done = false;
 

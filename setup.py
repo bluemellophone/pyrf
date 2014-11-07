@@ -5,7 +5,7 @@ from setuptools import setup
 from utool import util_setup
 
 #delete_on_clean = ['libpyrf.dll', 'libpyrf.dll.a', 'libpyrf.so', 'libpyrf.dylib', 'build/']
-delete_on_clean = [
+clutter_patterns = [
     'libpyrf.dll',
     'libpyrf.dll.a',
     'libpyrf.so',
@@ -41,6 +41,7 @@ if __name__ == '__main__':
         url='https://github.com/bluemellophone/pyrf',
         author='Jason Parham',
         author_email='bluemellophone@gmail.com',
+        clutter_patterns=clutter_patterns,
         install_requires=INSTALL_REQUIRES,
         package_data={'build': util_cplat.get_dynamic_lib_globstrs()},
         build_command=build_command,
