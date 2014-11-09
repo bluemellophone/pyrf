@@ -283,7 +283,7 @@ class Random_Forest_Detector(object):
         if offset is None:
             direct = Directory(trees_path, include_file_extensions=["txt"])
             offset = len(direct.files())
-            print("Auto Tree Offset: %d" % offset)
+            print('[rf] Auto Tree Offset: %d' % offset)
         else:
             offset = int(offset)
 
@@ -442,7 +442,8 @@ class Random_Forest_Detector(object):
     #=============================
 
     def load(rf, tree_path, prefix, num_trees=10):
-        return RF_CLIB.load(rf.pyrf_ptr, tree_path, prefix, num_trees)
+        forest = RF_CLIB.load(rf.pyrf_ptr, tree_path, prefix, num_trees)
+        return forest
 
     def save(rf):
         rf._run(RF_CLIB.save, [rf.pyrf_ptr])
