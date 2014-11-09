@@ -96,7 +96,7 @@ int RESULTS_DIM = 8;
                 char* detection_result_filepath,
                 bool save_detection_images,
                 bool save_scales,
-                bool draw_supressed,
+                bool draw_suppressed,
                 int detection_width,
                 int detection_height,
                 float percentage_left,
@@ -111,7 +111,7 @@ int RESULTS_DIM = 8;
                 detection_result_filepath,
                 save_detection_images,
                 save_scales,
-                draw_supressed,
+                draw_suppressed,
                 detection_width,
                 detection_height,
                 percentage_left,
@@ -130,9 +130,10 @@ int RESULTS_DIM = 8;
                 char** detection_result_filepath_list,
                 int* length_array,
                 float** results_array,
+                bool verbose,
                 bool save_detection_images,
                 bool save_scales,
-                bool draw_supressed,
+                bool draw_suppressed,
                 int detection_width,
                 int detection_height,
                 float percentage_left,
@@ -157,6 +158,7 @@ int RESULTS_DIM = 8;
 
             printf("[pyrf.c] detect_many nImgs=%d\n", nImgs);
             //std::cout << "[pyrf.cpp] detect_many " << nImgs << std::endl;
+            int counter = 0;
             #pragma omp parallel for
             for(index=0;index < nImgs;++index)
             {
@@ -167,7 +169,7 @@ int RESULTS_DIM = 8;
                     detection_result_filepath_list[index],
                     save_detection_images,
                     save_scales,
-                    draw_supressed,
+                    draw_suppressed,
                     detection_width,
                     detection_height,
                     percentage_left,
@@ -178,15 +180,28 @@ int RESULTS_DIM = 8;
                 length_array[index] = length;
                 results_array[index] = new float[RESULTS_DIM * length];  // will be cast to a 2d array in python
                 detector_copy.detect_results(results_array[index]);
-                if(length > 0)
+                
+                #pragma omp critical
                 {
-                    printf("[pyrf.c] made %d detections.\n", length);
-                }
-                else
-                {
-                    printf("[pyrf.c] made no detections.\n");   
+                    counter++;
+                    if(verbose)
+                    {
+                        if(length > 0)
+                        {
+                            printf("[pyrf.c] img %d made %d detections.\n", counter, length);
+                        }
+                        else
+                        {
+                            printf("[pyrf.c] img %d made no detections.\n", counter);   
+                        }  
+                    }
+                    else
+                    {
+                        if(counter%10==0) std::cout << counter << " " << std::flush;
+                    }
                 }
             }
+            std::cout << std::endl;
             printf("[pyrf.c] finished detect_many nImgs=%d\n", nImgs);
         }
 

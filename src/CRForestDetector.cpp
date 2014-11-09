@@ -5,6 +5,10 @@
 
 #include "CRForestDetector.h"
 #include <vector>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <string>
 #include <math.h>
 #ifdef _OPENMP
 #include <omp.h>
@@ -12,7 +16,14 @@
 
 using namespace std;
 
-void CRForestDetector::detectColor(IplImage *img, vector<IplImage* >& imgDetect, std::vector<float>& ratios, int positive_like, bool legacy) {
+void CRForestDetector::detectColor(
+		IplImage *img, 
+		vector<IplImage* >& imgDetect, 
+		vector<vector<vector<vector<vector<int> > > > >& manifests,
+		vector<float>& ratios, 
+		int positive_like, 
+		bool legacy
+	) {
 
 	// extract features
 	vector<IplImage*> vImg;
@@ -38,8 +49,23 @@ void CRForestDetector::detectColor(IplImage *img, vector<IplImage* >& imgDetect,
 		cvGetRawData( imgDetect[c], (uchar**)&(ptDet[c]), &stepDet);
 	stepDet /= sizeof(ptDet[0][0]);
 
+	// <manifests>
+	int a, b;
+	for(unsigned int c=0; c<manifests.size(); ++c)
+	{
+		manifests[c].resize(2);
+		manifests[c][0].resize(img->height);
+		manifests[c][1].resize(img->height);
+		for(b=0; b<img->height; ++b) {
+			manifests[c][0][b].resize(img->width);
+			manifests[c][1][b].resize(img->width);
+		}
+	}
+	// </manifests>
+
 	int xoffset = width/2;
 	int yoffset = height/2;
+	bool unique;
 
 	int x, y, cx, cy; // x,y top left; cx,cy center of patch
 	cy = yoffset;
@@ -80,6 +106,24 @@ void CRForestDetector::detectColor(IplImage *img, vector<IplImage* >& imgDetect,
 							  int y = cy-(*it)[0].y;
 							  if(y>=0 && y<imgDetect[c]->height && x>=0 && x<imgDetect[c]->width) {
 							    *(ptDet[c]+x+y*stepDet) += w;
+							    // Keep a manifest of who exeplars (>=95%) voted for this location
+							    if((*itL)->pfg == 1.00)
+							    {
+								    unique = true;
+								    for(int z = 0; z < manifests[c][0][y][x].size(); ++z)
+								    {
+								    	if(manifests[c][0][y][x][z] == cx && manifests[c][1][y][x][z] == cy)
+								    	{
+								    		unique = false;
+								    		break;
+								    	}
+								    }
+								    if(unique)
+								    {
+									    manifests[c][0][y][x].push_back(cx);
+									    manifests[c][1][y][x].push_back(cy);
+								    }
+							    }
 							  }
 							}
 						}
@@ -172,26 +216,32 @@ void CRForestDetector::detectColor(IplImage *img, vector<IplImage* >& imgDetect,
 
 }
 
-void CRForestDetector::detectPyramid(IplImage *img, vector<vector<IplImage*> >& vImgDetect, std::vector<float>& ratios, int positive_like, bool legacy) {
+void CRForestDetector::detectPyramid(
+		IplImage *img, 
+		vector<vector<IplImage*> >& vImgDetect, 
+		vector<vector<vector<vector<vector<vector<int> > > > > >& vmenifests,
+		vector<float>& ratios, 
+		int positive_like, 
+		bool legacy
+	) {
 
 	if(img->nChannels==1) {
 
-		std::cerr << "Gray color images are not supported." << std::endl;
+		cerr << "Gray color images are not supported." << endl;
 
 	} else { // color
 
 		#pragma omp parallel for
 		for(int i=0; i<int(vImgDetect.size()); ++i)
 		{
-			// cout << "   Start " << i << endl;
 			IplImage* cLevel = cvCreateImage( cvSize(vImgDetect[i][0]->width,vImgDetect[i][0]->height) , IPL_DEPTH_8U , 3);
 			cvResize( img, cLevel, CV_INTER_LINEAR );
 
 			// detection
-			detectColor(cLevel,vImgDetect[i],ratios, positive_like, legacy);
-
+			detectColor(cLevel, vImgDetect[i], vmenifests[i], ratios, positive_like, legacy);
+			
+			// release
 			cvReleaseImage(&cLevel);
-			// cout << "   End " << i << endl;
 		}
 	}
 
