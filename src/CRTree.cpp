@@ -14,7 +14,7 @@ using namespace std;
 
 // Read tree from file
 CRTree::CRTree(const char* filename) {
-	cout << "[pyrf.cpp] Load Tree " << filename << endl;
+	//cout << "[pyrf.cpp] Load Tree " << filename << endl;
 
 	int dummy;
 

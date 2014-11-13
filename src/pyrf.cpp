@@ -143,7 +143,7 @@ int RESULTS_DIM = 8;
         {
             int index;
             #ifdef CMAKE_BUILD_TYPE
-                printf("[pyrf.c] CMAKE_BUILD_TYPE=%s", CMAKE_BUILD_TYPE);
+                //printf("[pyrf.c] CMAKE_BUILD_TYPE=%s", CMAKE_BUILD_TYPE);
             #endif
             //#if CMAKE_BUILD_TYPE == Debug
             //printf("[pyrf.c] DEBUG MODE\n");
@@ -155,7 +155,7 @@ int RESULTS_DIM = 8;
                 //#endif
             //#endif
 
-            printf("[pyrf.c] detect_many nImgs=%d\n", nImgs);
+            //printf("\n[pyrf.c] detect_many nImgs=%d\n", nImgs);
             //std::cout << "[pyrf.cpp] detect_many " << nImgs << std::endl;
             #pragma omp parallel for
             for(index=0;index < nImgs;++index)
@@ -180,14 +180,14 @@ int RESULTS_DIM = 8;
                 detector_copy.detect_results(results_array[index]);
                 if(length > 0)
                 {
-                    printf("[pyrf.c] made %d detections.\n", length);
+                    //printf("[pyrf.c] made %d detections.\n", length);
                 }
                 else
                 {
-                    printf("[pyrf.c] made no detections.\n");   
+                    //printf("[pyrf.c] made no detections.\n");   
                 }
             }
-            printf("[pyrf.c] finished detect_many nImgs=%d\n", nImgs);
+            //printf("[pyrf.c] finished detect_many nImgs=%d\n", nImgs);
         }
 
         PYTHON_RANDOM_FOREST void detect_results(
