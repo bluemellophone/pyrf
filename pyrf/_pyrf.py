@@ -4,13 +4,16 @@ from __future__ import absolute_import, division, print_function
 import sys
 from six.moves import zip
 import threading
-from os.path import dirname, realpath
+from os.path import dirname, realpath, split
 from collections import OrderedDict as odict
 import ctypes as C
 # Scientific
+from random import shuffle
 import numpy as np
 from os.path import join
+from subprocess import call
 import detecttools.ctypes_interface as ctypes_interface
+from detecttools.directory import Directory
 from .pyrf_helpers import (ensuredir, rmtreedir, get_training_data_from_ibeis,
                            _build_shared_c_library)
 
@@ -112,7 +115,7 @@ def load_pyrf_clib(rebuild=False):
     For functions that take no parameters, use the Python empty list [].
     """
     def_cfunc(COBJ, 'constructor',      PARAM_TYPES)
-    def_cfunc(None, 'train',            [COBJ, CCHAR, CINT, CCHAR, CCHAR])
+    def_cfunc(None, 'train',            [COBJ, CCHAR, CINT, CINT, CCHAR, CCHAR])
     def_cfunc(CINT, 'detect',           [COBJ, COBJ, CCHAR, CCHAR] + DETECT_PARAM_TYPES )
     def_cfunc(None, 'detect_many',      [COBJ, COBJ, int_t, str_list_t, str_list_t,
                                          int_array_t, results_array_t] + DETECT_PARAM_TYPES)
@@ -230,32 +233,108 @@ class Random_Forest_Detector(object):
     # Train Algorithm with Data
     #=============================
 
-    def train(rf, database_path, category, pos_path, neg_path,
-              val_path, test_path, trees_path, **kwargs):
-        _kwargs(kwargs, 'num_trees', 10)
-
-        print('[rf] Clearing Test Cache Directories')
-        rmtreedir(pos_path)
-        rmtreedir(neg_path)
-        rmtreedir(val_path)
-        rmtreedir(test_path)
-
-        print('[rf] Creating Test Cache Directories')
-        ensuredir(pos_path)
-        ensuredir(neg_path)
-        ensuredir(val_path)
-        ensuredir(test_path)
-        ensuredir(trees_path)
-        trees_path = join(trees_path, category + '-')
+    def train(rf, dataset, category, pos_path, neg_path,
+              val_path, test_path, test_pos_path, test_neg_path,
+              trees_path, reshuffle=True, offset=None, **kwargs):
+        _kwargs(kwargs, 'num_trees', 5)
 
         # Gather training data from IBEIS database
-        fpath_pos, fpath_neg, fpath_val, fpath_test = get_training_data_from_ibeis(
-            database_path, category, pos_path, neg_path, val_path,
-            test_path, **kwargs)
+        if reshuffle:
+            print('[rf] Clearing Test Cache Directories')
+            rmtreedir(pos_path)
+            rmtreedir(neg_path)
+            rmtreedir(val_path)
+            rmtreedir(test_path)
+            rmtreedir(test_pos_path)
+            rmtreedir(test_neg_path)
+
+            print('[rf] Creating Test Cache Directories')
+            ensuredir(pos_path)
+            ensuredir(neg_path)
+            ensuredir(val_path)
+            ensuredir(test_path)
+            ensuredir(test_pos_path)
+            ensuredir(test_neg_path)
+
+            fpath_pos, fpath_neg, fpath_val, fpath_test, fpath_test_pos, fpath_test_neg = get_training_data_from_ibeis(
+                dataset, category, pos_path, neg_path, val_path,
+                test_path, test_pos_path, test_neg_path, **kwargs)
+        else:
+            print('[rf] Using Previous Test Cache Directories')
+            fpath_pos, fpath_neg, fpath_val, fpath_test, fpath_test_pos, fpath_test_neg = (
+                pos_path      + '.txt',
+                neg_path      + '.txt',
+                val_path      + '.txt',
+                test_path     + '.txt',
+                test_pos_path + '.txt',
+                test_neg_path + '.txt',
+            )
+
+        # Ensure the trees_path exists
+        ensuredir(trees_path)
+
+        # Try to figure out the correct tree offset, if not givern
+        if offset is None:
+            direct = Directory(trees_path, include_file_extensions=["txt"])
+            offset = len(direct.files())
+            print('[rf] Auto Tree Offset: %d' % offset)
+        else:
+            offset = int(offset)
 
         # Run training algorithm
-        params = [rf.pyrf_ptr, trees_path, kwargs['num_trees'], fpath_pos, fpath_neg]
+        params = [rf.pyrf_ptr, join(trees_path, category + '-'), kwargs['num_trees'], offset, fpath_pos, fpath_neg]
         rf._run(RF_CLIB.train, params)
+
+    def boosting(rf, phase, forest, dataset, category, pos_path, neg_path,
+                 test_pos_path, test_neg_path, detect_path):
+        # Function that calculates error on the training set and removes cases that the
+        # forest got correct
+        def _prepare(test_path, train_path, _type, balance=None):
+            manifest_path = train_path + '.txt'
+            counter = 0
+            # Copy current manifest file
+            call(['cp', manifest_path, "%s_%d.txt" % (manifest_path, phase)])
+            # Get contents of current manifest
+            temp = open(manifest_path, 'r')
+            line_list = temp.readlines()
+            line_list = line_list[1:]
+            temp.close()
+            direct = Directory(test_path, include_file_extensions=["jpg"])
+            accuracy_list = []
+            image_filepath_list = direct.files()
+            if balance is not None:
+                shuffle(image_filepath_list)
+            for index, image_filepath in enumerate(image_filepath_list):
+                if balance is not None and counter >= balance:
+                    # We want to balance the negative cases with the positives
+                    # The random shuffle will make this pre-stopping unbiased
+                    break
+                image_path, image_filename = split(image_filepath)
+                predictions = rf.detect(forest, image_filepath, join(detect_path, image_filename))
+                image = dataset[image_filename]
+                accuracy, true_pos, false_pos, false_neg = image.accuracy(predictions, category)
+                accuracy_list.append(accuracy)
+                progress = "%0.2f" % (float(index) / len(image_filepath_list))
+                print("TEST %s %s %0.4f %s" % (_type, image, accuracy, progress), end='\r')
+                sys.stdout.flush()
+                # Remove perfects
+                if accuracy == 1.0:
+                    for line in line_list:
+                        if image_filename in line:
+                            counter += 1
+                            line_list.remove(line)
+                # image.show(prediction_list=predictions, category=category)
+            print(' ' * 1000, end='\r')
+            print("TEST %s ERROR: %0.4f" % (_type , 1.0 - (float(sum(accuracy_list)) / len(accuracy_list))))
+            print("TEST %s RETRAIN: %d / %d" % (_type , len(image_filepath_list) - counter, len(image_filepath_list)))
+            temp = open(manifest_path, 'w')
+            temp.write("%d 1\n%s" % (len(line_list), ''.join(line_list),))
+            temp.close()
+            return counter
+
+        # Calculate error on positives set
+        balance = _prepare(test_pos_path, pos_path, "POS")
+        _prepare(test_neg_path, neg_path, "NEG", balance=balance)
 
     def retrain(rf):
         rf._run(RF_CLIB.retrain, [rf.pyrf_ptr])
@@ -264,9 +343,9 @@ class Random_Forest_Detector(object):
     # Run Algorithm
     #=============================
 
-    def detect_many(rf, forest, image_fpath_list, result_fpath_list):
+    def detect_many(rf, forest, image_fpath_list, result_fpath_list, use_openmp=False):
         """ WIP """
-        OPENMP_SOLUTION = '--pyrf-openmp' in sys.argv
+        OPENMP_SOLUTION = '--pyrf-openmp' in sys.argv or use_openmp
         if OPENMP_SOLUTION:
             # OPENMP SOLUTION
             nImgs = len(image_fpath_list)
@@ -357,7 +436,8 @@ class Random_Forest_Detector(object):
     #=============================
 
     def load(rf, tree_path, prefix, num_trees=10):
-        return RF_CLIB.load(rf.pyrf_ptr, tree_path, prefix, num_trees)
+        forest = RF_CLIB.load(rf.pyrf_ptr, tree_path, prefix, num_trees)
+        return forest
 
     def save(rf):
         rf._run(RF_CLIB.save, [rf.pyrf_ptr])

@@ -76,3 +76,4 @@ CmakeCache.txt
 cmake_install.cmake
 *.orig
 
+_doc

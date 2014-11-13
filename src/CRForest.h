@@ -58,13 +58,17 @@ inline void CRForest::regression(std::vector<const LeafNode*>& result, uchar** p
 inline void CRForest::trainForest(int min_s, int max_d, CvRNG* pRNG, const CRPatch& TrData, int samples, int default_split, const char* filename, unsigned int offset) {
 	char buffer[200];
 
+	std::cout << "AIM FOR A SPLIT OF 24k - 32k POSITIVE & NEGATIVE PATCHES EACH FOR GOOD REGULARIZATION AT DEPTH 16" << std::endl;
+	std::cout << "\n**************************\n" << std::endl;
 	for(int i=0; i < (int)vTrees.size(); ++i) {
 		vTrees[i] = new CRTree(min_s, max_d, TrData.vLPatches[1][0].center.size(), pRNG);
 		vTrees[i]->growTree(TrData, samples, default_split);
 
 		// Save as trees are grown
+		std::cout << std::endl;
 		sprintf_s(buffer,"%s%03d.txt",filename,i+offset);
 		vTrees[i]->saveTree(buffer);
+		std::cout << "\n**************************\n" << std::endl;
 	}
 }
 

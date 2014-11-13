@@ -107,9 +107,9 @@ struct CRForestDetectorClass
 			)
 		{
 			#ifdef _OPENMP
-			cout << "\n\n-----------------------------\n\nRUNNING PROGRAM IN PARALLEL\n\n-----------------------------\n\n" << endl;
+			cout << "\n\n[pyrf.cpp]  --- RUNNING PYRF DETECTOR IN PARALLEL ---\n\n" << endl;
 			#else
-			cout << "\n\n-----------------------------\n\nRUNNING PROGRAM IN SERIAL\n\n-----------------------------\n\n" << endl;
+			cout << "\n\n[pyrf.cpp]  --- RUNNING PYRF DETECTOR IN SERIAL ---\n\n" << endl;
 			#endif
 
 			patch_width = 				param_patch_width;
@@ -334,7 +334,7 @@ struct CRForestDetectorClass
 			IplImage *img = 0;
 			img = cvLoadImage(detection_image_filepath,CV_LOAD_IMAGE_COLOR);
 			if(!img) {
-				cout << "Could not load image file: " << detection_image_filepath << endl;
+				cout << "[pyrf.cpp] Could not load image file: " << detection_image_filepath << endl;
 				exit(-1);
 			}
 
@@ -530,38 +530,36 @@ struct CRForestDetectorClass
 			// load positive file list
 			loadTrainPosFile(vFilenames,  vBBox, vCenter, training_inventory_pos);
 
+			bool flag;
 			// load postive images and extract patches
 			for(int i=0; i<(int)vFilenames.size(); ++i) {
 
-			  	if(i%10==0) cout << i << " " << flush;
+				if(i%10==0) cout << i << " " << flush;
 				// cout << i << " " << (int)vFilenames.size() << " " << vFilenames[i] << endl;
 
 				// Load image
 				IplImage *img = 0;
 				img = cvLoadImage(vFilenames[i].c_str(),CV_LOAD_IMAGE_COLOR);
 				if(!img) {
-					cout << "Could not load image file: " << vFilenames[i].c_str() << endl;
+					cout << "[pyrf.cpp] Could not load image file: " << vFilenames[i].c_str() << endl;
 					exit(-1);
 				}
-
-				// Extract positive training patches
-				Train.extractPatches(img, patch_sample_density_pos, 1, &vBBox[i], &vCenter[i], legacy);
-
+				
+				// Flip coin, or always use regular rotation
 				if(include_horizontal_flip)
 				{
-					IplImage *img2 = 0;
-					img2 = cvLoadImage(vFilenames[i].c_str(),CV_LOAD_IMAGE_COLOR);
-					cvFlip(img2, img2, 1);
-
-					Train.extractPatches(img2, patch_sample_density_pos, 1, &vBBox[i], &vCenter[i], legacy);
-
-					cvReleaseImage(&img2);
+					flag = cvRandInt( pRNG ) % 2 == 0;
+					if(flag)
+					{
+						cvFlip(img, img, 1);
+					}
 				}
 
+				// Extract patches
+				Train.extractPatches(img, patch_sample_density_pos, 1, &vBBox[i], &vCenter[i], legacy);
+				
 				// Release image
 				cvReleaseImage(&img);
-
-
 			}
 			cout << endl;
 
@@ -571,7 +569,6 @@ struct CRForestDetectorClass
 			loadTrainNegFile(vFilenames, vBBox, training_inventory_neg);
 
 			// load negative images and extract patches
-
 			for(int i=0; i<(int)vFilenames.size(); ++i) {
 
 				if(i%10==0) cout << i << " " << flush;
@@ -580,10 +577,19 @@ struct CRForestDetectorClass
 				// Load image
 				IplImage *img = 0;
 				img = cvLoadImage(vFilenames[i].c_str(),CV_LOAD_IMAGE_COLOR);
-
 				if(!img) {
-					cout << "Could not load image file: " << vFilenames[i].c_str() << endl;
+					cout << "[pyrf.cpp] Could not load image file: " << vFilenames[i].c_str() << endl;
 					exit(-1);
+				}
+
+				// Flip coin, or always use regular rotation
+				if(include_horizontal_flip)
+				{
+					flag = cvRandInt( pRNG ) % 2 == 0;
+					if(flag)
+					{
+						cvFlip(img, img, 1);
+					}
 				}
 
 				// Extract negative training patches
@@ -592,28 +598,10 @@ struct CRForestDetectorClass
 				else
 					Train.extractPatches(img, patch_sample_density_neg, 0, 0, 0, legacy);
 
-				if(include_horizontal_flip && false)
-				{
-					IplImage *img2 = 0;
-					img2 = cvLoadImage(vFilenames[i].c_str(),CV_LOAD_IMAGE_COLOR);
-					cvFlip(img2, img2, 1);
-
-					if(vBBox.size()==vFilenames.size())
-						Train.extractPatches(img2, patch_sample_density_neg, 0, &vBBox[i], 0, legacy);
-					else
-						Train.extractPatches(img2, patch_sample_density_neg, 0, 0, 0, legacy);
-
-					cvReleaseImage(&img2);
-				}
-
-
 				// Release image
 				cvReleaseImage(&img);
-
-
 			}
 			cout << endl;
-
 		}
 
 		CRForest* load_forest(char* tree_path, char* prefix, int num_trees)
@@ -684,6 +672,7 @@ struct CRForestDetectorClass
 		// Init and start training
 		void run_train(	char* tree_path,
 						int num_trees,
+						int offset,
 						char* training_inventory_pos,
 						char* training_inventory_neg
 						)
@@ -715,7 +704,7 @@ struct CRForestDetectorClass
 							training_inventory_neg);
 
 			// Train forest
-			crForest.trainForest(20, 15, &cvRNG, Train, 2000, default_split, tree_path, 0);
+			crForest.trainForest(20, 15, &cvRNG, Train, 2000, default_split, tree_path, offset);
 
 			// Save forest
 			// crForest.saveForest(tree_path, 0);

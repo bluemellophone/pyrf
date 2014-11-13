@@ -1,8 +1,8 @@
 echo "removing old build"
-sudo rm -rf build
-sudo rm -rf CMakeFiles
-sudo rm -rf CMakeCache.txt
-sudo rm -rf cmake_install.cmake
+rm -rf build
+rm -rf CMakeFiles
+rm -rf CMakeCache.txt
+rm -rf cmake_install.cmake
 
 mkdir build
 cd build
@@ -22,4 +22,4 @@ make -w -j$NCPUS || { echo "FAILED MAKE" ; exit 1; }
 
 cd ..
 #python -c "import utool; print(utool.truepath('build/libpyrf'))"
-cp build/libpyrf* pyrf --verbose
+cp -v build/libpyrf* pyrf

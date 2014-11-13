@@ -4,58 +4,13 @@ from os.path import join, split
 from pyrf import Random_Forest_Detector
 import utool
 
+
 TEST_DATA_DETECT_URL = 'https://www.dropbox.com/s/s4gkjyxjgghr18c/testdata_detect.zip'
 TEST_DATA_MODEL_URL = 'https://dl.dropboxusercontent.com/s/9814r3d2rkiq5t3/rf.zip'
 
 
 def test_pyrf():
-    # testdata_dir = utool.unixpath('~/code/pyrf/testdata_detect')
-    testdata_dir = utool.unixpath('~/code/pyrf/results')
-    #assert utool.checkpath(testdata_dir)
-    if utool.get_argflag('--vd'):
-        print(utool.ls(testdata_dir))
-
-    # Create detector
-    detector = Random_Forest_Detector()
-    category = 'zebra_grevys'
-
-    #dataset_path = '../IBEIS2014/'
-    #pos_path    = join(testdata_dir, category, 'train-positives')
-    #neg_path    = join(testdata_dir, category, 'train-negatives')
-    #val_path    = join(testdata_dir, category, 'val')
-    #test_path   = join(testdata_dir, category, 'test')
-    #detect_path = join(testdata_dir, category, 'detect')
-    #trees_path  = join(testdata_dir, category, 'trees')
-
-    test_path = utool.grab_zipped_url(TEST_DATA_DETECT_URL, appname='utool')
-    models_path = utool.grab_zipped_url(TEST_DATA_MODEL_URL, appname='utool')
-    trees_path = join(models_path, category)
-    detect_path = join(test_path, category, 'detect')
-    utool.ensuredir(detect_path)
-
-    utool.assertpath(test_path, verbose=True)
-    utool.assertpath(trees_path, verbose=True)
-
-    #=================================
-    # Train / Detect Configurations
-    #=================================
-
-    train_config = {
-        'object_min_width':             32,
-        'object_min_height':            32,
-        'neg_exclude_categories':       [category],
-
-        'mine_negatives':               True,
-        'mine_max_keep':                3,
-        'mine_exclude_categories':      [category],
-        'mine_width_min':               128,
-        'mine_width_max':               512,
-        'mine_height_min':              128,
-        'mine_height_max':              512,
-
-        'max_rois_pos':                 None,
-        'max_rois_neg':                 1200,
-    }
+    category = 'zebra_plains'
 
     detect_config = {
         'save_detection_images':        True,
@@ -63,10 +18,24 @@ def test_pyrf():
     }
 
     #=================================
-    # Train Random Forest
+    # Train / Detect Initialization
     #=================================
 
-    # detector.train(dataset_path, category, pos_path, neg_path, val_path, test_path, trees_path, **train_config)
+    testdata_dir = utool.unixpath('~/code/pyrf/results')
+    # assert utool.checkpath(testdata_dir)
+    if utool.get_argflag('--vd'):
+        print(utool.ls(testdata_dir))
+
+    # Create detector
+    detector = Random_Forest_Detector()
+
+    test_path = utool.grab_zipped_url(TEST_DATA_DETECT_URL, appname='utool')
+    models_path = utool.grab_zipped_url(TEST_DATA_MODEL_URL, appname='utool')
+    trees_path = join(models_path, category)
+    detect_path = join(test_path, category, 'detect')
+    utool.ensuredir(detect_path)
+    utool.ensuredir(test_path)
+    utool.ensuredir(trees_path)
 
     #=================================
     # Detect using Random Forest
