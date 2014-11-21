@@ -57,6 +57,7 @@ nosetests.xml
 *.flann
 *.npz
 
+<<<<<<< HEAD
 # utool output
 _test_times.txt
 failed.txt
@@ -77,3 +78,6 @@ cmake_install.cmake
 *.orig
 
 _doc
+test_times.txt
+CMakeCache.txt
+CMakeFiles
