@@ -135,15 +135,15 @@ def load_pyrf_clib(rebuild=False):
 RF_CLIB = load_pyrf_clib()
 
 
-def _new_pyrf(**kwargs):
+def _new_pyrf(verbose=True, **kwargs):
     """ Create the C object using the default parameter values and any updated
     parameter values from kwargs """
     param_odict = PARAM_ODICT.copy()
     param_odict.update(kwargs)
 
-    print('[rf] New Random_Forest Object Created')
-    print('[rf] kwargs=%r' % (kwargs,))
-    print('[rf] Algorithm Settings=%r' % (param_odict,))
+    if verbose:
+        print('[rf] New Random_Forest Object Created')
+        print('[rf] Algorithm Settings=%r' % (param_odict,))
 
     param_values = param_odict.values()  # pass all parameters to the C constructor
     pyrf_ptr = RF_CLIB.constructor(*param_values)
@@ -208,8 +208,8 @@ class Random_Forest_Detector(object):
     #=============================
     # Algorithm Constructor
     #=============================
-    def __init__(rf, **kwargs):
-        rf.pyrf_ptr = _new_pyrf(**kwargs)
+    def __init__(rf, verbose=True, **kwargs):
+        rf.pyrf_ptr = _new_pyrf(verbose=verbose, **kwargs)
         rf.detect_params = None  # must be set before running detection
 
     def set_detect_params(rf, **kwargs):
