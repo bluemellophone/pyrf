@@ -14,8 +14,8 @@ from os.path import join
 from subprocess import call
 import detecttools.ctypes_interface as ctypes_interface
 from detecttools.directory import Directory
-from .pyrf_helpers import (ensuredir, rmtreedir, get_training_data_from_ibeis,
-                           _build_shared_c_library)
+from pyrf.pyrf_helpers import (ensuredir, rmtreedir, get_training_data_from_ibeis,
+                               _build_shared_c_library)
 
 
 #============================
@@ -261,7 +261,7 @@ class Random_Forest_Detector(object):
                 test_path, test_pos_path, test_neg_path, **kwargs)
         else:
             print('[rf] Using Previous Test Cache Directories')
-            fpath_pos, fpath_neg, fpath_val, fpath_test, fpath_test_pos, fpath_test_neg = (
+            fpath_pos, fpath_neg, fpath_val, fpath_test, fpath_test_pos, fpath_test_neg = (  # NOQA
                 pos_path      + '.txt',
                 neg_path      + '.txt',
                 val_path      + '.txt',
