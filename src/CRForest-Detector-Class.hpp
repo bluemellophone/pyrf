@@ -63,6 +63,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <cmath>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -310,13 +311,18 @@ struct CRForestDetectorClass
 			return true;
 		}
 
+		float distance(float x0, float y0, float x1, float y1)
+		{	
+			return sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0));
+		}
+
 		// Run detector
 		int detect(CRForestDetector& crDetect,
 					char* detection_image_filepath,
 					char* detection_result_filepath,
 					bool save_detection_images,
 					bool save_scales,
-					bool draw_supressed,
+					bool draw_suppressed,
 					int detection_width,
 					int detection_height,
 					float percentage_left,
@@ -329,6 +335,14 @@ struct CRForestDetectorClass
 
 			// Storage for output
 			vector<vector<IplImage*> > vImgDetect(scales.size());
+			vector<vector<vector<vector<vector<vector<int> > > > > > manifests(scales.size());
+			// scale | ratio | mans | y | x | vector | int
+
+			// Init random generator
+			time_t t = time(NULL);
+			int seed = (int)t;
+
+			CvRNG cvRNG(seed);
 
 			// Load image
 			IplImage *img = 0;
@@ -341,13 +355,14 @@ struct CRForestDetectorClass
 			// Prepare scales
 			for(unsigned int k=0;k<vImgDetect.size(); ++k) {
 				vImgDetect[k].resize(ratios.size());
+				manifests[k].resize(ratios.size());
 				for(unsigned int c=0;c<vImgDetect[k].size(); ++c) {
 					vImgDetect[k][c] = cvCreateImage( cvSize(int(img->width*scales[k]+0.5),int(img->height*scales[k]+0.5)), IPL_DEPTH_32F, 1 );
 				}
 			}
-
+			
 			// Detection for all scales
-			crDetect.detectPyramid(img, vImgDetect, ratios, positive_like, legacy);
+			crDetect.detectPyramid(img, vImgDetect, manifests, ratios, positive_like, legacy);
 
 			// Store result of all scales
 			IplImage* combined = cvCreateImage( cvSize(img->width, img->height), IPL_DEPTH_8U , 1);
@@ -357,10 +372,13 @@ struct CRForestDetectorClass
 			// Prepare results vector
 			points.clear();
 			points.resize(scales.size());
+			int mode;
 			double minVal; double maxVal;
+			draw_suppressed = true;
+			int red, green, blue;
+			int num_detections = 0;
 			for(int k=vImgDetect.size() - 1;k >= 0; --k)
 			{
-				// cout << k;
 				IplImage* scaled = cvCreateImage( cvSize(vImgDetect[k][0]->width,vImgDetect[k][0]->height) , IPL_DEPTH_8U , 1);
 
 				for(unsigned int c=0;c<vImgDetect[k].size(); ++c)
@@ -393,35 +411,34 @@ struct CRForestDetectorClass
 					cvFindContours(scaled, storage, &contours, sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
 
 					// Draw contours on image
-					// cvDrawContours(scaled, contours, cvScalar(255,255,255), cvScalarAll(255), 100);
+					// cvDrawContours(scaled, contours, CV_RGB(255,255,255), cvScalarAll(255), 100);
 					// sprintf_s(buffer,"%s_contours_%.2f_%d.png", detection_result_filepath, scales[k], c);
 					// cvSaveImage( buffer, scaled );
 
 					CvRect rect;
-					int centerx, centery, minx, miny, maxx, maxy, area, supressed;
+					int centerx, centery, centerx2, centery2, minx, miny, maxx, maxy, area;
+					bool suppressed;
 
 					int i = 0;
+					int tempx, tempy;
 					for (int i = 0; contours != 0; contours = contours->h_next, ++i)
 					{
 						rect = cvBoundingRect(contours);
 
-						centerx = (int) ((rect.x)+rect.width/2) / scales[k];
-						centery = (int) ((rect.y)+rect.height/2) / scales[k];
-						minx = (int) centerx - ((detection_width * (percentage_left)) / scales[k]);
-						miny = (int) centery - ((detection_height * (percentage_top)) / scales[k]);
-						maxx = (int) centerx + ((detection_width * (1 - percentage_left)) / scales[k]);
-						maxy = (int) centery + ((detection_height * (1 - percentage_top)) / scales[k]);
-						area = (maxx - minx) * (maxy - miny);
+						centerx   = (int) rect.x + (rect.width  / 2);
+						centery   = (int) rect.y + (rect.height / 2);
+						centerx2  = centerx;
+						centery2  = centery;
+						centerx   = (int) float(centerx) / scales[k];
+						centery   = (int) float(centery) / scales[k];
+						minx      = (int) centerx - ((detection_width * (percentage_left)) / scales[k]);
+						miny      = (int) centery - ((detection_height * (percentage_top)) / scales[k]);
+						maxx      = (int) centerx + ((detection_width * (1 - percentage_left)) / scales[k]);
+						maxy      = (int) centery + ((detection_height * (1 - percentage_top)) / scales[k]);
+						area      = (maxx - minx) * (maxy - miny);
+						suppressed = area <= min_contour_area || ! new_center(points, nms_margin_percentage, centerx, centery, minx, miny, maxx, maxy);
 
-						if(area > min_contour_area && new_center(points, nms_margin_percentage, centerx, centery, minx, miny, maxx, maxy))
-						{
-							supressed = 0;
-						}
-						else
-						{
-							supressed = 1;
-						}
-
+						// Record the detection
 						vector<float> temp;
 						temp.push_back((float) centerx);
 						temp.push_back((float) centery);
@@ -430,69 +447,62 @@ struct CRForestDetectorClass
 						temp.push_back((float) maxx);
 						temp.push_back((float) maxy);
 						temp.push_back((float) maxVal);
-						temp.push_back((float) supressed);
+						temp.push_back((float) suppressed);
 
 						points[k].push_back(temp);
+						num_detections++;
 
+						// Visualize the detection
+						// default color of suppressed detections (black)
+						red = 0;
+						green = 0;
+						blue = 0;
+						
+						if( ! suppressed )
+						{	
+							// override color with a random color
+							red = 50 + cvRandInt( &cvRNG ) % 156;
+							green = 50 + cvRandInt( &cvRNG ) % 156;
+							blue = 50 + cvRandInt( &cvRNG ) % 156;
+							float radius = 4.0; // 1/16th of the size of 128 x H training patch
+							int margin = (int) radius / scales[k];
+							for(int newy = centery2 - margin; newy < centery2 + margin; ++newy)
+							{
+								for(int newx = centerx2 - margin; newx < centerx2 + margin; ++newx)
+								{
+									if( distance(float(centerx2), float(centery2), float(newx), float(newy)) <= margin &&
+										0 <= newx && newx < vImgDetect[k][0]->width && 
+										0 <= newy && newy < vImgDetect[k][0]->height
+									)
+									{
+										for(unsigned int a = 0; a < manifests[k][c][0][newy][newx].size(); ++a)
+										{	
+											tempx = manifests[k][c][0][newy][newx][a];
+											tempy = manifests[k][c][1][newy][newx][a];
+											tempx = (int) tempx / scales[k];
+											tempy = (int) tempy / scales[k];
+											if( distance(float(centerx), float(centery), float(tempx), float(tempy)) > margin)
+											{
+												cvCircle(img, cvPoint(tempx, tempy), 2, CV_RGB(red, green, blue), -1);	
+											}
+											// cvLine(img, cvPoint(tempx, tempy), cvPoint(centerx, centery), CV_RGB(red, green, blue));
+										}	
+									}
+								}	
+							}
+							cvCircle(img, cvPoint(centerx, centery), margin, CV_RGB(red, green, blue), 2);
+						}
+
+					   	if( ! suppressed || draw_suppressed )
+					   	{
+							// Draw on image
+							cvCircle(img, cvPoint(centerx, centery), 3, CV_RGB(red, green, blue), -1);
+							cvRectangle(img, cvPoint(minx, miny), cvPoint(maxx, maxy), CV_RGB(red, green, blue), 2);
+					    }
 					}
 					cvReleaseImage(&vImgDetect[k][c]);
 				}
 				cvReleaseImage(&scaled);
-
-				// cout << k << endl;
-			}
-
-			int red, green, blue;
-			int num_detections = 0;
-			for(unsigned int k=0;k<points.size(); ++k) {
-				// cout << "Scale: " << scales[k] << endl;
-				for(unsigned int i=0;i<points[k].size(); ++i) {
-					num_detections++;
-
-					// Print on screen
-					// if(points[k][i][7] == 0)
-					// {
-					// 	cout << "	[ ] ";
-					// }
-					// else
-					// {
-					// 	cout << "	[S] ";
-					// }
-
-					// cout << "(" << points[k][i][0] << "," << points[k][i][1] << ") ";
-					// cout << "[" << points[k][i][2];
-					// cout << " " << points[k][i][3];
-					// cout << " " << points[k][i][4];
-					// cout << " " << points[k][i][5] << "]";
-					// cout << endl;
-
-					// Output if not squelched
-					if(points[k][i][7] == 0)
-					{
-						red = 255;
-						green = 0;
-						blue = 0;
-				   	}
-				   	else
-				   	{
-						red = 0;
-						green = 0;
-						blue = 255;
-				   	}
-
-				   	if(points[k][i][7] == 0 || draw_supressed)
-				   	{
-						// Draw on image
-						CvPoint centroid[1];
-						centroid[0].x = points[k][i][0];
-						centroid[0].y = points[k][i][1];
-
-						cvCircle(img, centroid[0], 3, CV_RGB(red, green, blue), -1, 0, 0);
-						cvRectangle(img,	cvPoint(points[k][i][2], points[k][i][3]),
-											cvPoint(points[k][i][4], points[k][i][5]),
-											cvScalar(blue, green, red), 2, 8, 0);
-				   }
-				}
 			}
 
 			if(save_detection_images)
@@ -621,7 +631,7 @@ struct CRForestDetectorClass
 						char* detection_result_filepath,
 						bool save_detection_images,
 						bool save_scales,
-						bool draw_supressed,
+						bool draw_suppressed,
 						int detection_width,
 						int detection_height,
 						float percentage_left,
@@ -639,7 +649,7 @@ struct CRForestDetectorClass
 					detection_result_filepath,
 					save_detection_images,
 					save_scales,
-					draw_supressed,
+					draw_suppressed,
 					detection_width,
 					detection_height,
 					percentage_left,

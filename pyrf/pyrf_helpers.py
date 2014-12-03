@@ -65,7 +65,7 @@ def _prepare_inventory(directory_path, images, total, category, train=True, posi
                 temp = temp[ymin:ymax, xmin:xmax]      # Crop
 
                 target_width = 128
-                if width > target_width:
+                if width != target_width:
                     ratio = float(height) / width
                     width = target_width
                     height = int(target_width * ratio)

@@ -9,6 +9,7 @@ from collections import OrderedDict as odict
 import ctypes as C
 # Scientific
 from random import shuffle
+import utool
 import numpy as np
 from os.path import join
 from subprocess import call
@@ -102,7 +103,11 @@ def load_pyrf_clib(rebuild=False):
         _build_shared_c_library(rebuild)
     # FIXME: This will break on packaging
     root_dir = realpath(dirname(__file__))
-    libname = 'pyrf'
+    if utool.get_argflag('--v2'):
+        print("USING VERSION 2")
+        libname = 'pyrf2'
+    else:
+        libname = 'pyrf'
     rf_clib, def_cfunc = ctypes_interface.load_clib(libname, root_dir)
     """
     def_lib_func is used to expose the Python bindings that are declared
@@ -118,7 +123,7 @@ def load_pyrf_clib(rebuild=False):
     def_cfunc(None, 'train',            [COBJ, CCHAR, CINT, CINT, CCHAR, CCHAR])
     def_cfunc(CINT, 'detect',           [COBJ, COBJ, CCHAR, CCHAR] + DETECT_PARAM_TYPES )
     def_cfunc(None, 'detect_many',      [COBJ, COBJ, int_t, str_list_t, str_list_t,
-                                         int_array_t, results_array_t] + DETECT_PARAM_TYPES)
+                                         int_array_t, results_array_t, CBOOL] + DETECT_PARAM_TYPES)
     def_cfunc(None, 'detect_results',   [COBJ, CNPFLOAT])
     def_cfunc(None, 'segment',          [COBJ])
     def_cfunc(COBJ, 'load',             [COBJ, CCHAR, CCHAR, CINT])
@@ -137,6 +142,7 @@ def _new_pyrf(**kwargs):
     param_odict.update(kwargs)
 
     print('[rf] New Random_Forest Object Created')
+    print('[rf] kwargs=%r' % (kwargs,))
     print('[rf] Algorithm Settings=%r' % (param_odict,))
 
     param_values = param_odict.values()  # pass all parameters to the C constructor
@@ -211,7 +217,7 @@ class Random_Forest_Detector(object):
         default_param_dict = odict([
             ('save_detection_images',   False),
             ('save_scales',             False),
-            ('draw_supressed',          False),
+            ('draw_suppressed',          False),
             ('detection_width',         128),
             ('detection_height',        80),
             ('percentage_left',         0.50),
@@ -304,13 +310,10 @@ class Random_Forest_Detector(object):
             image_filepath_list = direct.files()
             if balance is not None:
                 shuffle(image_filepath_list)
-            for index, image_filepath in enumerate(image_filepath_list):
-                if balance is not None and counter >= balance:
-                    # We want to balance the negative cases with the positives
-                    # The random shuffle will make this pre-stopping unbiased
-                    break
+            dst_filepath_list   = [ join(detect_path, split(image_filepath)[1]) for image_filepath in image_filepath_list ]
+            predictions_list = rf.detect_many(forest, image_filepath_list, dst_filepath_list, use_openmp=True)
+            for index, (predictions, image_filepath) in enumerate(zip(predictions_list, image_filepath_list)):
                 image_path, image_filename = split(image_filepath)
-                predictions = rf.detect(forest, image_filepath, join(detect_path, image_filename))
                 image = dataset[image_filename]
                 accuracy, true_pos, false_pos, false_neg = image.accuracy(predictions, category)
                 accuracy_list.append(accuracy)
@@ -318,15 +321,17 @@ class Random_Forest_Detector(object):
                 print("TEST %s %s %0.4f %s" % (_type, image, accuracy, progress), end='\r')
                 sys.stdout.flush()
                 # Remove perfects
-                if accuracy == 1.0:
+                if accuracy == 1.0 and (balance is None or counter < balance):
+                    # We want to balance the negative cases with the positives
+                    # The random shuffle will make this pre-stopping unbiased
                     for line in line_list:
                         if image_filename in line:
                             counter += 1
                             line_list.remove(line)
                 # image.show(prediction_list=predictions, category=category)
-            print(' ' * 1000, end='\r')
-            print("TEST %s ERROR: %0.4f" % (_type , 1.0 - (float(sum(accuracy_list)) / len(accuracy_list))))
-            print("TEST %s RETRAIN: %d / %d" % (_type , len(image_filepath_list) - counter, len(image_filepath_list)))
+            print(' ' * 100, end='\r')
+            print("TEST %s ERROR   : %0.4f" % (_type, 1.0 - (float(sum(accuracy_list)) / len(accuracy_list))))
+            print("TEST %s RETRAIN : %d / %d" % (_type , len(image_filepath_list) - counter, len(image_filepath_list)))
             temp = open(manifest_path, 'w')
             temp.write("%d 1\n%s" % (len(line_list), ''.join(line_list),))
             temp.close()
@@ -343,7 +348,7 @@ class Random_Forest_Detector(object):
     # Run Algorithm
     #=============================
 
-    def detect_many(rf, forest, image_fpath_list, result_fpath_list, use_openmp=False):
+    def detect_many(rf, forest, image_fpath_list, result_fpath_list, verbose=False, use_openmp=False):
         """ WIP """
         OPENMP_SOLUTION = '--pyrf-openmp' in sys.argv or use_openmp
         if OPENMP_SOLUTION:
@@ -362,6 +367,7 @@ class Random_Forest_Detector(object):
                 c_dst_strs,
                 length_arr,
                 results_ptr_arr,
+                verbose,
                 *rf.detect_params)
 
             results_list = extract_2darr_list(length_arr, results_ptr_arr, results_t, results_dtype, 8)
@@ -395,7 +401,7 @@ class Random_Forest_Detector(object):
         # function calls, which is not very python efficient
         #_kwargs(kwargs, 'save_detection_images',   False)
         #_kwargs(kwargs, 'save_scales',             False)
-        #_kwargs(kwargs, 'draw_supressed',          False)
+        #_kwargs(kwargs, 'draw_suppressed',          False)
         #_kwargs(kwargs, 'detection_width',         128)
         #_kwargs(kwargs, 'detection_height',        80)
         #_kwargs(kwargs, 'percentage_left',         0.50)
@@ -412,7 +418,7 @@ class Random_Forest_Detector(object):
             *rf.detect_params)
         #    kwargs['save_detection_images'],
         #    kwargs['save_scales'],
-        #    kwargs['draw_supressed'],
+        #    kwargs['draw_suppressed'],
         #    kwargs['detection_width'],
         #    kwargs['detection_height'],
         #    kwargs['percentage_left'],

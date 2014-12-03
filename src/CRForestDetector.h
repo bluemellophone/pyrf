@@ -7,6 +7,7 @@
 
 #include "CRForest.h"
 
+using namespace std;
 
 class CRForestDetector {
 public:
@@ -14,13 +15,27 @@ public:
 	CRForestDetector(const CRForest* pRF, int w, int h) : crForest(pRF), width(w), height(h)  {}
 
 	// detect multi scale
-	void detectPyramid(IplImage *img, std::vector<std::vector<IplImage*> >& imgDetect, std::vector<float>& ratios, int positive_like, bool legacy = true);
+	void detectPyramid(
+		IplImage *img, 
+		vector<vector<IplImage*> >& imgDetect, 
+		vector<vector<vector<vector<vector<vector<int> > > > > >& vmenifests,
+		vector<float>& ratios, 
+		int positive_like, 
+		bool legacy = true
+	);
 
 	// Get/Set functions
 	unsigned int GetNumCenter() const {return crForest->GetNumCenter();}
 
 private:
-	void detectColor(IplImage *img, std::vector<IplImage*>& imgDetect, std::vector<float>& ratios, int positive_like, bool legacy);
+	void detectColor(
+		IplImage *img, 
+		vector<IplImage*>& imgDetect, 
+		vector<vector<vector<vector<vector<int> > > > >& manifests,
+		vector<float>& ratios, 
+		int positive_like, 
+		bool legacy
+	);
 
 	const CRForest* crForest;
 	int width;
