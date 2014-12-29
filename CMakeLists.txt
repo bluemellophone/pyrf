@@ -58,13 +58,13 @@ ENDIF()
 #######################################
 
 set(SOURCE_FILES 
-    src/CRForestDetector.cpp
-    src/CRPatch.cpp
-    src/CRTree.cpp
-    src/HoG.cpp)
+    pyrf/src/CRForestDetector.cpp
+    pyrf/src/CRPatch.cpp
+    pyrf/src/CRTree.cpp
+    pyrf/src/HoG.cpp)
 
 add_library(pyrf SHARED 
-	src/pyrf.cpp
+	pyrf/src/pyrf.cpp
 	${SOURCE_FILES})
 
 #######################################

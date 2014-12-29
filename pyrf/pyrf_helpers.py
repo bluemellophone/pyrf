@@ -1,28 +1,81 @@
 #============================
 # Python Interface
 #============================
+from __future__ import absolute_import, division, print_function
 import sys
-from os.path import join, isdir, realpath, dirname
+from os.path import expanduser, join, isdir, realpath, dirname
 import shutil
 import cv2
 import os
-import utool
-from vtool import image as gtool
+import random
+import numpy as np
+import ctypes as C
+import detecttools.ctypes_interface as ctypes_interface
 
 
-def rmtreedir(path):
-    if isdir(path):
-        shutil.rmtree(path)
+def _cast_list_to_c(py_list, dtype):
+    """
+    Converts a python list of strings into a c array of strings
+    adapted from "http://stackoverflow.com/questions/3494598/passing-a-list-of
+    -strings-to-from-python-ctypes-to-c-function-expecting-char"
+    Avi's code
+    """
+    c_arr = (dtype * len(py_list))()
+    c_arr[:] = py_list
+    return c_arr
 
 
-def ensuredir(path):
-    utool.ensuredir(path)
+def arrptr_to_np(c_arrptr, shape, arr_t, dtype):
+    """
+    Casts an array pointer from C to numpy
+    Input:
+        c_arrpt - an array pointer returned from C
+        shape   - shape of that array pointer
+        arr_t   - the ctypes datatype of c_arrptr
+    Avi's code
+    """
+    arr_t_size = C.POINTER(C.c_char * dtype().itemsize)           # size of each item
+    c_arr = C.cast(c_arrptr.astype(int), arr_t_size)              # cast to ctypes
+    np_arr = np.ctypeslib.as_array(c_arr, shape)                  # cast to numpy
+    np_arr.dtype = dtype                                          # fix numpy dtype
+    np_arr = np.require(np_arr, dtype=dtype, requirements=['O'])  # prevent memory leaks
+    return np_arr
 
 
-def _build_shared_c_library(rebuild=False):
+def extract_np_array(size_list, ptr_list, arr_t, arr_dtype,
+                        arr_dim):
+    """
+    size_list - contains the size of each output 2d array
+    ptr_list  - an array of pointers to the head of each output 2d
+                array (which was allocated in C)
+    arr_t     - the C pointer type
+    arr_dtype - the numpy array type
+    arr_dim   - the number of columns in each output 2d array
+    """
+    arr_list = [arrptr_to_np(arr_ptr, (size, arr_dim), arr_t, arr_dtype)
+                    for (arr_ptr, size) in zip(ptr_list, size_list)]
+    return arr_list
+
+
+def _load_c_shared_library(METHODS, rebuild=False):
+    ''' Loads the pyrf dynamic library and defines its functions '''
     if rebuild:
-        repo_dir = realpath(join(dirname(__file__), '..'))
-        rmtreedir(join(repo_dir, 'build'))
+        _build_c_shared_library(rebuild)
+    # FIXME: This will break on packaging
+    root_dir = realpath(join('..', dirname(__file__)))
+    libname = 'pyrf'
+    rf_clib, def_cfunc = ctypes_interface.load_clib(libname, root_dir)
+    # Load and expose methods from lib
+    for method in METHODS.keys():
+        def_cfunc(METHODS[method][1], method, METHODS[method][0])
+    return rf_clib
+
+
+def _build_c_shared_library(rebuild=False):
+    if rebuild:
+        build_dir = expanduser(join('~', 'code', 'pyrf', 'build'))
+        if isdir(build_dir):
+            shutil.rmtree(build_dir)
     retVal = os.system('./build_unix.sh')
     if retVal != 0:
         print('[rf] C Shared Library failed to compile')
@@ -30,104 +83,60 @@ def _build_shared_c_library(rebuild=False):
     print('[rf] C Shared Library built')
 
 
-def _prepare_inventory(directory_path, images, total, category, train=True, positive=True):
-    output_fpath = directory_path + '.txt'
-    output = open(output_fpath, 'w')
-
-    if train:
-        output.write(str(total) + ' 1\n')
-    else:
-        output.write(str(total) + '\n')
-
-    for counter, image in enumerate(images):
-        if counter % int(len(images) / 10) == 0:
-            print('%0.2f' % (float(counter) / len(images)))
-
-        filename = join(directory_path, image.filename)
-
-        if train:
-            i = 1
-            cv2.imwrite(filename + '_boxes.jpg', image.show(display=False))
-            for bndbox in image.bounding_boxes():
-                if positive and bndbox[0] != category:
-                    continue
-
-                _filename = filename + '_' + str(i) + '.jpg'
-
-                xmax = bndbox[1]  # max
-                xmin = bndbox[2]  # xmin
-                ymax = bndbox[3]  # ymax
-                ymin = bndbox[4]  # ymin
-
-                width, height = (xmax - xmin), (ymax - ymin)
-
-                temp = cv2.imread(image.image_path())  # Load
-                temp = temp[ymin:ymax, xmin:xmax]      # Crop
-
-                target_width = 128
-                if width != target_width:
-                    ratio = float(height) / width
-                    width = target_width
-                    height = int(target_width * ratio)
-                    temp = gtool.resize(temp, (width, height))
-
-                xmax = width
-                xmin = 0
-                ymax = height
-                ymin = 0
-
-                if positive:
-                    postfix = ' %d %d %d %d %d %d' % (xmin, ymin, xmax, ymax,
-                                                        xmin + width / 2,
-                                                        ymin + height / 2)
-                else:
-                    postfix = ' %d %d %d %d' % (xmin, ymin, xmax, ymax)
-
-                cv2.imwrite(_filename, temp)  # Save
-                output.write(_filename + postfix + '\n')
-                i += 1
+def _cache_data(src_path_list, dst_path, format_str='data_%07d.JPEG', **kwargs):
+    '''
+        src_path_list                    (required)
+        dst_path                         (required)
+        chips_norm_width                 (required)
+        chips_norm_height                (required)
+        chips_prob_flip_horizontally     (required)
+        chips_prob_flip_vertically       (required)
+    '''
+    if kwargs['chips_norm_width'] is not None:
+        kwargs['chips_norm_width'] = int(kwargs['chips_norm_width'])
+    if kwargs['chips_norm_height'] is not None:
+        kwargs['chips_norm_height'] = int(kwargs['chips_norm_height'])
+    chip_filename_list = []
+    counter = 0
+    for src_path in src_path_list:
+        print("Processing %r" % (src_path, ))
+        # Load the iamge
+        image = cv2.imread(src_path)
+        # Get the shape of the iamge
+        height_, width_, channels_ = image.shape
+        # Determine new image size
+        if kwargs['chips_norm_width'] is not None and kwargs['chips_norm_height'] is None:
+            # Normalizing width (with respect to aspect ratio)
+            width  = kwargs['chips_norm_width']
+            height = int( ( width / width_ ) * height_ )
+        elif kwargs['chips_norm_height'] is not None and kwargs['chips_norm_width'] is None:
+            # Normalizing height (with respect to aspect ratio)
+            height = kwargs['chips_norm_height']
+            width  = int( ( height / height_ ) * width_ )
+        elif kwargs['chips_norm_width'] is not None and kwargs['chips_norm_height'] is not None:
+            # Normalizing width and height (ignoring aspect ratio)
+            width  = kwargs['chips_norm_width']
+            height = kwargs['chips_norm_height']
         else:
-            postfix = ''
-            cv2.imwrite(filename, cv2.imread(image.image_path()))  # Save
-            output.write(filename + postfix + '\n')
-
-    output.close()
-
-    return output_fpath
-
-
-def get_training_data_from_ibeis(dataset, category, pos_path, neg_path,
-                                 val_path, test_path, test_pos_path,
-                                 tast_neg_path, **kwargs):
-    # How does the data look like?
-    dataset.print_distribution()
-
-    # Get all images using a specific positive set
-    (pos, pos_rois), (neg, neg_rois), val, test = dataset.dataset(
-        category,
-        neg_exclude_categories=kwargs['neg_exclude_categories'],
-        max_rois_pos=kwargs['max_rois_pos'],
-        max_rois_neg=kwargs['max_rois_neg'],
-    )
-
-    raw_input("Continue...")
-
-    print('[rf] Caching Positives')
-    pos_fpath = _prepare_inventory(pos_path, pos, pos_rois, category)
-
-    print('[rf] Caching Negatives')
-    neg_fpath = _prepare_inventory(neg_path, neg, neg_rois, category, positive=False)
-
-    print('[rf] Caching Validation')
-    val_fpath  = _prepare_inventory(val_path, val, len(val), category, train=False)
-
-    print('[rf] Caching Test')
-    test_fpath = _prepare_inventory(test_path, test, len(test), category, train=False)
-
-    print('[rf] Caching Test Positives')
-    test_pos_fpath = _prepare_inventory(test_pos_path, pos, len(pos), category, train=False)
-
-    print('[rf] Caching Test Negatives')
-    test_neg_fpath = _prepare_inventory(tast_neg_path, neg, len(neg), category, train=False)
-
-    return pos_fpath, neg_fpath, val_fpath, test_fpath, test_pos_fpath, test_neg_fpath
+            width  = width_
+            height = height_
+        # Check for patch size limitation
+        if width < kwargs['patch_width'] or height < kwargs['patch_height']:
+            print('\t[WARNING] Image size is too small for the patch size, skipping image ')
+            continue
+        # Resize the image
+        image_ = cv2.resize(image, (width, height), interpolation=cv2.INTER_LANCZOS4)
+        # Flip the image (if nessicary)
+        if kwargs['chips_prob_flip_horizontally'] is not None and random.uniform(0.0, 1.0) <= kwargs['chips_prob_flip_horizontally']:
+            image_ = cv2.flip(image_, 1)
+        if kwargs['chips_prob_flip_vertically']   is not None and random.uniform(0.0, 1.0) <= kwargs['chips_prob_flip_vertically']:
+            image_ = cv2.flip(image_, 0)
+        # Get the images destination filename
+        chip_filename = format_str % (counter, )
+        # Write the iamge
+        cv2.imwrite(join(dst_path, chip_filename), image_)
+        # Append the image's destaintion filename to the return list
+        chip_filename_list.append(chip_filename)
+        # Increment the counter
+        counter += 1
+    return chip_filename_list
