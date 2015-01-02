@@ -10,7 +10,7 @@ import time
 from os.path import join, exists, abspath, isdir
 import shutil
 from detecttools.directory import Directory
-from pyrf.pyrf_helpers import (_load_c_shared_library, _cast_list_to_c, _cache_data, extract_np_array)
+from pyrf.pyrf_helpers import (_load_c_shared_library, _cast_list_to_c, _cache_data, _extract_np_array)
 
 
 VERBOSE_RF = utool.get_argflag('--verbrf') or utool.VERBOSE
@@ -58,6 +58,7 @@ METHODS['forest'] = ([
     C_OBJ,           # detector
     C_ARRAY_CHAR,    # tree_path_array
     C_INT,           # _tree_path_num
+    C_BOOL,          # serial
     C_BOOL,          # verbose
 ], C_OBJ)
 
@@ -80,6 +81,7 @@ METHODS['train'] = ([
     C_INT,           # trees_leaf_size
     C_INT,           # trees_pixel_tests
     C_FLOAT,         # trees_prob_optimize_mode
+    C_BOOL,          # serial
     C_BOOL,          # verbose
 ], None)
 
@@ -99,6 +101,7 @@ METHODS['detect'] = ([
     RESULTS_ARRAY,   # results_val_array
     NP_ARRAY_INT,    # results_len_array
     C_INT,           # RESULT_LENGTH
+    C_BOOL,          # serial
     C_BOOL,          # verbose
 ], None)
 RESULT_LENGTH = 8
@@ -135,20 +138,24 @@ class Random_Forest_Detector(object):
 
             Args:
                 tree_path_list (list of str): list of tree paths as strings
-                verbose (bool, optional): verbose flag; defaults to object's verbose or selectively enabled for this function
+                serial (bool, optional): flag to signify if to load the forest in serial;
+                    defaults to False
+                verbose (bool, optional): verbose flag; defaults to object's verbose or
+                    selectively enabled for this function
 
             Returns:
                 forest (object): the forest object of the loaded trees
         '''
         # Default values
         params = odict([
+            ('serial',                       False),
             ('verbose',                      rf.verbose),
         ])
         params.update(kwargs)
 
         # Data integrity
         assert len(tree_path_list) > 0, \
-            'Must specify at least one path to load'
+            'Must specify at least one tree path to load'
         assert all( [ exists(tree_path) for tree_path in tree_path_list ] ), \
             'At least one specified tree path does not exist'
 
@@ -173,68 +180,72 @@ class Random_Forest_Detector(object):
                 train_pos_chip_path_list (list of str): list of positive training chips
                 train_neg_chip_path_list (list of str): list of negative training chips
                 trees_path (str): string path of where the newly trained trees are to be saved
-                **kwargs: keyword dictionary specifying the training settings
-                    chips_norm_width (int, optional): Chip normalization width for resizing;
-                        the chip is resized to have a width of chips_norm_width and
-                        whatever resulting height in order to best match the original
-                        aspect ratio; defaults to 128
 
-                        If both chips_norm_width and chips_norm_height are specified,
-                        the original aspect ratio of the chip is not respected
-                    chips_norm_height (int, optional): Chip normalization height for resizing;
-                        the chip is resized to have a height of chips_norm_height and
-                        whatever resulting width in order to best match the original
-                        aspect ratio; defaults to None
+            Kwargs:
+                chips_norm_width (int, optional): Chip normalization width for resizing;
+                    the chip is resized to have a width of chips_norm_width and
+                    whatever resulting height in order to best match the original
+                    aspect ratio; defaults to 128
 
-                        If both chips_norm_width and chips_norm_height are specified,
-                        the original aspect ratio of the chip is not respected
-                    chips_prob_flip_horizontally (float, optional): The probability
-                        that a chips is flipped horizontally before training to make
-                        the training set invariant to horizontal flips in the image;
-                        defaults to 0.5; 0.0 <= chips_prob_flip_horizontally <= 1.0
-                    chips_prob_flip_vertically (float, optional): The probability
-                        that a chips is flipped vertivcally before training to make
-                        the training set invariant to vertical flips in the image;
-                        defaults to 0.5; 0.0 <= chips_prob_flip_vertically <= 1.0
-                    patch_width (int, optional): the width of the patches for extraction
-                        in the tree; defaults to 32; patch_width > 0
-                    patch_height (int, optional): the height of the patches for extraction
-                        in the tree; defaults to 32; patch_height > 0
-                    patch_density (float, optional): the number of patches to extract from
-                        each chip as a function of density; the density is calculated as:
-                            samples = patch_density * [(chip_width * chip_height) / (patch_width * patch_height)]
-                        and specifies how many times a particular pixel is sampled
-                        from the chip; defaults to 4.0; patch_density > 0
-                    trees_num (int, optional): the number of trees to train in parallel;
-                        defaults to 5
-                    trees_offset (int, optional): the tree number that begins the sequence
-                        of when a tree is trained; defaults to None
+                    If both chips_norm_width and chips_norm_height are specified,
+                    the original aspect ratio of the chip is not respected
+                chips_norm_height (int, optional): Chip normalization height for resizing;
+                    the chip is resized to have a height of chips_norm_height and
+                    whatever resulting width in order to best match the original
+                    aspect ratio; defaults to None
 
-                        If None is specified, the trees_offset value is automatically guessed
-                        by using the number of files in trees_path
+                    If both chips_norm_width and chips_norm_height are specified,
+                    the original aspect ratio of the chip is not respected
+                chips_prob_flip_horizontally (float, optional): The probability
+                    that a chips is flipped horizontally before training to make
+                    the training set invariant to horizontal flips in the image;
+                    defaults to 0.5; 0.0 <= chips_prob_flip_horizontally <= 1.0
+                chips_prob_flip_vertically (float, optional): The probability
+                    that a chips is flipped vertivcally before training to make
+                    the training set invariant to vertical flips in the image;
+                    defaults to 0.5; 0.0 <= chips_prob_flip_vertically <= 1.0
+                patch_width (int, optional): the width of the patches for extraction
+                    in the tree; defaults to 32; patch_width > 0
+                patch_height (int, optional): the height of the patches for extraction
+                    in the tree; defaults to 32; patch_height > 0
+                patch_density (float, optional): the number of patches to extract from
+                    each chip as a function of density; the density is calculated as:
+                        samples = patch_density * [(chip_width * chip_height) / (patch_width * patch_height)]
+                    and specifies how many times a particular pixel is sampled
+                    from the chip; defaults to 4.0; patch_density > 0
+                trees_num (int, optional): the number of trees to train in parallel;
+                    defaults to 5
+                trees_offset (int, optional): the tree number that begins the sequence
+                    of when a tree is trained; defaults to None
 
-                        Tree model files are overwritten if the offset has overlap with
-                        previouly generated trees
-                    trees_max_depth (int, optional): the maximum depth of the tree during
-                        training, this can used for regularization; defaults to 16
-                    trees_max_patches (int, optional): the maximum number of patches that
-                        should be extracted for training between positives AND negatives
-                        (the detector attempts to balance between the number of positive
-                        and negative patches to be roughly the same in quantity);
-                        defaults to 64000
-                    trees_leaf_size (int, optional): the number of patches in a node that
-                        specifies the threshold for becoming a leaf; defaults to 20
+                    If None is specified, the trees_offset value is automatically guessed
+                    by using the number of files in trees_path
 
-                        A node becomes a leaf under two conditions:
-                            1.) The maximum tree depth has been reached (trees_max_depth)
-                            2.) The patches in the node is less than trees_leaf_size and
-                                is stopped prematurely
-                    trees_pixel_tests (int, optional): the number of pixel tests to perform
-                        at each node; defaults to 2000
-                    trees_prob_optimize_mode (float, optional): The probability of the
-                        tree optimizing between classification and regression; defaults to
-                        0.5
-                verbose (bool, optional): verbose flag; defaults to object's verbose or selectively enabled for this function
+                    Tree model files are overwritten if the offset has overlap with
+                    previouly generated trees
+                trees_max_depth (int, optional): the maximum depth of the tree during
+                    training, this can used for regularization; defaults to 16
+                trees_max_patches (int, optional): the maximum number of patches that
+                    should be extracted for training between positives AND negatives
+                    (the detector attempts to balance between the number of positive
+                    and negative patches to be roughly the same in quantity);
+                    defaults to 64000
+                trees_leaf_size (int, optional): the number of patches in a node that
+                    specifies the threshold for becoming a leaf; defaults to 20
+
+                    A node becomes a leaf under two conditions:
+                        1.) The maximum tree depth has been reached (trees_max_depth)
+                        2.) The patches in the node is less than trees_leaf_size and
+                            is stopped prematurely
+                trees_pixel_tests (int, optional): the number of pixel tests to perform
+                    at each node; defaults to 2000
+                trees_prob_optimize_mode (float, optional): The probability of the
+                    tree optimizing between classification and regression; defaults to
+                    0.5
+                serial (bool, optional): flag to signify if to run training in serial;
+                    defaults to False
+                verbose (bool, optional): verbose flag; defaults to object's verbose or
+                    selectively enabled for this function
 
             Returns:
                 None
@@ -255,6 +266,7 @@ class Random_Forest_Detector(object):
             ('trees_leaf_size',              20),
             ('trees_pixel_tests',            2000),
             ('trees_prob_optimize_mode',     0.5),
+            ('serial',                       False),
             ('verbose',                      rf.verbose),
         ])
         params.update(kwargs)
@@ -277,7 +289,7 @@ class Random_Forest_Detector(object):
         # Try to figure out the correct tree offset
         if params['trees_offset'] is None:
             direct = Directory(trees_path, include_file_extensions=['txt'])
-            params['trees_offset'] = len(direct.files())
+            params['trees_offset'] = len(direct.files()) + 1
             print('[rf] Auto Tree Offset: %d' % params['trees_offset'])
 
         # Data integrity
@@ -344,49 +356,59 @@ class Random_Forest_Detector(object):
                     detection
                 input_gpath_list (list of str): the list of image paths that you want
                     to test
-                **kwargs: keyword dictionary specifying the training settings
-                    output_gpath_list (list of str, optional): the paralell list of output
-                        image paths for detection debugging or results; defaults to None
 
-                        When this list is None no images are outputted for any test
-                        images, whereas the list can be a parallel list where some values
-                        are strings and others are None
-                    output_scale_gpath_list (list of str, optional): the paralell list of output
-                        scale image paths for detection debugging or results; defaults
-                        to None
+            Kwargs:
+                output_gpath_list (list of str, optional): the paralell list of output
+                    image paths for detection debugging or results; defaults to None
 
-                        When this list is None no images are outputted for any test
-                        images, whereas the list can be a parallel list where some values
-                        are strings and others are None
-                    mode (int, optional): the mode that the detector outputs; detaults to 0
-                        0 - Hough Voting - the output is a Hough image that predicts the
-                            locations of the obejct centeroids
-                        0 - Classification Map - the output is a classification probability
-                            map across the entire image where no regression information
-                            is utilized
-                    sensitivity (float, optional): the sensitivity of the detector;
-                        defaults to 0.10; 0.0 <= sensitivity <= 1.0
-                    scale_list (list of float, optional): the list of floats that specifies the scales
-                        to try during testing;
-                        defaults to [1.33, 1.00, 0.75, 0.56, 0.42, 0.32, 0.24, 0.18, 0.13]
+                    When this list is None no images are outputted for any test
+                    images, whereas the list can be a parallel list where some values
+                    are strings and others are None
+                output_scale_gpath_list (list of str, optional): the paralell list of output
+                    scale image paths for detection debugging or results; defaults
+                    to None
 
-                            scale > 1.0 - Upscale the image
-                            scale = 1.0 - Original image size
-                            scale < 1.0 - Downscale the image
+                    When this list is None no images are outputted for any test
+                    images, whereas the list can be a parallel list where some values
+                    are strings and others are None
+                mode (int, optional): the mode that the detector outputs; detaults to 0
+                    0 - Hough Voting - the output is a Hough image that predicts the
+                        locations of the obejct centeroids
+                    0 - Classification Map - the output is a classification probability
+                        map across the entire image where no regression information
+                        is utilized
+                sensitivity (float, optional): the sensitivity of the detector;
 
-                        The list of scales highly impacts the performance of the detector and
-                        should be carefully chosen
+                        mode = 0 - defaults to 255.0
+                        mode = 1 - defaults to 255.0
 
-                        The scales are applied to BOTH the width and the height of the image
-                        in order to scale the image and an interpolation of CV_INTER_LINEAR
-                        is used
-                    batch_size (int, optional): the number of images to test at a single
-                        time in paralell (if None, the number of CPUs is used); defaults to None
-                    nms_min_area_contour (int, optional): the minimum size of a centroid
-                        candidate region; defaults to 300
-                    nms_min_area_overlap (float, optional, DEPRICATED): the allowable overlap in
-                        bounding box predictions; defaults to 0.75
-                verbose (bool, optional): verbose flag; defaults to object's verbose or selectively enabled for this function
+                scale_list (list of float, optional): the list of floats that specifies the scales
+                    to try during testing;
+                    defaults to [1.33, 1.00, 0.75, 0.56, 0.42, 0.32, 0.24, 0.18]
+
+                        scale > 1.0 - Upscale the image
+                        scale = 1.0 - Original image size
+                        scale < 1.0 - Downscale the image
+
+                    The list of scales highly impacts the performance of the detector and
+                    should be carefully chosen
+
+                    The scales are applied to BOTH the width and the height of the image
+                    in order to scale the image and an interpolation of CV_INTER_LINEAR
+                    is used
+                batch_size (int, optional): the number of images to test at a single
+                    time in paralell (if None, the number of CPUs is used); defaults to None
+                nms_min_area_contour (int, optional): the minimum size of a centroid
+                    candidate region; defaults to 300
+                nms_min_area_overlap (float, optional, DEPRICATED): the allowable overlap in
+                    bounding box predictions; defaults to 0.75
+                serial (bool, optional): flag to signify if to run detection in serial;
+
+                        len(input_gpath_list) >= batch_size - defaults to False
+                        len(input_gpath_list) <  batch_size - defaults to False
+
+                verbose (bool, optional): verbose flag; defaults to object's verbose or
+                    selectively enabled for this function
 
             Yields:
                 (str, (list of dict)): tuple of the input image path and a list
@@ -417,9 +439,8 @@ class Random_Forest_Detector(object):
             ('output_gpath_list',            None),
             ('output_scale_gpath_list',      None),
             ('mode',                         0),
-            ('sensitivity',                  0.10),
-            # ('scale_list',                   [1.30, 1.15, 1.0, 0.85, 0.70, 0.60, 0.50, 0.40, 0.30, 0.25, 0.20, 0.15]),
-            ('scale_list',                   [1.33, 1.00, 0.75, 0.56, 0.42, 0.32, 0.24, 0.18, 0.13]),  # 0.75
+            ('sensitivity',                  None),
+            ('scale_list',                   [1.33, 1.00, 0.75, 0.56, 0.42, 0.32, 0.24, 0.18]),
             ('_scale_num',                   None),  # This value always gets overwritten
             ('batch_size',                   None),
             ('nms_min_area_contour',         300),
@@ -427,6 +448,7 @@ class Random_Forest_Detector(object):
             ('results_val_array',            None),  # This value always gets overwritten
             ('results_len_array',            None),  # This value always gets overwritten
             ('RESULT_LENGTH',                None),  # This value always gets overwritten
+            ('serial',                       False),
             ('verbose',                      rf.verbose),
         ])
         params.update(kwargs)
@@ -436,6 +458,13 @@ class Random_Forest_Detector(object):
         # We no longer want these parameters in params
         del params['output_gpath_list']
         del params['output_scale_gpath_list']
+
+        if params['sensitivity'] is None:
+            assert params['mode'] in [0, 1], 'Invalid mode provided'
+            if params['mode'] == 0:
+                params['sensitivity'] = 255.0
+            elif params['mode'] == 1:
+                params['sensitivity'] = 255.0
 
         # Try to determine the parallel processing batch size
         if params['batch_size'] is None:
@@ -447,8 +476,8 @@ class Random_Forest_Detector(object):
         # Data integrity
         assert params['mode'] >= 0, \
             'Detection mode must be non-negative'
-        assert 0.0 <= params['sensitivity'] and params['sensitivity'] <= 1.0, \
-            'Sensitivity must be between 0 and 1 (inclusive)'
+        assert 0.0 <= params['sensitivity'], \
+            'Sensitivity must be non-negative'
         assert len(params['scale_list']) > 0 , \
             'The scale list cannot be empty'
         assert all( [ scale > 0.0 for scale in params['scale_list'] ]), \
@@ -489,6 +518,7 @@ class Random_Forest_Detector(object):
         batch_size = params['batch_size']
         del params['batch_size']  # Remove this value from params
         batch_num = int(len(input_gpath_list) / batch_size) + 1
+        # Detect for each batch
         for batch in range(batch_num):
             begin = time.time()
             start = batch * batch_size
@@ -499,6 +529,9 @@ class Random_Forest_Detector(object):
             output_gpath_list_       = output_gpath_list[start:end]
             output_scale_gpath_list_ = output_scale_gpath_list[start:end]
             num_images = len(input_gpath_list_)
+            # Set image detection to be run in serial
+            if num_images < batch_size:
+                params['serial'] = True
             # Final sanity check
             assert len(input_gpath_list_) == len(output_gpath_list_) and len(input_gpath_list_) == len(output_scale_gpath_list_)
             params['results_val_array'] = np.empty(num_images, dtype=NP_ARRAY_FLOAT)
@@ -512,7 +545,7 @@ class Random_Forest_Detector(object):
                 _cast_list_to_c(output_scale_gpath_list_, C_CHAR)
             ] + params.values()
             RF_CLIB.detect(rf.detector_c_obj, *params_list)
-            results_list = extract_np_array(params['results_len_array'], params['results_val_array'], NP_ARRAY_FLOAT, NP_FLOAT32, RESULT_LENGTH)
+            results_list = _extract_np_array(params['results_len_array'], params['results_val_array'], NP_ARRAY_FLOAT, NP_FLOAT32, RESULT_LENGTH)
             conclude = time.time()
             print('Took %r seconds to compute %d images' % (conclude - begin, num_images, ))
             for input_gpath, result_list in zip(input_gpath_list_, results_list):

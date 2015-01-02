@@ -47,8 +47,10 @@ test_direct = Directory('test')
 train_pos_gpath_list = train_pos_direct.files()
 train_neg_gpath_list = train_pos_direct.files()
 test_gpath_list = test_direct.files()
-tree_path = 'trees'
-zebras_path = 'trees-zebras'
+# tree_path = 'trees'
+tree_path = '/Users/bluemellophone/Library/Application Support/ibeis/detectmodels/rf/zebra_grevys/'
+# zebras_path = 'trees-zebras'
+zebras_path = '/Users/bluemellophone/Library/Application Support/ibeis/detectmodels/rf/zebra_grevys/'
 
 detector = Random_Forest_Detector()
 # detector.train(train_pos_gpath_list, train_neg_gpath_list, tree_path)
@@ -59,6 +61,7 @@ detector = Random_Forest_Detector()
 # for result in results:
 #     print 'RESULT: %r' % (result, )
 
+test_gpath_list = test_gpath_list[:7]
 output_list = [ 'output/%d.JPEG' % (i) for i in range(len(test_gpath_list))]
 trees = Directory(zebras_path, include_file_extensions=['txt'])
 forest = detector.forest(trees.files())
@@ -66,13 +69,13 @@ forest = detector.forest(trees.files())
 results_iter = detector.detect(forest, test_gpath_list, output_gpath_list=output_list)
 for input_gpath, result_list in results_iter:
     print result_list
-    # original = openImage(input_gpath, color=True)
-    # for result in result_list:
-    #     color = randColor()
-    #     print result
-    #     _draw_box(original, '', result['xtl'], result['ytl'], result['xtl'] + result['width'], result['ytl'] + result['height'], color)
-    #     cv2.circle(original, (result['centerx'], result['centery']), 3, color, -1)
+    original = openImage(input_gpath, color=True)
+    for result in result_list:
+        color = randColor()
+        print result
+        _draw_box(original, '', result['xtl'], result['ytl'], result['xtl'] + result['width'], result['ytl'] + result['height'], color)
+        cv2.circle(original, (result['centerx'], result['centery']), 3, color, -1)
 
-    # cv2.imshow('IMG', original)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
+    cv2.imshow('IMG', original)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()

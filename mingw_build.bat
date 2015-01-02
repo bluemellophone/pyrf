@@ -22,6 +22,9 @@ cmake -G "MSYS Makefiles" -DOpenCV_DIR="%INSTALL32%\OpenCV" ..
 :: Building with make
 make
 :: mingw32-make -j7 "MAKE=mingw32-make -j3" -f CMakeFiles\Makefile2 all
+:: #################################
+:: Moving the shared library
+move lib* ..\pyrf
 exit /b
 
 :exit

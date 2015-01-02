@@ -2,11 +2,8 @@
 # Python Interface
 #============================
 from __future__ import absolute_import, division, print_function
-import sys
-from os.path import expanduser, join, isdir, realpath, dirname
-import shutil
+from os.path import join, realpath, dirname
 import cv2
-import os
 import random
 import numpy as np
 import ctypes as C
@@ -25,7 +22,7 @@ def _cast_list_to_c(py_list, dtype):
     return c_arr
 
 
-def arrptr_to_np(c_arrptr, shape, arr_t, dtype):
+def _arrptr_to_np(c_arrptr, shape, arr_t, dtype):
     """
     Casts an array pointer from C to numpy
     Input:
@@ -42,7 +39,7 @@ def arrptr_to_np(c_arrptr, shape, arr_t, dtype):
     return np_arr
 
 
-def extract_np_array(size_list, ptr_list, arr_t, arr_dtype,
+def _extract_np_array(size_list, ptr_list, arr_t, arr_dtype,
                         arr_dim):
     """
     size_list - contains the size of each output 2d array
@@ -52,16 +49,13 @@ def extract_np_array(size_list, ptr_list, arr_t, arr_dtype,
     arr_dtype - the numpy array type
     arr_dim   - the number of columns in each output 2d array
     """
-    arr_list = [arrptr_to_np(arr_ptr, (size, arr_dim), arr_t, arr_dtype)
+    arr_list = [_arrptr_to_np(arr_ptr, (size, arr_dim), arr_t, arr_dtype)
                     for (arr_ptr, size) in zip(ptr_list, size_list)]
     return arr_list
 
 
-def _load_c_shared_library(METHODS, rebuild=False):
+def _load_c_shared_library(METHODS):
     ''' Loads the pyrf dynamic library and defines its functions '''
-    if rebuild:
-        _build_c_shared_library(rebuild)
-    # FIXME: This will break on packaging
     root_dir = realpath(join('..', dirname(__file__)))
     libname = 'pyrf'
     rf_clib, def_cfunc = ctypes_interface.load_clib(libname, root_dir)
@@ -69,18 +63,6 @@ def _load_c_shared_library(METHODS, rebuild=False):
     for method in METHODS.keys():
         def_cfunc(METHODS[method][1], method, METHODS[method][0])
     return rf_clib
-
-
-def _build_c_shared_library(rebuild=False):
-    if rebuild:
-        build_dir = expanduser(join('~', 'code', 'pyrf', 'build'))
-        if isdir(build_dir):
-            shutil.rmtree(build_dir)
-    retVal = os.system('./build_unix.sh')
-    if retVal != 0:
-        print('[rf] C Shared Library failed to compile')
-        sys.exit(0)
-    print('[rf] C Shared Library built')
 
 
 def _cache_data(src_path_list, dst_path, format_str='data_%07d.JPEG', **kwargs):

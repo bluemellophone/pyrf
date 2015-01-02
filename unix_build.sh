@@ -20,3 +20,7 @@ cmake $CONFIG -G 'Unix Makefiles' ..
 echo 'Building with make'
 export NCPUS=$(grep -c ^processor /proc/cpuinfo)
 make -j$NCPUS -w
+#################################
+echo 'Moving the shared library'
+cp lib* ../pyrf
+cd ..

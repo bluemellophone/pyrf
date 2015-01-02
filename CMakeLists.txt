@@ -40,7 +40,6 @@ if(APPLE AND CLANG2)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lstdc++ -stdlib=libstdc++")
 endif()
 
-
 #######################################
 message(STATUS "Checking OpenMP")
 find_package(OpenMP)
@@ -58,13 +57,13 @@ ENDIF()
 #######################################
 
 set(SOURCE_FILES 
-    pyrf/src/CRForestDetector.cpp
-    pyrf/src/CRPatch.cpp
-    pyrf/src/CRTree.cpp
-    pyrf/src/HoG.cpp)
+    src/CRForestDetector.cpp
+    src/CRPatch.cpp
+    src/CRTree.cpp
+    src/HoG.cpp)
 
 add_library(pyrf SHARED 
-	pyrf/src/pyrf.cpp
+	src/pyrf.cpp
 	${SOURCE_FILES})
 
 #######################################
