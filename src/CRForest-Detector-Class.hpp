@@ -314,21 +314,14 @@ public:
                         }
                     }
 
-                    minx = *min_element(left.begin(), left.end());
-                    maxx = *min_element(right.begin(), right.end());
-                    miny = *min_element(bottom.begin(), bottom.end());
-                    maxy = *min_element(top.begin(), top.end());
-
                     // xtl    = centerx + accumulate(left.begin(),   left.end(),   0.0) / left.size();
                     // ytl    = centery + accumulate(bottom.begin(), bottom.end(), 0.0) / bottom.size();
                     // width  = centerx + accumulate(right.begin(),  right.end(),  0.0) / right.size();
                     // height = centery + accumulate(top.begin(),    top.end(),    0.0) / top.size();
-                    
-                    // xtl    = centerx - rect.width;
-                    xtl = minx;
+
+                    xtl    = centerx - rect.width;
                     ytl    = centery - rect.height;
-                    // width  = centerx + rect.width;
-                    width = maxx;
+                    width  = centerx + rect.width;
                     height = centery + rect.height; 
                     
                     // Fix width and height
