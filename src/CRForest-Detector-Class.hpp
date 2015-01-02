@@ -153,7 +153,7 @@ public:
                bool serial, bool verbose)
     {
         // Load forest into detector object
-        int threshold = (int) 255.0 * 0.9;
+        int threshold = (int) 255.0 * 0.75;
         CRForestDetector crDetect(forest);
         char buffer[512];
 
@@ -180,6 +180,7 @@ public:
         IplImage *combined = cvCreateImage(cvSize(img->width, img->height), IPL_DEPTH_32F, 1);
         IplImage *upscaled = cvCreateImage(cvSize(img->width, img->height), IPL_DEPTH_32F, 1);
         IplImage *output   = cvCreateImage(cvSize(img->width, img->height), IPL_DEPTH_8U,  1);
+        IplImage *debug    = cvLoadImage(input_gpath.c_str(), CV_LOAD_IMAGE_COLOR);
         
         // Prepare scale_vector
         int w, h, k;
@@ -266,6 +267,7 @@ public:
             int minx, maxx, miny, maxy;
             float x_, y_;
             int i, x, y, j;
+            uchar* ptr;
             vector<float> left, right, bottom, top;
             for (i = 0; contours != 0; contours = contours->h_next, ++i)
             {    
@@ -274,6 +276,7 @@ public:
                 {
                     centerx   = rect.x + (rect.width  / 2);
                     centery   = rect.y + (rect.height / 2);
+
                     left.clear();
                     right.clear();
                     bottom.clear();
@@ -291,28 +294,40 @@ public:
                             {
                                 for (j = 0; j < manifests[k][y][x].size(); ++j)
                                 {
-                                    x_ = centerx - manifests[k][y][x][j].x / scale_vector[k];
-                                    y_ = centery - manifests[k][y][x][j].y / scale_vector[k];
-                                    if(x_ < 0)
-                                    {
-                                        left.push_back(x_);
-                                    }
-                                    else
-                                    {
-                                        right.push_back(x_);
-                                    }
-                                    if(y_ < 0)
-                                    {
-                                        bottom.push_back(y_);
-                                    }
-                                    else
-                                    {
-                                        top.push_back(y_);
-                                    }
+                                    x_ = manifests[k][y][x][j].x / scale_vector[k];
+                                    y_ = manifests[k][y][x][j].y / scale_vector[k];
+
+                                    ptr = (uchar*) ( debug->imageData + int(y_) * debug->widthStep );
+                                    ptr[3 * int(x_) + 0] = 0;
+                                    ptr[3 * int(x_) + 1] = 255;
+                                    ptr[3 * int(x_) + 2] = 0;
+                                    
+                                    // if(x_ < 0)
+                                    // {
+                                    //     left.push_back(x_);
+                                    // }
+                                    // else
+                                    // {
+                                    //     right.push_back(x_);
+                                    // }
+                                    // if(y_ < 0)
+                                    // {
+                                    //     bottom.push_back(y_);
+                                    // }
+                                    // else
+                                    // {
+                                    //     top.push_back(y_);
+                                    // }
                                 }
                             }
                         }
                     }
+
+                    cvCircle(debug, cvPoint(centerx, centery), 10, cvScalar(0, 0, 255));
+                    // ptr = (uchar*) ( debug->imageData + int(centery) * debug->widthStep );
+                    // ptr[3 * int(centerx) + 0] = 0;
+                    // ptr[3 * int(centerx) + 1] = 0;
+                    // ptr[3 * int(centerx) + 2] = 255;
 
                     // xtl    = centerx + accumulate(left.begin(),   left.end(),   0.0) / left.size();
                     // ytl    = centery + accumulate(bottom.begin(), bottom.end(), 0.0) / bottom.size();
@@ -354,11 +369,21 @@ public:
             }
         }
 
+        if (output_gpath.length() > 0)
+        {
+            sprintf(buffer, "%s_debug_original.JPEG", output_gpath.c_str());
+            cvSaveImage(buffer, img);
+
+            sprintf(buffer, "%s_debug.JPEG", output_gpath.c_str());
+            cvSaveImage(buffer, debug);
+        }
+
         // Release image
         cvReleaseImage(&img);
         cvReleaseImage(&combined);
         cvReleaseImage(&upscaled);
         cvReleaseImage(&output);
+        cvReleaseImage(&debug);
 
         // Save results
         int size = temp.size();

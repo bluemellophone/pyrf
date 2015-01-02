@@ -61,7 +61,7 @@ detector = Random_Forest_Detector()
 # for result in results:
 #     print 'RESULT: %r' % (result, )
 
-test_gpath_list = test_gpath_list[:8]
+test_gpath_list = test_gpath_list[:10]
 output_list = [ 'output/%d.JPEG' % (i) for i in range(len(test_gpath_list))]
 trees = Directory(zebras_path, include_file_extensions=['txt'])
 forest = detector.forest(trees.files())
