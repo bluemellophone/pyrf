@@ -166,7 +166,8 @@ void CRTree::grow(const vector<vector<const PatchFeature *> > &TrainSet, int nod
             measure_mode = (cvRandReal( cvRNG ) <= split ? 0 : 1);
         }
         // Figure out if we are verbose or not
-        verbose = verbose || depth <= 2;
+        // verbose = verbose || depth <= 2;
+        verbose = depth <= 3;
         // Find optimal test
         if ( optimizeTest(SetA, SetB, TrainSet, test, samples, measure_mode) )
         {

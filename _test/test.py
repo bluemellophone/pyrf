@@ -69,13 +69,13 @@ forest = detector.forest(trees.files())
 results_iter = detector.detect(forest, test_gpath_list, output_gpath_list=output_list)
 for input_gpath, result_list in results_iter:
     print result_list
-    original = openImage(input_gpath, color=True)
-    for result in result_list:
-        color = randColor()
-        print result
-        _draw_box(original, '', result['xtl'], result['ytl'], result['xtl'] + result['width'], result['ytl'] + result['height'], color)
-        cv2.circle(original, (result['centerx'], result['centery']), 3, color, -1)
+    # original = openImage(input_gpath, color=True)
+    # for result in result_list:
+    #     color = randColor()
+    #     print result
+    #     _draw_box(original, '', result['xtl'], result['ytl'], result['xtl'] + result['width'], result['ytl'] + result['height'], color)
+    #     cv2.circle(original, (result['centerx'], result['centery']), 3, color, -1)
 
-    cv2.imshow('IMG', original)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # cv2.imshow('IMG', original)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()

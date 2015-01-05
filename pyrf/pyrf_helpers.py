@@ -81,7 +81,8 @@ def _cache_data(src_path_list, dst_path, format_str='data_%07d.JPEG', **kwargs):
     chip_filename_list = []
     counter = 0
     for src_path in src_path_list:
-        print("Processing %r" % (src_path, ))
+        if kwargs['verbose']:
+            print("Processing %r" % (src_path, ))
         # Load the iamge
         image = cv2.imread(src_path)
         # Get the shape of the iamge

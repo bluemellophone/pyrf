@@ -267,6 +267,13 @@ public:
             int minx, maxx, miny, maxy;
             float x_, y_;
             int i, x, y, j;
+    
+            float density;
+            int red, green, blue;
+            time_t t = time(NULL);
+            int seed = (int)t;
+            CvRNG cvRNG(seed);
+
             uchar* ptr;
             vector<float> left, right, bottom, top;
             for (i = 0; contours != 0; contours = contours->h_next, ++i)
@@ -276,6 +283,10 @@ public:
                 {
                     centerx   = rect.x + (rect.width  / 2);
                     centery   = rect.y + (rect.height / 2);
+
+                    red   = cvRandInt( &cvRNG ) % 256;
+                    green = cvRandInt( &cvRNG ) % 256;
+                    blue  = cvRandInt( &cvRNG ) % 256;
 
                     left.clear();
                     right.clear();
@@ -298,41 +309,77 @@ public:
                                     y_ = manifests[k][y][x][j].y / scale_vector[k];
 
                                     ptr = (uchar*) ( debug->imageData + int(y_) * debug->widthStep );
-                                    ptr[3 * int(x_) + 0] = 0;
-                                    ptr[3 * int(x_) + 1] = 255;
-                                    ptr[3 * int(x_) + 2] = 0;
-                                    
-                                    // if(x_ < 0)
-                                    // {
-                                    //     left.push_back(x_);
-                                    // }
-                                    // else
-                                    // {
-                                    //     right.push_back(x_);
-                                    // }
-                                    // if(y_ < 0)
-                                    // {
-                                    //     bottom.push_back(y_);
-                                    // }
-                                    // else
-                                    // {
-                                    //     top.push_back(y_);
-                                    // }
+                                    ptr[3 * int(x_) + 0] = blue;
+                                    ptr[3 * int(x_) + 1] = green;
+                                    ptr[3 * int(x_) + 2] = red;
+
+                                    if(x_ < centerx)
+                                    {
+                                        left.push_back(x_);
+                                    }
+                                    else
+                                    {
+                                        right.push_back(x_);
+                                    }
+                                    if(y_ < centery)
+                                    {
+                                        bottom.push_back(y_);
+                                    }
+                                    else
+                                    {
+                                        top.push_back(y_);
+                                    }
                                 }
                             }
                         }
                     }
 
-                    cvCircle(debug, cvPoint(centerx, centery), 10, cvScalar(0, 0, 255));
-                    // ptr = (uchar*) ( debug->imageData + int(centery) * debug->widthStep );
-                    // ptr[3 * int(centerx) + 0] = 0;
-                    // ptr[3 * int(centerx) + 1] = 0;
-                    // ptr[3 * int(centerx) + 2] = 255;
+                    cvCircle(debug, cvPoint(centerx, centery), 3, cvScalar(0, 0, 255), -1);
 
-                    // xtl    = centerx + accumulate(left.begin(),   left.end(),   0.0) / left.size();
-                    // ytl    = centery + accumulate(bottom.begin(), bottom.end(), 0.0) / bottom.size();
-                    // width  = centerx + accumulate(right.begin(),  right.end(),  0.0) / right.size();
-                    // height = centery + accumulate(top.begin(),    top.end(),    0.0) / top.size();
+                    xtl    = accumulate(left.begin(),   left.end(),   0.0) / left.size();
+                    ytl    = accumulate(bottom.begin(), bottom.end(), 0.0) / bottom.size();
+                    width  = accumulate(right.begin(),  right.end(),  0.0) / right.size();
+                    height = accumulate(top.begin(),    top.end(),    0.0) / top.size();
+                    cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(0, 0, 255), 3);
+
+                    std::sort( left.begin(), left.end() );
+                    std::sort( right.begin(), right.end() );
+                    std::sort( top.begin(), top.end() );
+                    std::sort( bottom.begin(), bottom.end() );
+
+                    // density = 0.50;
+                    // xtl    = left[int(left.size() * (1.0 - density))];
+                    // ytl    = bottom[int(bottom.size() * (1.0 - density))];
+                    // width  = right[int(right.size() * density)];
+                    // height = top[int(top.size() * density)];
+                    // cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(0, 255, 0), 3);
+
+                    // density = 0.90;
+                    // xtl    = left[int(left.size() * (1.0 - density))];
+                    // ytl    = bottom[int(bottom.size() * (1.0 - density))];
+                    // width  = right[int(right.size() * density)];
+                    // height = top[int(top.size() * density)];
+                    // cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(255, 0, 0), 3);
+
+                    // density = 0.95;
+                    // xtl    = left[int(left.size() * (1.0 - density))];
+                    // ytl    = bottom[int(bottom.size() * (1.0 - density))];
+                    // width  = right[int(right.size() * density)];
+                    // height = top[int(top.size() * density)];
+                    // cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(255, 0, 255), 3);
+
+                    density = 1.00;
+                    xtl    = left[int(left.size() * (1.0 - density))];
+                    ytl    = bottom[int(bottom.size() * (1.0 - density))];
+                    width  = right[int(right.size() * density)];
+                    height = top[int(top.size() * density)];
+                    cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(255, 0, 255), 3);
+
+                    xtl = *min_element( left.begin(), left.end() );
+                    ytl = *min_element( bottom.begin(), bottom.end() );
+                    width = *max_element( right.begin(), right.end() );
+                    height = *max_element( top.begin(), top.end() );
+                    cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(0, 255, 255), 3);
 
                     xtl    = centerx - rect.width;
                     ytl    = centery - rect.height;
