@@ -216,10 +216,10 @@ public:
             {
                 cvAdd(upscaled, combined, combined);
             }
+            cvSmooth( combined, combined, CV_GAUSSIAN, 3);
             // Release images
             cvReleaseImage(&vImgDetect[k]);
         }
-        cvSmooth( combined, combined, CV_GAUSSIAN, 3);
 
         // Scale to U8 image
         if(accumulate_mode == 0)
