@@ -118,7 +118,7 @@ public:
 
         // Init random generator
         time_t t = time(NULL);
-        int seed = (int)t;
+        int seed = (int) t;
         CvRNG cvRNG(seed);
 
         // Init training data
@@ -152,8 +152,13 @@ public:
                int nms_min_area_overlap, float **results, int RESULT_LENGTH,
                bool serial, bool verbose)
     {
+        // This threshold value is important, but not really because it can be controlled
+        // with the sensitivity value
+        int threshold = int(255.0 * 0.90);
+        int accumulate_mode = 1; // 0 - max, 1 - add
+        float density = 0.99;
+
         // Load forest into detector object
-        int threshold = (int) 255.0 * 0.75;
         CRForestDetector crDetect(forest);
         char buffer[512];
 
@@ -199,7 +204,6 @@ public:
 
         // Detection for all scale_vector
         crDetect.detectPyramid(img, vImgDetect, manifests, mode, serial);
-        int accumulate_mode = 0; // 0 - max, 1 - add
 
         // Create combined image
         vector<vector<float> > temp;
@@ -265,17 +269,16 @@ public:
             CvRect rect;
             float centerx, centery, xtl, ytl, width, height, confidence, supressed;
             int minx, maxx, miny, maxy;
-            float x_, y_;
+            int x_, y_;
             int i, x, y, j;
     
-            float density;
             int red, green, blue;
             time_t t = time(NULL);
-            int seed = (int)t;
+            int seed = (int) t;
             CvRNG cvRNG(seed);
 
             uchar* ptr;
-            vector<float> left, right, bottom, top;
+            vector<int> left, right, bottom, top;
             for (i = 0; contours != 0; contours = contours->h_next, ++i)
             {    
                 rect = cvBoundingRect(contours);
@@ -305,13 +308,13 @@ public:
                             {
                                 for (j = 0; j < manifests[k][y][x].size(); ++j)
                                 {
-                                    x_ = manifests[k][y][x][j].x / scale_vector[k];
-                                    y_ = manifests[k][y][x][j].y / scale_vector[k];
+                                    x_ = int(manifests[k][y][x][j].x / scale_vector[k]);
+                                    y_ = int(manifests[k][y][x][j].y / scale_vector[k]);
 
-                                    ptr = (uchar*) ( debug->imageData + int(y_) * debug->widthStep );
-                                    ptr[3 * int(x_) + 0] = blue;
-                                    ptr[3 * int(x_) + 1] = green;
-                                    ptr[3 * int(x_) + 2] = red;
+                                    ptr = (uchar*) ( debug->imageData + y_ * debug->widthStep );
+                                    ptr[3 * x_ + 0] = blue;
+                                    ptr[3 * x_ + 1] = green;
+                                    ptr[3 * x_ + 2] = red;
 
                                     if(x_ < centerx)
                                     {
@@ -342,50 +345,23 @@ public:
                     height = accumulate(top.begin(),    top.end(),    0.0) / top.size();
                     cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(0, 0, 255), 3);
 
-                    std::sort( left.begin(), left.end() );
-                    std::sort( right.begin(), right.end() );
-                    std::sort( top.begin(), top.end() );
-                    std::sort( bottom.begin(), bottom.end() );
-
-                    // density = 0.50;
-                    // xtl    = left[int(left.size() * (1.0 - density))];
-                    // ytl    = bottom[int(bottom.size() * (1.0 - density))];
-                    // width  = right[int(right.size() * density)];
-                    // height = top[int(top.size() * density)];
-                    // cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(0, 255, 0), 3);
-
-                    // density = 0.90;
-                    // xtl    = left[int(left.size() * (1.0 - density))];
-                    // ytl    = bottom[int(bottom.size() * (1.0 - density))];
-                    // width  = right[int(right.size() * density)];
-                    // height = top[int(top.size() * density)];
-                    // cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(255, 0, 0), 3);
-
-                    // density = 0.95;
-                    // xtl    = left[int(left.size() * (1.0 - density))];
-                    // ytl    = bottom[int(bottom.size() * (1.0 - density))];
-                    // width  = right[int(right.size() * density)];
-                    // height = top[int(top.size() * density)];
-                    // cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(255, 0, 255), 3);
-
-                    density = 1.00;
-                    xtl    = left[int(left.size() * (1.0 - density))];
-                    ytl    = bottom[int(bottom.size() * (1.0 - density))];
-                    width  = right[int(right.size() * density)];
-                    height = top[int(top.size() * density)];
-                    cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(255, 0, 255), 3);
-
-                    xtl = *min_element( left.begin(), left.end() );
-                    ytl = *min_element( bottom.begin(), bottom.end() );
-                    width = *max_element( right.begin(), right.end() );
+                    xtl    = *min_element( left.begin(), left.end() );
+                    ytl    = *min_element( bottom.begin(), bottom.end() );
+                    width  = *max_element( right.begin(), right.end() );
                     height = *max_element( top.begin(), top.end() );
                     cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(0, 255, 255), 3);
 
-                    xtl    = centerx - rect.width;
-                    ytl    = centery - rect.height;
-                    width  = centerx + rect.width;
-                    height = centery + rect.height; 
-                    
+                    std::sort(left.begin(),   left.end(),   std::greater<int>());
+                    std::sort(bottom.begin(), bottom.end(), std::greater<int>());
+                    std::sort(right.begin(),  right.end());
+                    std::sort(top.begin(),    top.end());
+
+                    xtl    = left  [int(density * left.size())];
+                    ytl    = bottom[int(density * bottom.size())];
+                    width  = right [int(density * right.size())];
+                    height = top   [int(density * top.size())];
+                    cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(255, 255, 0), 3);
+
                     // Fix width and height
                     width  -= xtl;
                     height -= ytl;
@@ -455,7 +431,7 @@ private:
         IplImage *img;
         int patch_total = 0;
         // load postive images and extract patches
-        for (int i = 0; i < (int)train_pos_chip_filename_vector.size(); ++i)
+        for (int i = 0; i < train_pos_chip_filename_vector.size(); ++i)
         {
             if (patch_total > max_patches)
             {
@@ -482,5 +458,34 @@ private:
             cvReleaseImage(&img);
         }
         return patch_total;
+    }
+
+    int pdf(vector<int> &data, float percentile)
+    {
+        // INVOCATION:
+        //     xtl    = pdf(left,   density);
+        //     ytl    = pdf(bottom, density);
+        //     width  = pdf(right,  density);
+        //     height = pdf(top,    density);
+        int val = 0, counter = 0, total = 0;
+        int cutoff = int(percentile * data.size());
+        for(int c = 0; c < data.size(); ++c)
+        {   
+            if(data[c] != val || c == data.size() - 1)
+            {
+                total += counter;
+                if(total >= cutoff)
+                {
+                    break;
+                }
+                val = data[c];
+                counter = 0;
+            }
+            else
+            {
+               counter++;
+            }
+        }
+        return val;
     }
 };

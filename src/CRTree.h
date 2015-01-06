@@ -45,7 +45,7 @@ public:
         treetable = new int[num_nodes * 7];
         for (unsigned int i = 0; i < num_nodes * 7; ++i) treetable[i] = 0;
         // allocate memory for leafs
-        leaf = new LeafNode[(int)pow(2.0, int(max_depth))];
+        leaf = new LeafNode[(int) pow(2.0, int(max_depth))];
     }
     ~CRTree() {
         delete[] leaf;

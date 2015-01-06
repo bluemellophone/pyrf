@@ -85,6 +85,8 @@ void CRForestDetector::detectColor(IplImage *img, IplImage *imgDetect,
                             if ((*itL)->pfg == 1.00)
                             {
                                 manifest[y][x].push_back(cvPoint(cx, cy));
+                                // Give perfect patches an additional vote as a reward
+                                *(ptDet + x + y * stepDet) += weight;
                             }
                         }
                     }

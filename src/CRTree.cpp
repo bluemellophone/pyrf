@@ -22,7 +22,7 @@ CRTree::CRTree(const char *filename) {
     if (in.is_open()) {
         // allocate memory for tree table
         in >> max_depth;
-        num_nodes = (int)pow(2.0, int(max_depth + 1)) - 1;
+        num_nodes = (int) pow(2.0, int(max_depth + 1)) - 1;
         // num_nodes x 7 matrix as vector
         treetable = new int[num_nodes * 7];
         int *ptT = &treetable[0];
@@ -84,7 +84,7 @@ CRTree::CRTree(const char *filename) {
 /////////////////////// IO Function /////////////////////////////
 
 bool CRTree::saveTree(const char *filename) const {
-    cout << "[pyrf.cpp] Save Tree " << filename << endl;
+    cout << endl << "[pyrf.cpp] Save Tree " << filename << endl;
     ofstream out(filename);
     if (out.is_open())
     {
@@ -166,8 +166,7 @@ void CRTree::grow(const vector<vector<const PatchFeature *> > &TrainSet, int nod
             measure_mode = (cvRandReal( cvRNG ) <= split ? 0 : 1);
         }
         // Figure out if we are verbose or not
-        // verbose = verbose || depth <= 2;
-        verbose = depth <= 3;
+        verbose = verbose || depth <= 3;
         // Find optimal test
         if ( optimizeTest(SetA, SetB, TrainSet, test, samples, measure_mode) )
         {

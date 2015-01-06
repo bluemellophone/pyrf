@@ -149,7 +149,7 @@ class Random_Forest_Detector(object):
         # Default values
         params = odict([
             ('serial',                       False),
-            ('verbose',                      rf.verbose),
+            ('verbose',                      True),
         ])
         params.update(kwargs)
 
@@ -346,6 +346,8 @@ class Random_Forest_Detector(object):
             trees_path,
         ] + params.values()
         RF_CLIB.train(rf.detector_c_obj, *params_list)
+        print('\n\n[pyrf] *************************************')
+        print('[pyrf] Training Completed')
 
     def detect(rf, forest, input_gpath_list, **kwargs):
         '''
@@ -529,8 +531,8 @@ class Random_Forest_Detector(object):
             output_gpath_list_       = output_gpath_list[start:end]
             output_scale_gpath_list_ = output_scale_gpath_list[start:end]
             num_images = len(input_gpath_list_)
-            # Set image detection to be run in serial
-            if num_images < batch_size:
+            # Set image detection to be run in serial if less than half a batch to run
+            if num_images < batch_size / 2:
                 params['serial'] = True
             # Final sanity check
             assert len(input_gpath_list_) == len(output_gpath_list_) and len(input_gpath_list_) == len(output_scale_gpath_list_)

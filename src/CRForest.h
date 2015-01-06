@@ -98,7 +98,7 @@ inline void CRForest::regression(vector<const LeafNode *> &result, uchar **ptFCh
     result.resize( vTrees.size() );
 
     #pragma omp parallel for
-    for (int i = 0; i < (int)vTrees.size(); ++i)
+    for (int i = 0; i < vTrees.size(); ++i)
     {
         result[i] = vTrees[i]->regression(ptFCh, stepImg);
     }
@@ -110,7 +110,7 @@ inline void CRForest::trainForest(int min_s, int max_d, CvRNG *pRNG, const CRPat
 
     max_d -= 1; // Decrease the max_d (max depth) by one to accomodate the interpretation of root is 0
     #pragma omp parallel for if(!serial)
-    for (int i = 0; i < (int)vTrees.size(); ++i)
+    for (int i = 0; i < vTrees.size(); ++i)
     {
         vTrees[i] = new CRTree(min_s, max_d, patch_width, patch_height, pRNG);
         vTrees[i]->growTree(TrData, samples, split, verbose);
@@ -147,9 +147,12 @@ inline void CRForest::loadForest(vector<string> &tree_path_vector, bool serial, 
     #pragma omp parallel for if(!serial)
     for (unsigned int i = 0; i < vTrees.size(); ++i)
     {
-        #pragma omp critical(treeLoadInit)
+        if(verbose)
         {
-            cout << "[pyrf.cpp] Loading tree: " <<  tree_path_vector[i] << endl;
+            #pragma omp critical(treeLoadInit)
+            {
+                cout << "[pyrf.cpp] Loading tree: " <<  tree_path_vector[i] << endl;
+            }
         }
         // Load tree
         vTrees[i] = new CRTree(tree_path_vector[i].c_str());
