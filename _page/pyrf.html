@@ -55,6 +55,7 @@
 </div>
 <div class="section" id="module-pyrf._pyrf">
 <span id="pyrf-pyrf-module"></span><h2>pyrf._pyrf module<a class="headerlink" href="#module-pyrf._pyrf" title="Permalink to this headline">¶</a></h2>
+<<<<<<< HEAD
 <dl class="attribute">
 <dt id="pyrf._pyrf.C_ARRAY_CHAR">
 <tt class="descclassname">pyrf._pyrf.</tt><tt class="descname">C_ARRAY_CHAR</tt><a class="headerlink" href="#pyrf._pyrf.C_ARRAY_CHAR" title="Permalink to this definition">¶</a></dt>
@@ -391,19 +392,135 @@ defaults to 64000</dd>
 <dl class="method">
 <dt id="pyrf._pyrf.Random_Forest_Detector.train_folder">
 <tt class="descname">train_folder</tt><big>(</big><em>rf</em>, <em>train_pos_path</em>, <em>train_neg_path</em>, <em>trees_path</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pyrf/_pyrf.html#Random_Forest_Detector.train_folder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf._pyrf.Random_Forest_Detector.train_folder" title="Permalink to this definition">¶</a></dt>
+=======
+<dl class="class">
+<dt id="pyrf._pyrf.Random_Forest_Detector">
+<em class="property">class </em><tt class="descclassname">pyrf._pyrf.</tt><tt class="descname">Random_Forest_Detector</tt><big>(</big><em>rf</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pyrf/_pyrf.html#Random_Forest_Detector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf._pyrf.Random_Forest_Detector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<dl class="method">
+<dt id="pyrf._pyrf.Random_Forest_Detector.detect">
+<tt class="descname">detect</tt><big>(</big><em>rf</em>, <em>forest</em>, <em>image_fpath</em>, <em>result_fpath</em><big>)</big><a class="reference internal" href="_modules/pyrf/_pyrf.html#Random_Forest_Detector.detect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf._pyrf.Random_Forest_Detector.detect" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyrf._pyrf.Random_Forest_Detector.detect_many">
+<tt class="descname">detect_many</tt><big>(</big><em>rf</em>, <em>forest</em>, <em>image_fpath_list</em>, <em>result_fpath_list</em><big>)</big><a class="reference internal" href="_modules/pyrf/_pyrf.html#Random_Forest_Detector.detect_many"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf._pyrf.Random_Forest_Detector.detect_many" title="Permalink to this definition">¶</a></dt>
+<dd><p>WIP</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyrf._pyrf.Random_Forest_Detector.load">
+<tt class="descname">load</tt><big>(</big><em>rf</em>, <em>tree_path</em>, <em>prefix</em>, <em>num_trees=10</em><big>)</big><a class="reference internal" href="_modules/pyrf/_pyrf.html#Random_Forest_Detector.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf._pyrf.Random_Forest_Detector.load" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyrf._pyrf.Random_Forest_Detector.retrain">
+<tt class="descname">retrain</tt><big>(</big><em>rf</em><big>)</big><a class="reference internal" href="_modules/pyrf/_pyrf.html#Random_Forest_Detector.retrain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf._pyrf.Random_Forest_Detector.retrain" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyrf._pyrf.Random_Forest_Detector.save">
+<tt class="descname">save</tt><big>(</big><em>rf</em><big>)</big><a class="reference internal" href="_modules/pyrf/_pyrf.html#Random_Forest_Detector.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf._pyrf.Random_Forest_Detector.save" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyrf._pyrf.Random_Forest_Detector.segment">
+<tt class="descname">segment</tt><big>(</big><em>rf</em><big>)</big><a class="reference internal" href="_modules/pyrf/_pyrf.html#Random_Forest_Detector.segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf._pyrf.Random_Forest_Detector.segment" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyrf._pyrf.Random_Forest_Detector.set_detect_params">
+<tt class="descname">set_detect_params</tt><big>(</big><em>rf</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pyrf/_pyrf.html#Random_Forest_Detector.set_detect_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf._pyrf.Random_Forest_Detector.set_detect_params" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyrf._pyrf.Random_Forest_Detector.train">
+<tt class="descname">train</tt><big>(</big><em>rf</em>, <em>database_path</em>, <em>category</em>, <em>pos_path</em>, <em>neg_path</em>, <em>val_path</em>, <em>test_path</em>, <em>trees_path</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pyrf/_pyrf.html#Random_Forest_Detector.train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf._pyrf.Random_Forest_Detector.train" title="Permalink to this definition">¶</a></dt>
+>>>>>>> 9c6f78462ce4b654324c88400f3c4166e9d8d920
 <dd></dd></dl>
 
 </dd></dl>
 
+<<<<<<< HEAD
 <dl class="data">
 <dt id="pyrf._pyrf.VERBOSE_RF">
 <tt class="descclassname">pyrf._pyrf.</tt><tt class="descname">VERBOSE_RF</tt><em class="property"> = False</em><a class="headerlink" href="#pyrf._pyrf.VERBOSE_RF" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bindings for C Variable Types</p>
+=======
+<dl class="function">
+<dt id="pyrf._pyrf.arrptr_to_np">
+<tt class="descclassname">pyrf._pyrf.</tt><tt class="descname">arrptr_to_np</tt><big>(</big><em>c_arrptr</em>, <em>shape</em>, <em>arr_t</em>, <em>dtype</em><big>)</big><a class="reference internal" href="_modules/pyrf/_pyrf.html#arrptr_to_np"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf._pyrf.arrptr_to_np" title="Permalink to this definition">¶</a></dt>
+<dd><p>Casts an array pointer from C to numpy
+Input:</p>
+<blockquote>
+<div>c_arrpt - an array pointer returned from C
+shape   - shape of that array pointer
+arr_t   - the ctypes datatype of c_arrptr</div></blockquote>
+<p>Avi&#8217;s code</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyrf._pyrf.extract_2darr_list">
+<tt class="descclassname">pyrf._pyrf.</tt><tt class="descname">extract_2darr_list</tt><big>(</big><em>size_list</em>, <em>ptr_list</em>, <em>arr_t</em>, <em>arr_dtype</em>, <em>arr_dim</em><big>)</big><a class="reference internal" href="_modules/pyrf/_pyrf.html#extract_2darr_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf._pyrf.extract_2darr_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>size_list - contains the size of each output 2d array
+ptr_list  - an array of pointers to the head of each output 2d</p>
+<blockquote>
+<div>array (which was allocated in C)</div></blockquote>
+<p>arr_t     - the C pointer type
+arr_dtype - the numpy array type
+arr_dim   - the number of columns in each output 2d array</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyrf._pyrf.load_pyrf_clib">
+<tt class="descclassname">pyrf._pyrf.</tt><tt class="descname">load_pyrf_clib</tt><big>(</big><em>rebuild=False</em><big>)</big><a class="reference internal" href="_modules/pyrf/_pyrf.html#load_pyrf_clib"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf._pyrf.load_pyrf_clib" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads the pyrf dynamic library and defines its functions</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pyrf._pyrf.results_array_t">
+<tt class="descclassname">pyrf._pyrf.</tt><tt class="descname">results_array_t</tt><a class="headerlink" href="#pyrf._pyrf.results_array_t" title="Permalink to this definition">¶</a></dt>
+<dd><p>This defines the default constructor parameters for the algorithm.
+These values may be overwritten by passing in a dictionary to the
+class constructor using kwargs</p>
+<dl class="docutils">
+<dt>constructor_parameters = [</dt>
+<dd>(parameter type, parameter name, parameter default value),</dd>
+</dl>
+<p>]</p>
+<p>IMPORTANT:
+The order of this list must match the C++ constructor parameter order</p>
+<p>alias of <tt class="xref py py-class docutils literal"><span class="pre">ndpointer_&lt;u8_1d_ALIGNED_C_CONTIGUOUS_WRITEABLE</span></tt></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pyrf._pyrf.str_list_t">
+<tt class="descclassname">pyrf._pyrf.</tt><tt class="descname">str_list_t</tt><a class="headerlink" href="#pyrf._pyrf.str_list_t" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <tt class="xref py py-class docutils literal"><span class="pre">LP_c_char_p</span></tt></p>
+>>>>>>> 9c6f78462ce4b654324c88400f3c4166e9d8d920
 </dd></dl>
 
 </div>
 <div class="section" id="module-pyrf.pyrf_helpers">
 <span id="pyrf-pyrf-helpers-module"></span><h2>pyrf.pyrf_helpers module<a class="headerlink" href="#module-pyrf.pyrf_helpers" title="Permalink to this headline">¶</a></h2>
+<<<<<<< HEAD
+=======
+<dl class="function">
+<dt id="pyrf.pyrf_helpers.ensuredir">
+<tt class="descclassname">pyrf.pyrf_helpers.</tt><tt class="descname">ensuredir</tt><big>(</big><em>path</em><big>)</big><a class="reference internal" href="_modules/pyrf/pyrf_helpers.html#ensuredir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf.pyrf_helpers.ensuredir" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pyrf.pyrf_helpers.get_training_data_from_ibeis">
+<tt class="descclassname">pyrf.pyrf_helpers.</tt><tt class="descname">get_training_data_from_ibeis</tt><big>(</big><em>dataset_path</em>, <em>category</em>, <em>pos_path</em>, <em>neg_path</em>, <em>val_path</em>, <em>test_path</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pyrf/pyrf_helpers.html#get_training_data_from_ibeis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf.pyrf_helpers.get_training_data_from_ibeis" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pyrf.pyrf_helpers.rmtreedir">
+<tt class="descclassname">pyrf.pyrf_helpers.</tt><tt class="descname">rmtreedir</tt><big>(</big><em>path</em><big>)</big><a class="reference internal" href="_modules/pyrf/pyrf_helpers.html#rmtreedir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf.pyrf_helpers.rmtreedir" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+>>>>>>> 9c6f78462ce4b654324c88400f3c4166e9d8d920
 </div>
 <div class="section" id="module-pyrf">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-pyrf" title="Permalink to this headline">¶</a></h2>
@@ -468,7 +585,11 @@ defaults to 64000</dd>
       </ul>
     </div>
     <div class="footer">
+<<<<<<< HEAD
         &copy; Copyright 2015, Jon Crall.
+=======
+        &copy; Copyright 2014, Jon Crall.
+>>>>>>> 9c6f78462ce4b654324c88400f3c4166e9d8d920
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
     </div>
   </body>
