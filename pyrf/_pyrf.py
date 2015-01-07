@@ -214,7 +214,7 @@ class Random_Forest_Detector(object):
                     and specifies how many times a particular pixel is sampled
                     from the chip; defaults to 4.0; patch_density > 0
                 trees_num (int, optional): the number of trees to train in parallel;
-                    defaults to 5
+                    defaults to 10
                 trees_offset (int, optional): the tree number that begins the sequence
                     of when a tree is trained; defaults to None
 
@@ -259,7 +259,7 @@ class Random_Forest_Detector(object):
             ('patch_width',                  32),
             ('patch_height',                 32),
             ('patch_density',                4.0),
-            ('trees_num',                    5),
+            ('trees_num',                    10),
             ('trees_offset',                 None),
             ('trees_max_depth',              16),
             ('trees_max_patches',            64000),
