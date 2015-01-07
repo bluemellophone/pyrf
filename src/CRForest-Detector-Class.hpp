@@ -82,9 +82,9 @@ public:
     CRForestDetectorClass()
     {
 #ifdef _OPENMP
-        cout << "\n\n[pyrf.cpp]  --- RUNNING PYRF DETECTOR IN PARALLEL ---\n\n" << endl;
+        cout << "\n\n[pyrf c++]  --- RUNNING PYRF DETECTOR IN PARALLEL ---\n\n" << endl;
 #else
-        cout << "\n\n[pyrf.cpp]  --- RUNNING PYRF DETECTOR IN SERIAL ---\n\n" << endl;
+        cout << "\n\n[pyrf c++]  --- RUNNING PYRF DETECTOR IN SERIAL ---\n\n" << endl;
 #endif
     }
 
@@ -125,18 +125,18 @@ public:
         CRPatch Train(&cvRNG, patch_width, patch_height, 2);
 
         // Extract pos training patches
-        cout << "Loading positive patches..." << endl;
+        cout << "[pyrf c++] Loading positive patches..." << endl;
         int pos_patches = extract_Patches(Train, &cvRNG, train_pos_chip_path_string,
                                           train_pos_chip_filename_vector, 1, patch_density,
                                           trees_max_patches / 2, verbose);
-        cout << endl << "...Loaded " << pos_patches << " patches" << endl;
+        cout << endl << "[pyrf c++] ...Loaded " << pos_patches << " patches" << endl;
 
         // Extract neg training patches
-        cout << "Loading negative patches..." << endl;
+        cout << "[pyrf c++] Loading negative patches..." << endl;
         int neg_patches = extract_Patches(Train, &cvRNG, train_neg_chip_path_string,
                                           train_neg_chip_filename_vector, 0, patch_density,
                                           pos_patches, verbose);  // We pass pos_patches as max_patches for balance
-        cout << endl << "...Loaded " << neg_patches << " patches" << endl;
+        cout << endl << "[pyrf c++] ...Loaded " << neg_patches << " patches" << endl;
 
         // Train forest and save file
         crForest.trainForest(trees_leaf_size, trees_max_depth, &cvRNG, Train,
@@ -173,12 +173,12 @@ public:
         {
             if (!img)
             {
-                cout << "[pyrf.cpp] Could not load image file: " << input_gpath << endl;
+                cout << "[pyrf c++] Could not load image file: " << input_gpath << endl;
                 exit(-1);
             }
             else
             {
-                cout << "[pyrf.cpp] Loaded image file: " << input_gpath << endl;
+                cout << "[pyrf c++] Loaded image file: " << input_gpath << endl;
             }
         }
 
@@ -203,7 +203,7 @@ public:
         }
 
         // Detection for all scale_vector
-        crDetect.detectPyramid(img, vImgDetect, manifests, mode, serial);
+        crDetect.detectPyramid(img, vImgDetect, manifests, scale_vector, mode, serial);
 
         // Create combined image
         vector<vector<float> > temp;
@@ -239,7 +239,7 @@ public:
         CvPoint minloc, maxloc;
         double minval, maxval;
         cvMinMaxLoc(combined, &minval, &maxval, &minloc, &maxloc, 0);
-        cout << "MIN: " << minval << " MAX: " << maxval << endl;
+        cout << "[pyrf c++] Detected - min: " << minval << ", max: " << maxval << endl;
 
         if(mode == 0)
         {
@@ -437,7 +437,7 @@ private:
             {
                 if (verbose)
                 {
-                    cout << endl << "[pyrf.cpp] Skipping image file: " << img_filepath;
+                    cout << endl << "[pyrf c++] Skipping image file: " << img_filepath;
                 }
                 continue;
             }
@@ -449,7 +449,7 @@ private:
             img = cvLoadImage(img_filepath.c_str(), CV_LOAD_IMAGE_COLOR);
             if (!img)
             {
-                cout << endl << "[pyrf.cpp] Could not load image file: " << img_filepath;
+                cout << endl << "[pyrf c++] Could not load image file: " << img_filepath;
                 continue;
             }
             // Extract patches

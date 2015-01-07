@@ -14,8 +14,7 @@ using namespace std;
 
 // Read tree from file
 CRTree::CRTree(const char *filename) {
-    //cout << "[pyrf.cpp] Load Tree " << filename << endl;
-
+    //cout << "[pyrf c++] Load Tree " << filename << endl;
     int dummy;
     bool skip = true;
     ifstream in(filename);
@@ -39,7 +38,7 @@ CRTree::CRTree(const char *filename) {
         {
             #pragma omp critical(treeLoadInit)
             {
-                cout << "[pyrf.cpp]      WARNING: Using legacy patch width and height of 32, consider upgrading the tree model files" << endl;
+                cout << "[pyrf c++]      WARNING: Using legacy patch width and height of 32, consider upgrading the tree model files" << endl;
             }
             patch_width  = 32;
             patch_height = 32;
@@ -84,7 +83,7 @@ CRTree::CRTree(const char *filename) {
 /////////////////////// IO Function /////////////////////////////
 
 bool CRTree::saveTree(const char *filename) const {
-    cout << endl << "[pyrf.cpp] Save Tree " << filename << endl;
+    cout << endl << "[pyrf c++] Save Tree " << filename << endl;
     ofstream out(filename);
     if (out.is_open())
     {
@@ -180,7 +179,7 @@ void CRTree::grow(const vector<vector<const PatchFeature *> > &TrainSet, int nod
             {
                 if (verbose)
                 {
-                    cout << "MeasureMode " << depth << " " << measure_mode << " " << TrainSet[0].size() << " " << TrainSet[1].size() << endl;
+                    cout << "[pyrf c++] MeasureMode " << depth << " " << measure_mode << " " << TrainSet[0].size() << " " << TrainSet[1].size() << endl;
                 }            
                 double countA = 0;
                 double countB = 0;
@@ -188,7 +187,7 @@ void CRTree::grow(const vector<vector<const PatchFeature *> > &TrainSet, int nod
                 {
                     if (verbose)
                     {
-                        cout << "Final_Split A/B " << l << " " << SetA[l].size() << " " << SetB[l].size() << endl;
+                        cout << "[pyrf c++] Final_Split A/B " << l << " " << SetA[l].size() << " " << SetB[l].size() << endl;
                     }
                     countA += SetA[l].size(); countB += SetB[l].size();
                 }
@@ -196,7 +195,7 @@ void CRTree::grow(const vector<vector<const PatchFeature *> > &TrainSet, int nod
                 {
                     if (verbose)
                     {
-                        cout << "Final_SplitA: " << SetA[l].size() / countA << "% ";
+                        cout << "[pyrf c++] Final_SplitA: " << SetA[l].size() / countA << "% ";
                     }
                 }
                 if (verbose)
@@ -207,7 +206,7 @@ void CRTree::grow(const vector<vector<const PatchFeature *> > &TrainSet, int nod
                 {
                     if (verbose)
                     {
-                        cout << "Final_SplitB: " << SetB[l].size() / countB << "% ";
+                        cout << "[pyrf c++] Final_SplitB: " << SetB[l].size() / countB << "% ";
                     }
                 }
                 if (verbose)
@@ -278,9 +277,6 @@ bool CRTree::optimizeTest(vector<vector<const PatchFeature *> > &SetA, vector<ve
 
     // Find best test of ITER iterations
     for (unsigned int i = 0; i < iter; ++i) {
-        // if(i % (iter / 100) == 0)
-        //  cout << i / (iter / 100) << endl;
-
         // reset temporary data for split
         for (unsigned int l = 0; l < TrainSet.size(); ++l) {
             tmpA[l].clear();

@@ -18,7 +18,7 @@ using namespace std;
 
 void CRForestDetector::detectColor(IplImage *img, IplImage *imgDetect,
                                    vector<vector<vector<CvPoint > > > &manifest,
-                                   int mode)
+                                   int mode, float multiplier)
 {
     // extract features
     vector<IplImage * > vImg;
@@ -71,6 +71,8 @@ void CRForestDetector::detectColor(IplImage *img, IplImage *imgDetect,
                 if (mode == 0 && (*itL)->pfg > 0.5) // Mode: Hough Voting (default)
                 {
                     weight = (*itL)->pfg / (result.size() * (*itL)->vCenter.size());
+                    // Apply the scale multiplier to the vote
+                    weight *= multiplier;
                     // Vote for all center offsets stored in the leaf
                     for (vector<CvPoint>::const_iterator it = (*itL)->vCenter.begin(); it != (*itL)->vCenter.end(); ++it)
                     {
@@ -95,7 +97,6 @@ void CRForestDetector::detectColor(IplImage *img, IplImage *imgDetect,
                 {
                     // Normalize the weight by the number of trees
                     weight = (*itL)->pfg / result.size();
-                    // cout << weight << " " << (*itL)->pfg << endl;
                     *(ptDet + cx + cy * stepDet) += weight;
                 }
             }
@@ -123,7 +124,7 @@ void CRForestDetector::detectColor(IplImage *img, IplImage *imgDetect,
 
 void CRForestDetector::detectPyramid(IplImage *img, vector<IplImage * > &vImgDetect,
                                      vector<vector<vector<vector<CvPoint > > > > &vManifests,
-                                     int mode, bool serial)
+                                     vector<float> &scale_vector, int mode, bool serial)
 {
 
     if (img->nChannels == 1)
@@ -138,7 +139,8 @@ void CRForestDetector::detectPyramid(IplImage *img, vector<IplImage * > &vImgDet
             IplImage *scale = cvCreateImage( cvSize(vImgDetect[i]->width, vImgDetect[i]->height) , IPL_DEPTH_8U , 3);
             cvResize( img, scale, CV_INTER_LINEAR );
             // detection
-            detectColor(scale, vImgDetect[i], vManifests[i], mode);
+            float multiplier = sqrt(1.0 / scale_vector[i]);
+            detectColor(scale, vImgDetect[i], vManifests[i], mode, multiplier);
             // release
             cvReleaseImage(&scale);
         }

@@ -56,7 +56,7 @@ public:
         }
         else if(patch_width != val)
         {
-            cout << "\tTree " << tree_num << " patch width mismatch and incompatible" << endl;
+            cout << "[pyrf c++] \tTree " << tree_num << " patch width mismatch and incompatible" << endl;
             exit(1);
         }
     }
@@ -67,7 +67,7 @@ public:
         }
         else if(patch_height != val)
         {
-            cout << "\tTree " << tree_num << " patch height mismatch and incompatible" << endl;
+            cout << "[pyrf c++] \tTree " << tree_num << " patch height mismatch and incompatible" << endl;
             exit(1);
         }
     }
@@ -151,7 +151,7 @@ inline void CRForest::loadForest(vector<string> &tree_path_vector, bool serial, 
         {
             #pragma omp critical(treeLoadInit)
             {
-                cout << "[pyrf.cpp] Loading tree: " <<  tree_path_vector[i] << endl;
+                cout << "[pyrf c++] Loading tree: " <<  tree_path_vector[i] << endl;
             }
         }
         // Load tree

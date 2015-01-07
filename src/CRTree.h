@@ -26,7 +26,7 @@ struct LeafNode {
     // IO functions
     void show(int delay, int width, int height);
     void print() const {
-        std::cout << "Leaf " << vCenter.size() << " "  << pfg << std::endl;
+        std::cout << "[pyrf c++] Leaf " << vCenter.size() << " "  << pfg << std::endl;
     }
 
     // Probability of foreground

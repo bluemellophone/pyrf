@@ -4,16 +4,16 @@ from collections import OrderedDict as odict
 import multiprocessing
 import ctypes as C
 # Scientific
-import utool
+import utool as ut
 import numpy as np
-import time
+# import time
 from os.path import join, exists, abspath, isdir
 import shutil
 from detecttools.directory import Directory
 from pyrf.pyrf_helpers import (_load_c_shared_library, _cast_list_to_c, _cache_data, _extract_np_array)
 
 
-VERBOSE_RF = utool.get_argflag('--verbrf') or utool.VERBOSE
+VERBOSE_RF = ut.get_argflag('--verbrf') or ut.VERBOSE
 
 
 #============================
@@ -276,15 +276,15 @@ class Random_Forest_Detector(object):
         # cout << "AIM FOR A SPLIT OF 24k - 32k POSITIVE & NEGATIVE PATCHES EACH FOR GOOD REGULARIZATION AT DEPTH 16" << endl;
 
         # Ensure the trees_path exists
-        utool.ensuredir(trees_path)
+        ut.ensuredir(trees_path)
         data_path = join(trees_path, 'data')
         if isdir(data_path):
             shutil.rmtree(data_path)
-        utool.ensuredir(data_path)
+        ut.ensuredir(data_path)
         data_path_pos = join(data_path, 'pos')
-        utool.ensuredir(data_path_pos)
+        ut.ensuredir(data_path_pos)
         data_path_neg = join(data_path, 'neg')
-        utool.ensuredir(data_path_neg)
+        ut.ensuredir(data_path_neg)
 
         # Try to figure out the correct tree offset
         if params['trees_offset'] is None:
@@ -521,8 +521,8 @@ class Random_Forest_Detector(object):
         del params['batch_size']  # Remove this value from params
         batch_num = int(len(input_gpath_list) / batch_size) + 1
         # Detect for each batch
-        for batch in range(batch_num):
-            begin = time.time()
+        for batch in ut.ProgressIter(range(batch_num), lbl="[pyrf c++]", freq=1, message_type=2):
+            # begin = time.time()
             start = batch * batch_size
             end   = start + batch_size
             if end > len(input_gpath_list):
@@ -548,8 +548,8 @@ class Random_Forest_Detector(object):
             ] + params.values()
             RF_CLIB.detect(rf.detector_c_obj, *params_list)
             results_list = _extract_np_array(params['results_len_array'], params['results_val_array'], NP_ARRAY_FLOAT, NP_FLOAT32, RESULT_LENGTH)
-            conclude = time.time()
-            print('Took %r seconds to compute %d images' % (conclude - begin, num_images, ))
+            # conclude = time.time()
+            # print('Took %r seconds to compute %d images' % (conclude - begin, num_images, ))
             for input_gpath, result_list in zip(input_gpath_list_, results_list):
                 if params['mode'] == 0:
                     result_list_ = []

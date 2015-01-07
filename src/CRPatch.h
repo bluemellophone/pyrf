@@ -26,7 +26,7 @@ struct PatchFeature {
 
     vector<CvMat *> vPatch;
     void print() const {
-        cout << roi.x << " " << roi.y << " " << roi.width << " " << roi.height << " " << center.x << " " << center.y << endl;
+        cout << "[pyrf c++] " << roi.x << " " << roi.y << " " << roi.width << " " << roi.height << " " << center.x << " " << center.y << endl;
     }
     void show(int delay) const;
 };

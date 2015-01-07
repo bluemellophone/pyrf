@@ -91,11 +91,11 @@ PYTHON_RANDOM_FOREST void detect(CRForestDetectorClass *detector, CRForest *fore
     // Parallel processing of the images, ideally, one image per core
     if(serial)
     {
-        cout << "[pyrf.cpp] Detecting images parallelized across scales" << endl;
+        cout << "[pyrf c++] Detecting images parallelized across scales" << endl;
     }
     else
     {
-        cout << "[pyrf.cpp] Detecting images parallelized across batch" << endl;
+        cout << "[pyrf c++] Detecting images parallelized across batch" << endl;
     }
     
     #pragma omp parallel for if(!serial)
