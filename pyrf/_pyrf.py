@@ -521,7 +521,7 @@ class Random_Forest_Detector(object):
         del params['batch_size']  # Remove this value from params
         batch_num = int(len(input_gpath_list) / batch_size) + 1
         # Detect for each batch
-        for batch in ut.ProgressIter(range(batch_num), lbl="[pyrf c++]", freq=1, message_type=2):
+        for batch in ut.ProgressIter(range(batch_num), lbl="[pyrf py]", freq=1, message_type=2):
             # begin = time.time()
             start = batch * batch_size
             end   = start + batch_size
