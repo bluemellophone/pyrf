@@ -6,7 +6,7 @@ import ctypes as C
 # Scientific
 import utool as ut
 import numpy as np
-# import time
+import time
 from os.path import join, exists, abspath, isdir
 import shutil
 from detecttools.directory import Directory
@@ -129,7 +129,7 @@ class Random_Forest_Detector(object):
         '''
         rf.verbose = verbose
         if verbose:
-            print('[rf] New Random_Forest Object Created')
+            print('[pyrf py] New Random_Forest Object Created')
         rf.detector_c_obj = RF_CLIB.init()
 
     def forest(rf, tree_path_list, **kwargs):
@@ -290,7 +290,7 @@ class Random_Forest_Detector(object):
         if params['trees_offset'] is None:
             direct = Directory(trees_path, include_file_extensions=['txt'])
             params['trees_offset'] = len(direct.files()) + 1
-            print('[rf] Auto Tree Offset: %d' % params['trees_offset'])
+            print('[pyrf py] Auto Tree Offset: %d' % params['trees_offset'])
 
         # Data integrity
         assert params['chips_norm_width'] is None or params['chips_norm_width'] >= params['patch_width'], \
@@ -323,10 +323,10 @@ class Random_Forest_Detector(object):
             'At least one specified positive chip path does not exist'
         # We will let the C++ code perform the patch size checks
 
-        print('Caching positives into %r' % (data_path_pos, ))
+        print('[pyrf py] Caching positives into %r' % (data_path_pos, ))
         train_pos_chip_filename_list = _cache_data(train_pos_cpath_list, data_path_pos, **params)
 
-        print('Caching negatives into %r' % (data_path_neg, ))
+        print('[pyrf py] Caching negatives into %r' % (data_path_neg, ))
         train_neg_chip_filename_list = _cache_data(train_neg_cpath_list, data_path_neg, **params)
 
         # We no longer need these parameters (and they should not be transferred to the C++ library)
@@ -346,8 +346,8 @@ class Random_Forest_Detector(object):
             trees_path,
         ] + params.values()
         RF_CLIB.train(rf.detector_c_obj, *params_list)
-        print('\n\n[pyrf] *************************************')
-        print('[pyrf] Training Completed')
+        print('\n\n[pyrf py] *************************************')
+        print('[pyrf py] Training Completed')
 
     def detect(rf, forest, input_gpath_list, **kwargs):
         '''
@@ -522,7 +522,7 @@ class Random_Forest_Detector(object):
         batch_num = int(len(input_gpath_list) / batch_size) + 1
         # Detect for each batch
         for batch in ut.ProgressIter(range(batch_num), lbl="[pyrf py]", freq=1, message_type=2):
-            # begin = time.time()
+            begin = time.time()
             start = batch * batch_size
             end   = start + batch_size
             if end > len(input_gpath_list):
@@ -548,8 +548,8 @@ class Random_Forest_Detector(object):
             ] + params.values()
             RF_CLIB.detect(rf.detector_c_obj, *params_list)
             results_list = _extract_np_array(params['results_len_array'], params['results_val_array'], NP_ARRAY_FLOAT, NP_FLOAT32, RESULT_LENGTH)
-            # conclude = time.time()
-            # print('Took %r seconds to compute %d images' % (conclude - begin, num_images, ))
+            conclude = time.time()
+            print('[pyrf py] Took %r seconds to compute %d images' % (conclude - begin, num_images, ))
             for input_gpath, result_list in zip(input_gpath_list_, results_list):
                 if params['mode'] == 0:
                     result_list_ = []

@@ -65,6 +65,7 @@
 #include <string>
 #include <numeric>
 #include <cmath>
+#include <ctime>
 
 #ifdef _OPENMP
 #include <omp.h>
