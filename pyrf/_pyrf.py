@@ -471,7 +471,9 @@ class Random_Forest_Detector(object):
         # Try to determine the parallel processing batch size
         if params['batch_size'] is None:
             try:
-                params['batch_size'] = multiprocessing.cpu_count()
+                cpu_count = multiprocessing.cpu_count()
+                print('Detecting with %d CPUs' % (cpu_count, ))
+                params['batch_size'] = cpu_count
             except:
                 params['batch_size'] = 8
 
