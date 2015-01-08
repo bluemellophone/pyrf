@@ -156,7 +156,7 @@ public:
         // This threshold value is important, but not really because it can be controlled
         // with the sensitivity value
         int threshold = int(255.0 * 0.90);
-        int accumulate_mode = 1; // 0 - max, 1 - add
+        int accumulate_mode = mode; // 0 - max, 1 - add | 0 - hough, 1 - classification
         float density = 0.99;
 
         // Load forest into detector object
@@ -215,11 +215,11 @@ public:
             cvResize(vImgDetect[k], upscaled);
             if(accumulate_mode == 0)
             {
-                cvMax(upscaled, combined, combined);
+                cvAdd(upscaled, combined, combined);
             }
             else if(accumulate_mode == 1)
             {
-                cvAdd(upscaled, combined, combined);
+                cvMax(upscaled, combined, combined);
             }
             cvSmooth( combined, combined, CV_GAUSSIAN, 3);
             // Release images
@@ -229,11 +229,11 @@ public:
         // Scale to U8 image
         if(accumulate_mode == 0)
         {
-            cvConvertScale( combined, output, sensitivity );        
+            cvConvertScale( combined, output, sensitivity / scale_vector.size() );
         }
         else if(accumulate_mode == 1)
         {
-            cvConvertScale( combined, output, sensitivity / scale_vector.size() );
+            cvConvertScale( combined, output, sensitivity );        
         }
 
         // Find strength
