@@ -47,10 +47,8 @@ test_direct = Directory('test')
 train_pos_gpath_list = train_pos_direct.files()
 train_neg_gpath_list = train_pos_direct.files()
 test_gpath_list = test_direct.files()
-# tree_path = 'trees'
-tree_path = '/Users/bluemellophone/Library/Application Support/ibeis/detectmodels/rf/zebra_grevys/'
-# zebras_path = 'trees-zebras'
-zebras_path = '/Users/bluemellophone/Library/Application Support/ibeis/detectmodels/rf/zebra_grevys/'
+tree_path = 'trees'
+zebras_path = 'trees-zebras'
 
 detector = Random_Forest_Detector()
 # detector.train(train_pos_gpath_list, train_neg_gpath_list, tree_path)
@@ -61,7 +59,7 @@ detector = Random_Forest_Detector()
 # for result in results:
 #     print 'RESULT: %r' % (result, )
 
-test_gpath_list = test_gpath_list[:10]
+test_gpath_list = test_gpath_list
 output_list = [ 'output/%d.JPEG' % (i) for i in range(len(test_gpath_list))]
 trees = Directory(zebras_path, include_file_extensions=['txt'])
 forest = detector.forest(trees.files())

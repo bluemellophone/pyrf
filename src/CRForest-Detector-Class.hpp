@@ -155,7 +155,8 @@ public:
     {
         // This threshold value is important, but not really because it can be controlled
         // with the sensitivity value
-        int threshold = int(255.0 * 0.90);
+        // int threshold = int(255.0 * 0.90);
+        int threshold = 254;
         int accumulate_mode = mode; // 0 - max, 1 - add | 0 - hough, 1 - classification
         float density = 0.99;
 
@@ -251,8 +252,17 @@ public:
                 cvSaveImage(output_gpath.c_str(), output);
             }
             // Threshold the image
+            if (output_gpath.length() > 0)
+            {
+                // cvSmooth( output, output, CV_GAUSSIAN, 15);
+                cvErode(output, output, NULL, 10);
+                // Save output mode image
+                sprintf(buffer, "%s_dialate.JPEG", output_gpath.c_str());
+                cvSaveImage(buffer, output);
+            }
+    
             cvThreshold(output, output, threshold, 0, CV_THRESH_TOZERO);
-        
+
             // DEBUG
             if (output_gpath.length() > 0)
             {

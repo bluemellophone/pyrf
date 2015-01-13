@@ -472,7 +472,7 @@ class Random_Forest_Detector(object):
         if params['batch_size'] is None:
             try:
                 cpu_count = multiprocessing.cpu_count()
-                print('Detecting with %d CPUs' % (cpu_count, ))
+                print('[pyrf py] Detecting with %d CPUs' % (cpu_count, ))
                 params['batch_size'] = cpu_count
             except:
                 params['batch_size'] = 8

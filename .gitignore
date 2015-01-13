@@ -83,4 +83,5 @@ CMakeCache.txt
 CMakeFiles
 
 _doc/
-_test/output
+_test/output*
+_test/trees
