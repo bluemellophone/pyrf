@@ -534,7 +534,7 @@ class Random_Forest_Detector(object):
             output_scale_gpath_list_ = output_scale_gpath_list[start:end]
             num_images = len(input_gpath_list_)
             # Set image detection to be run in serial if less than half a batch to run
-            if num_images < batch_size / 2:
+            if num_images < 4:
                 params['serial'] = True
             # Final sanity check
             assert len(input_gpath_list_) == len(output_gpath_list_) and len(input_gpath_list_) == len(output_scale_gpath_list_)

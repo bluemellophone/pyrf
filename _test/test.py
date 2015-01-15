@@ -47,10 +47,10 @@ test_direct = Directory('test')
 train_pos_gpath_list = train_pos_direct.files()
 train_neg_gpath_list = train_pos_direct.files()
 test_gpath_list = test_direct.files()
-# tree_path = 'trees'
-tree_path = '/Users/bluemellophone/Library/Application Support/ibeis/detectmodels/rf/zebra_grevys/'
-# zebras_path = 'trees-zebras'
-zebras_path = '/Users/bluemellophone/Library/Application Support/ibeis/detectmodels/rf/zebra_grevys/'
+tree_path = 'trees'
+# tree_path = '/Users/bluemellophone/Library/Application Support/ibeis/detectmodels/rf/zebra_grevys/'
+zebras_path = 'trees-zebras'
+# zebras_path = '/Users/bluemellophone/Library/Application Support/ibeis/detectmodels/rf/zebra_grevys/'
 
 detector = Random_Forest_Detector()
 # detector.train(train_pos_gpath_list, train_neg_gpath_list, tree_path)
