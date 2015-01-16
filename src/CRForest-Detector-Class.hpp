@@ -223,31 +223,47 @@ public:
             // Release images
             cvReleaseImage(&vImgDetect[k]);
         }
+        cvSmooth( combinedAdd, combinedAdd, CV_GAUSSIAN, 5);
+        cvSmooth( combinedMax, combinedMax, CV_GAUSSIAN, 5);
+
+        CvPoint minloc, maxloc;
+        double minvalAdd, maxvalAdd;
+        double minvalMax, maxvalMax;
+        cvMinMaxLoc(combinedAdd, &minvalAdd, &maxvalAdd, &minloc, &maxloc, 0);
+        cvMinMaxLoc(combinedMax, &minvalMax, &maxvalMax, &minloc, &maxloc, 0);
+        
+        #pragma omp critical(imageLoad)
+        {
+            cout << "[pyrf c++] PRE: ADD Detected - min: " << minvalAdd << ", max: " << maxvalAdd << endl;
+            cout << "[pyrf c++] PRE: MAX Detected - min: " << minvalMax << ", max: " << maxvalMax << endl;
+        }
 
         // Create combined
-        cvMin( combinedAdd, combinedMax, combined ); 
+        cvConvertScale( combinedMax, combinedMax, maxvalAdd / maxvalMax );
+        cvMin( combinedMax, combinedAdd, combined ); 
 
         // Smooth the image
         cvSmooth( combined, combined, CV_GAUSSIAN, 5);
 
-        // Scale to U8 image
-        if(accumulate_mode == 0)
-        {
-            cvConvertScale( combined, output, sensitivity / scale_vector.size() );
-        }
-        else if(accumulate_mode == 1)
-        {
-            cvConvertScale( combined, output, sensitivity );        
-        }
-
-        // Take minimum of add and max, this will give good negatives and good centers.
-
         // Find strength
-        CvPoint minloc, maxloc;
         double minval, maxval;
         cvMinMaxLoc(combined, &minval, &maxval, &minloc, &maxloc, 0);
         cout << "[pyrf c++] Detected - min: " << minval << ", max: " << maxval << " / " << scale_vector.size() << endl;
 
+        // Scale to output
+        cvConvertScale( combined, output, sensitivity / scale_vector.size() );
+        
+        // // Scale to U8 image
+        // if(accumulate_mode == 0)
+        // {
+        //     cvConvertScale( combined, output, sensitivity / scale_vector.size() );
+        // }
+        // else if(accumulate_mode == 1)
+        // {
+        //     cvConvertScale( combined, output, sensitivity );        
+        // }
+
+        // Take minimum of add and max, this will give good negatives and good centers.
         if(mode == 0)
         {
             if (output_gpath.length() > 0)

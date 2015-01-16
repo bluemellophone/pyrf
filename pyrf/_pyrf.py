@@ -466,7 +466,7 @@ class Random_Forest_Detector(object):
         if params['sensitivity'] is None:
             assert params['mode'] in [0, 1], 'Invalid mode provided'
             if params['mode'] == 0:
-                params['sensitivity'] = 100.0
+                params['sensitivity'] = 200.0
                 # params['sensitivity'] = 200.0 # add
             elif params['mode'] == 1:
                 params['sensitivity'] = 255.0
