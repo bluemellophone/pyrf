@@ -521,6 +521,7 @@ class Random_Forest_Detector(object):
         # Prepare for C
         params['_scale_num'] = len(params['scale_list'])
         params['scale_list'] = _cast_list_to_c(params['scale_list'], C_FLOAT)
+        print('[pyrf py] Detecting over %d scales' % (params['_scale_num'], ))
 
         # Run training algorithm
         batch_size = params['batch_size']
