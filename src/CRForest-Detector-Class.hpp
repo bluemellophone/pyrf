@@ -155,8 +155,9 @@ public:
     {
         // This threshold value is important, but not really because it can be controlled
         // with the sensitivity value
-        int threshold = int(255.0 * 0.90);
-        int accumulate_mode = mode; // 0 - max, 1 - add | 0 - hough, 1 - classification
+        // int threshold = int(255.0 * 0.90);
+        int threshold = int(255 * 0.90);
+        int accumulate_mode = 1; // 1 - max, 0 - add | 0 - hough, 1 - classification
         float density = 0.99;
 
         // Load forest into detector object
@@ -184,6 +185,8 @@ public:
         }
 
         IplImage *combined = cvCreateImage(cvSize(img->width, img->height), IPL_DEPTH_32F, 1);
+        IplImage *combinedAdd = cvCreateImage(cvSize(img->width, img->height), IPL_DEPTH_32F, 1);
+        IplImage *combinedMax = cvCreateImage(cvSize(img->width, img->height), IPL_DEPTH_32F, 1);
         IplImage *upscaled = cvCreateImage(cvSize(img->width, img->height), IPL_DEPTH_32F, 1);
         IplImage *output   = cvCreateImage(cvSize(img->width, img->height), IPL_DEPTH_8U,  1);
         IplImage *debug    = cvLoadImage(input_gpath.c_str(), CV_LOAD_IMAGE_COLOR);
@@ -206,25 +209,26 @@ public:
         // Detection for all scale_vector
         crDetect.detectPyramid(img, vImgDetect, manifests, scale_vector, mode, serial);
 
-        // Create combined image
+        // Create combined images for add and max
         vector<vector<float> > temp;
-        cvSet(combined, cvScalar(0)); // Set combined to 0
+        cvSet(combined, cvScalar(0));    // Set combined to 0
+        cvSet(combinedAdd, cvScalar(0)); // Set combinedAdd to 0
+        cvSet(combinedMax, cvScalar(0)); // Set combinedMax to 0
         for (k = 0; k < vImgDetect.size(); k++)
         {
             // Add scale to combined
             cvResize(vImgDetect[k], upscaled);
-            if(accumulate_mode == 0)
-            {
-                cvAdd(upscaled, combined, combined);
-            }
-            else if(accumulate_mode == 1)
-            {
-                cvMax(upscaled, combined, combined);
-            }
-            cvSmooth( combined, combined, CV_GAUSSIAN, 3);
+            cvAdd(upscaled, combinedAdd, combinedAdd);
+            cvMax(upscaled, combinedMax, combinedMax);
             // Release images
             cvReleaseImage(&vImgDetect[k]);
         }
+
+        // Create combined
+        cvMin( combinedAdd, combinedMax, combined ); 
+
+        // Smooth the image
+        cvSmooth( combined, combined, CV_GAUSSIAN, 5);
 
         // Scale to U8 image
         if(accumulate_mode == 0)
@@ -236,23 +240,33 @@ public:
             cvConvertScale( combined, output, sensitivity );        
         }
 
+        // Take minimum of add and max, this will give good negatives and good centers.
+
         // Find strength
         CvPoint minloc, maxloc;
         double minval, maxval;
         cvMinMaxLoc(combined, &minval, &maxval, &minloc, &maxloc, 0);
-        cout << "[pyrf c++] Detected - min: " << minval << ", max: " << maxval << endl;
+        cout << "[pyrf c++] Detected - min: " << minval << ", max: " << maxval << " / " << scale_vector.size() << endl;
 
         if(mode == 0)
         {
-            // cvSmooth( combined, combined, CV_GAUSSIAN, 3);
             if (output_gpath.length() > 0)
             {
                 // Save output mode image
                 cvSaveImage(output_gpath.c_str(), output);
             }
-            // Threshold the image
+            
+            if (output_gpath.length() > 0)
+            {
+                cvErode(output, output, NULL, 3);
+                cvSmooth( output, output, CV_GAUSSIAN, 5);
+                // Save output mode image
+                sprintf(buffer, "%s_dialate.JPEG", output_gpath.c_str());
+                cvSaveImage(buffer, output);
+            }
+
             cvThreshold(output, output, threshold, 0, CV_THRESH_TOZERO);
-        
+
             // DEBUG
             if (output_gpath.length() > 0)
             {
@@ -385,7 +399,6 @@ public:
         }
         else if(mode == 1)
         {
-            // cvThreshold(output, output, threshold, 0, CV_THRESH_TOZERO);
             if (output_gpath.length() > 0)
             {
                 // Save output mode image

@@ -264,7 +264,7 @@ class Random_Forest_Detector(object):
             ('trees_max_depth',              16),
             ('trees_max_patches',            64000),
             ('trees_leaf_size',              20),
-            ('trees_pixel_tests',            2000),
+            ('trees_pixel_tests',            10000),
             ('trees_prob_optimize_mode',     0.5),
             ('serial',                       False),
             ('verbose',                      rf.verbose),
@@ -442,10 +442,12 @@ class Random_Forest_Detector(object):
             ('output_scale_gpath_list',      None),
             ('mode',                         0),
             ('sensitivity',                  None),
-            ('scale_list',                   [1.33, 1.00, 0.75, 0.56, 0.42, 0.32, 0.24, 0.18]),
+            # 0.85 - [1.63, 1.38, 1.18, 1.0, 0.85, 0.72, 0.61, 0.52, 0.44, 0.38, 0.32, 0.27, 0.23, 0.2, 0.17, 0.14, 0.12, 0.1]
+            # 0.85 edited - [1.38, 1.18, 1.00, 0.85, 0.72, 0.61, 0.52, 0.44, 0.38, 0.32, 0.26, 0.20, 0.17, 0.14, 0.10]
+            ('scale_list',                   [1.3, 1.2, 1.1, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]),
             ('_scale_num',                   None),  # This value always gets overwritten
             ('batch_size',                   None),
-            ('nms_min_area_contour',         300),
+            ('nms_min_area_contour',         100),
             ('nms_min_area_overlap',         0.75),
             ('results_val_array',            None),  # This value always gets overwritten
             ('results_len_array',            None),  # This value always gets overwritten
@@ -464,7 +466,8 @@ class Random_Forest_Detector(object):
         if params['sensitivity'] is None:
             assert params['mode'] in [0, 1], 'Invalid mode provided'
             if params['mode'] == 0:
-                params['sensitivity'] = 255.0
+                params['sensitivity'] = 100.0
+                # params['sensitivity'] = 200.0 # add
             elif params['mode'] == 1:
                 params['sensitivity'] = 255.0
 
@@ -472,7 +475,7 @@ class Random_Forest_Detector(object):
         if params['batch_size'] is None:
             try:
                 cpu_count = multiprocessing.cpu_count()
-                print('Detecting with %d CPUs' % (cpu_count, ))
+                print('[pyrf py] Detecting with %d CPUs' % (cpu_count, ))
                 params['batch_size'] = cpu_count
             except:
                 params['batch_size'] = 8
