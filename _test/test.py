@@ -1,4 +1,4 @@
-from os.path import join, exists
+from os.path import join, exists  # NOQA
 import cv2
 import random
 from pyrf import Random_Forest_Detector
@@ -40,17 +40,38 @@ def randColor():
     return [randInt(50, 205), randInt(50, 205), randInt(50, 205)]
 
 
-train_pos_direct = Directory(join('train', 'pos'))
-train_neg_direct = Directory(join('train', 'neg'))
-test_direct = Directory('test')
+def run_detection(species):
+    print("DETECTING ON SPECIES: %r" % (species, ))
+    test_direct = Directory('test/%s' % (species, ))
+    test_gpath_list = test_direct.files()
+    zebras_path = 'trees/%s' % (species, )
 
-train_pos_gpath_list = train_pos_direct.files()
-train_neg_gpath_list = train_pos_direct.files()
-test_gpath_list = test_direct.files()
-tree_path = 'trees'
-zebras_path = 'trees-zebras'
+    test_gpath_list = test_gpath_list
+    output_list = [ 'output/%s/%d.JPEG' % (species, i) for i in range(len(test_gpath_list))]
+    trees = Directory(zebras_path, include_file_extensions=['txt'])
+    forest = detector.forest(trees.files())
+    # results_iter = detector.detect(forest, test_gpath_list, output_gpath_list=output_list, mode=1, sensitivity=0.75)
+    results_iter = detector.detect(forest, test_gpath_list, output_gpath_list=output_list)
+    for input_gpath, result_list in results_iter:
+        print result_list
+        # original = openImage(input_gpath, color=True)
+        # for result in result_list:
+        #     color = randColor()
+        #     print result
+        #     _draw_box(original, '', result['xtl'], result['ytl'], result['xtl'] + result['width'], result['ytl'] + result['height'], color)
+        #     cv2.circle(original, (result['centerx'], result['centery']), 3, color, -1)
+
+        # cv2.imshow('IMG', original)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
 
 detector = Random_Forest_Detector()
+
+# tree_path = 'trees/generic'
+# train_pos_direct = Directory(join('train', 'pos'))
+# train_neg_direct = Directory(join('train', 'neg'))
+# train_pos_gpath_list = train_pos_direct.files()
+# train_neg_gpath_list = train_pos_direct.files()
 # detector.train(train_pos_gpath_list, train_neg_gpath_list, tree_path)
 
 # trees = Directory(tree_path, include_file_extensions=['txt'])
@@ -59,21 +80,8 @@ detector = Random_Forest_Detector()
 # for result in results:
 #     print 'RESULT: %r' % (result, )
 
-test_gpath_list = test_gpath_list
-output_list = [ 'output/%d.JPEG' % (i) for i in range(len(test_gpath_list))]
-trees = Directory(zebras_path, include_file_extensions=['txt'])
-forest = detector.forest(trees.files())
-# results_iter = detector.detect(forest, test_gpath_list, output_gpath_list=output_list, mode=1, sensitivity=0.75)
-results_iter = detector.detect(forest, test_gpath_list, output_gpath_list=output_list)
-for input_gpath, result_list in results_iter:
-    print result_list
-    # original = openImage(input_gpath, color=True)
-    # for result in result_list:
-    #     color = randColor()
-    #     print result
-    #     _draw_box(original, '', result['xtl'], result['ytl'], result['xtl'] + result['width'], result['ytl'] + result['height'], color)
-    #     cv2.circle(original, (result['centerx'], result['centery']), 3, color, -1)
+species = "zebra_plains"
+run_detection(species)
 
-    # cv2.imshow('IMG', original)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
+species = "zebra_grevys"
+run_detection(species)
