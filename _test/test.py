@@ -40,7 +40,7 @@ def randColor():
     return [randInt(50, 205), randInt(50, 205), randInt(50, 205)]
 
 
-def run_detection(species):
+def run_detection(species, sensitivity=None):
     print("DETECTING ON SPECIES: %r" % (species, ))
     test_direct = Directory('test/%s' % (species, ))
     test_gpath_list = test_direct.files()
@@ -50,8 +50,7 @@ def run_detection(species):
     output_list = [ 'output/%s/%d.JPEG' % (species, i) for i in range(len(test_gpath_list))]
     trees = Directory(zebras_path, include_file_extensions=['txt'])
     forest = detector.forest(trees.files())
-    # results_iter = detector.detect(forest, test_gpath_list, output_gpath_list=output_list, mode=1, sensitivity=0.75)
-    results_iter = detector.detect(forest, test_gpath_list, output_gpath_list=output_list)
+    results_iter = detector.detect(forest, test_gpath_list, output_gpath_list=output_list, sensitivity=sensitivity)
     for input_gpath, result_list in results_iter:
         print result_list
         # original = openImage(input_gpath, color=True)

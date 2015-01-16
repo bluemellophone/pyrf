@@ -156,9 +156,10 @@ public:
         // This threshold value is important, but not really because it can be controlled
         // with the sensitivity value
         // int threshold = int(255.0 * 0.90);
+        bool debug_flag = false;
         int threshold = int(255 * 0.90);
         int accumulate_mode = 1; // 1 - max, 0 - add | 0 - hough, 1 - classification
-        float density = 0.99;
+        float density = 0.990;
 
         // Load forest into detector object
         CRForestDetector crDetect(forest);
@@ -224,55 +225,67 @@ public:
             cvReleaseImage(&vImgDetect[k]);
         }
 
-        // Create combined
-        cvMin( combinedAdd, combinedMax, combined ); 
-
-        // Smooth the image
-        cvSmooth( combined, combined, CV_GAUSSIAN, 5);
-
-        // Scale to U8 image
-        if(accumulate_mode == 0)
-        {
-            cvConvertScale( combined, output, sensitivity / scale_vector.size() );
-        }
-        else if(accumulate_mode == 1)
-        {
-            cvConvertScale( combined, output, sensitivity );        
-        }
-
         // Take minimum of add and max, this will give good negatives and good centers.
-
-        // Find strength
-        CvPoint minloc, maxloc;
-        double minval, maxval;
-        cvMinMaxLoc(combined, &minval, &maxval, &minloc, &maxloc, 0);
-        cout << "[pyrf c++] Detected - min: " << minval << ", max: " << maxval << " / " << scale_vector.size() << endl;
-
         if(mode == 0)
         {
+            cvSmooth( combinedAdd, combinedAdd, CV_GAUSSIAN, 5);
+            cvSmooth( combinedMax, combinedMax, CV_GAUSSIAN, 5);
+
+            CvPoint minloc, maxloc;
+            double minvalAdd, maxvalAdd;
+            double minvalMax, maxvalMax;
+            cvMinMaxLoc(combinedAdd, &minvalAdd, &maxvalAdd, &minloc, &maxloc, 0);
+            cvMinMaxLoc(combinedMax, &minvalMax, &maxvalMax, &minloc, &maxloc, 0);
+            
+            if(debug_flag)
+            {
+                #pragma omp critical(imageLoad)
+                {
+                    cout << "[pyrf c++] PRE: ADD Detected - min: " << minvalAdd << ", max: " << maxvalAdd << endl;
+                    cout << "[pyrf c++] PRE: MAX Detected - min: " << minvalMax << ", max: " << maxvalMax << endl;
+                }
+            }
+
+            // Create combined
+            cvConvertScale( combinedMax, combinedMax, maxvalAdd / maxvalMax );
+            cvMin( combinedMax, combinedAdd, combined ); 
+
+            // Smooth the image
+            cvSmooth( combined, combined, CV_GAUSSIAN, 5);
+
+            // Find strength
+            double minval, maxval;
+            cvMinMaxLoc(combined, &minval, &maxval, &minloc, &maxloc, 0);
+            cout << "[pyrf c++] Detected - min: " << minval << ", max: " << maxval << " / " << scale_vector.size() << endl;
+
+            // Scale to output
+            cvConvertScale( combined, output, sensitivity / scale_vector.size() );
+
             if (output_gpath.length() > 0)
             {
                 // Save output mode image
                 cvSaveImage(output_gpath.c_str(), output);
             }
             
-            if (output_gpath.length() > 0)
-            {
-                cvErode(output, output, NULL, 3);
-                cvSmooth( output, output, CV_GAUSSIAN, 5);
-                // Save output mode image
-                sprintf(buffer, "%s_dialate.JPEG", output_gpath.c_str());
-                cvSaveImage(buffer, output);
-            }
+            // if (output_gpath.length() > 0)
+            // {
+            //     cvErode(output, output, NULL, 3);
+            //     cvSmooth( output, output, CV_GAUSSIAN, 5);
+            //     // Save output mode image
+            //     sprintf(buffer, "%s_dialate.JPEG", output_gpath.c_str());
+            //     cvSaveImage(buffer, output);
+            // }
 
             cvThreshold(output, output, threshold, 0, CV_THRESH_TOZERO);
 
-            // DEBUG
-            if (output_gpath.length() > 0)
+            if(debug_flag)
             {
-                // Save output mode image
-                sprintf(buffer, "%s_thresh.JPEG", output_gpath.c_str());
-                cvSaveImage(buffer, output);
+                if (output_gpath.length() > 0)
+                {
+                    // Save output mode image
+                    sprintf(buffer, "%s_thresh.JPEG", output_gpath.c_str());
+                    cvSaveImage(buffer, output);
+                }   
             }
     
             // Calculate contours for scaled image
@@ -283,17 +296,19 @@ public:
             
             CvRect rect;
             float centerx, centery, xtl, ytl, width, height, confidence, supressed;
+            vector<int> left, right, bottom, top;
             int minx, maxx, miny, maxy;
             int x_, y_;
             int i, x, y, j;
     
+            /////// DEBUG ///////
             int red, green, blue;
             time_t t = time(NULL);
             int seed = (int) t;
             CvRNG cvRNG(seed);
-
             uchar* ptr;
-            vector<int> left, right, bottom, top;
+            /////// DEBUG ///////
+
             for (i = 0; contours != 0; contours = contours->h_next, ++i)
             {    
                 rect = cvBoundingRect(contours);
@@ -302,9 +317,12 @@ public:
                     centerx   = rect.x + (rect.width  / 2);
                     centery   = rect.y + (rect.height / 2);
 
-                    red   = cvRandInt( &cvRNG ) % 256;
-                    green = cvRandInt( &cvRNG ) % 256;
-                    blue  = cvRandInt( &cvRNG ) % 256;
+                    if(debug_flag)
+                    {
+                        red   = cvRandInt( &cvRNG ) % 256;
+                        green = cvRandInt( &cvRNG ) % 256;
+                        blue  = cvRandInt( &cvRNG ) % 256;
+                    }
 
                     left.clear();
                     right.clear();
@@ -326,10 +344,13 @@ public:
                                     x_ = int(manifests[k][y][x][j].x / scale_vector[k]);
                                     y_ = int(manifests[k][y][x][j].y / scale_vector[k]);
 
-                                    ptr = (uchar*) ( debug->imageData + y_ * debug->widthStep );
-                                    ptr[3 * x_ + 0] = blue;
-                                    ptr[3 * x_ + 1] = green;
-                                    ptr[3 * x_ + 2] = red;
+                                    if(debug_flag)
+                                    {
+                                        ptr = (uchar*) ( debug->imageData + y_ * debug->widthStep );
+                                        ptr[3 * x_ + 0] = blue;
+                                        ptr[3 * x_ + 1] = green;
+                                        ptr[3 * x_ + 2] = red;
+                                    }
 
                                     if(x_ < centerx)
                                     {
@@ -352,19 +373,22 @@ public:
                         }
                     }
 
-                    cvCircle(debug, cvPoint(centerx, centery), 3, cvScalar(0, 0, 255), -1);
+                    if(debug_flag)
+                    {
+                        cvCircle(debug, cvPoint(centerx, centery), 3, cvScalar(0, 0, 255), -1);
 
-                    xtl    = accumulate(left.begin(),   left.end(),   0.0) / left.size();
-                    ytl    = accumulate(bottom.begin(), bottom.end(), 0.0) / bottom.size();
-                    width  = accumulate(right.begin(),  right.end(),  0.0) / right.size();
-                    height = accumulate(top.begin(),    top.end(),    0.0) / top.size();
-                    cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(0, 0, 255), 3);
+                        xtl    = accumulate(left.begin(),   left.end(),   0.0) / left.size();
+                        ytl    = accumulate(bottom.begin(), bottom.end(), 0.0) / bottom.size();
+                        width  = accumulate(right.begin(),  right.end(),  0.0) / right.size();
+                        height = accumulate(top.begin(),    top.end(),    0.0) / top.size();
+                        cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(0, 0, 255), 3);
 
-                    xtl    = *min_element( left.begin(), left.end() );
-                    ytl    = *min_element( bottom.begin(), bottom.end() );
-                    width  = *max_element( right.begin(), right.end() );
-                    height = *max_element( top.begin(), top.end() );
-                    cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(0, 255, 255), 3);
+                        xtl    = *min_element( left.begin(), left.end() );
+                        ytl    = *min_element( bottom.begin(), bottom.end() );
+                        width  = *max_element( right.begin(), right.end() );
+                        height = *max_element( top.begin(), top.end() );
+                        cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(0, 255, 255), 3);
+                    }
 
                     std::sort(left.begin(),   left.end(),   std::greater<int>());
                     std::sort(bottom.begin(), bottom.end(), std::greater<int>());
@@ -375,7 +399,11 @@ public:
                     ytl    = bottom[int(density * bottom.size())];
                     width  = right [int(density * right.size())];
                     height = top   [int(density * top.size())];
-                    cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(255, 255, 0), 3);
+
+                    if(debug_flag)
+                    {
+                        cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(255, 255, 0), 3);   
+                    }
 
                     // Fix width and height
                     width  -= xtl;
@@ -399,6 +427,7 @@ public:
         }
         else if(mode == 1)
         {
+            cvConvertScale( combinedMax, output, sensitivity );
             if (output_gpath.length() > 0)
             {
                 // Save output mode image
@@ -406,21 +435,26 @@ public:
             }
         }
 
-        if (output_gpath.length() > 0)
+        if(debug_flag)
         {
-            sprintf(buffer, "%s_debug_original.JPEG", output_gpath.c_str());
-            cvSaveImage(buffer, img);
+            if(output_gpath.length() > 0)
+            {
+                sprintf(buffer, "%s_debug_original.JPEG", output_gpath.c_str());
+                cvSaveImage(buffer, img);
 
-            sprintf(buffer, "%s_debug.JPEG", output_gpath.c_str());
-            cvSaveImage(buffer, debug);
+                sprintf(buffer, "%s_debug.JPEG", output_gpath.c_str());
+                cvSaveImage(buffer, debug);
+            }
         }
 
         // Release image
         cvReleaseImage(&img);
         cvReleaseImage(&combined);
+        cvReleaseImage(&combinedAdd);
+        cvReleaseImage(&combinedMax);
         cvReleaseImage(&upscaled);
-        cvReleaseImage(&output);
-        cvReleaseImage(&debug);
+        cvReleaseImage(&output);        
+        cvReleaseImage(&debug);   
 
         // Save results
         int size = temp.size();

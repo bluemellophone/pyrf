@@ -444,7 +444,8 @@ class Random_Forest_Detector(object):
             ('sensitivity',                  None),
             # 0.85 - [1.63, 1.38, 1.18, 1.0, 0.85, 0.72, 0.61, 0.52, 0.44, 0.38, 0.32, 0.27, 0.23, 0.2, 0.17, 0.14, 0.12, 0.1]
             # 0.85 edited - [1.38, 1.18, 1.00, 0.85, 0.72, 0.61, 0.52, 0.44, 0.38, 0.32, 0.26, 0.20, 0.17, 0.14, 0.10]
-            ('scale_list',                   [1.3, 1.2, 1.1, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]),
+            # ('scale_list',                   [1.3, 1.2, 1.1, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]),
+            ('scale_list',                   [1.15, 1.0, 0.85, 0.7, 0.55, 0.4, 0.25, 0.10]),
             ('_scale_num',                   None),  # This value always gets overwritten
             ('batch_size',                   None),
             ('nms_min_area_contour',         100),
@@ -466,7 +467,7 @@ class Random_Forest_Detector(object):
         if params['sensitivity'] is None:
             assert params['mode'] in [0, 1], 'Invalid mode provided'
             if params['mode'] == 0:
-                params['sensitivity'] = 100.0
+                params['sensitivity'] = 255.0
                 # params['sensitivity'] = 200.0 # add
             elif params['mode'] == 1:
                 params['sensitivity'] = 255.0
@@ -520,6 +521,7 @@ class Random_Forest_Detector(object):
         # Prepare for C
         params['_scale_num'] = len(params['scale_list'])
         params['scale_list'] = _cast_list_to_c(params['scale_list'], C_FLOAT)
+        print('[pyrf py] Detecting over %d scales' % (params['_scale_num'], ))
 
         # Run training algorithm
         batch_size = params['batch_size']
@@ -537,7 +539,7 @@ class Random_Forest_Detector(object):
             output_scale_gpath_list_ = output_scale_gpath_list[start:end]
             num_images = len(input_gpath_list_)
             # Set image detection to be run in serial if less than half a batch to run
-            if num_images < 4:
+            if num_images < min(batch_size / 2, 8):
                 params['serial'] = True
             # Final sanity check
             assert len(input_gpath_list_) == len(output_gpath_list_) and len(input_gpath_list_) == len(output_scale_gpath_list_)
