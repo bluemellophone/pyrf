@@ -137,7 +137,7 @@ void CRForestDetector::detectPyramid(IplImage *img, vector<IplImage * > &vImgDet
         for (int i = 0; i < int(vImgDetect.size()); ++i)
         {
             IplImage *scale = cvCreateImage( cvSize(vImgDetect[i]->width, vImgDetect[i]->height) , IPL_DEPTH_8U , 3);
-            cvResize( img, scale, CV_INTER_LINEAR );
+            cvResize( img, scale, CV_INTER_LANCZOS4 );
             // detection
             float multiplier = sqrt(1.0 / scale_vector[i]);
             detectColor(scale, vImgDetect[i], vManifests[i], mode, multiplier);

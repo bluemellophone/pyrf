@@ -156,7 +156,7 @@ public:
         // This threshold value is important, but not really because it can be controlled
         // with the sensitivity value
         // int threshold = int(255.0 * 0.90);
-        bool debug_flag = false;
+        bool debug_flag = true;
         int threshold = int(255 * 0.90);
         int accumulate_mode = 1; // 1 - max, 0 - add | 0 - hough, 1 - classification
         float density = 0.990;
@@ -219,8 +219,18 @@ public:
         {
             // Add scale to combined
             cvResize(vImgDetect[k], upscaled);
+            // Smooth the result
+            cvSmooth( upscaled, upscaled, CV_GAUSSIAN, 5);
             cvAdd(upscaled, combinedAdd, combinedAdd);
             cvMax(upscaled, combinedMax, combinedMax);
+            // Before we release, output the scale
+            if (output_gpath.length() > 0)
+            {
+                // Save scale output mode image
+                cvConvertScale( vImgDetect[k], vImgDetect[k], sensitivity);
+                sprintf(buffer, "%s_scale%d.JPEG", output_scale_gpath.c_str(), k);
+                cvSaveImage(buffer, vImgDetect[k]);
+            }
             // Release images
             cvReleaseImage(&vImgDetect[k]);
         }
@@ -260,6 +270,7 @@ public:
 
             // Scale to output
             cvConvertScale( combined, output, sensitivity / scale_vector.size() );
+            cvSmooth( output, output, CV_GAUSSIAN, 5);
 
             if (output_gpath.length() > 0)
             {
@@ -303,6 +314,7 @@ public:
     
             /////// DEBUG ///////
             int red, green, blue;
+            int xm, ym;
             time_t t = time(NULL);
             int seed = (int) t;
             CvRNG cvRNG(seed);
@@ -316,13 +328,16 @@ public:
                 {
                     centerx   = rect.x + (rect.width  / 2);
                     centery   = rect.y + (rect.height / 2);
+                    xm = int(rect.width  * 0.10);
+                    ym = int(rect.height * 0.10);
+                    cout << "XM: " << xm << ", YM: " << ym << endl;
 
-                    if(debug_flag)
-                    {
-                        red   = cvRandInt( &cvRNG ) % 256;
-                        green = cvRandInt( &cvRNG ) % 256;
-                        blue  = cvRandInt( &cvRNG ) % 256;
-                    }
+                    // if(debug_flag)
+                    // {
+                    //     red   = cvRandInt( &cvRNG ) % 256;
+                    //     green = cvRandInt( &cvRNG ) % 256;
+                    //     blue  = cvRandInt( &cvRNG ) % 256;
+                    // }
 
                     left.clear();
                     right.clear();
@@ -343,6 +358,73 @@ public:
                                 {
                                     x_ = int(manifests[k][y][x][j].x / scale_vector[k]);
                                     y_ = int(manifests[k][y][x][j].y / scale_vector[k]);
+
+                                    if(centerx - xm <= x && x <= centerx + xm && centery - ym <= y && y <= centery + ym)
+                                    {
+                                        continue;
+                                    }
+                                    else
+                                    {
+                                        red   = 0;
+                                        green = 255;
+                                        blue  = 0;
+                                    }
+
+                                    if(debug_flag)
+                                    {
+                                        ptr = (uchar*) ( debug->imageData + y_ * debug->widthStep );
+                                        ptr[3 * x_ + 0] = blue;
+                                        ptr[3 * x_ + 1] = green;
+                                        ptr[3 * x_ + 2] = red;
+                                    }
+
+                                    if(x_ < centerx)
+                                    {
+                                        left.push_back(x_);
+                                    }
+                                    else
+                                    {
+                                        right.push_back(x_);
+                                    }
+                                    if(y_ < centery)
+                                    {
+                                        bottom.push_back(y_);
+                                    }
+                                    else
+                                    {
+                                        top.push_back(y_);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    for(k = 0; k < manifests.size(); ++k)
+                    {
+                        minx = std::max(int((centerx - rect.width)  * scale_vector[k]), 0);
+                        maxx = std::min(int((centerx + rect.width)  * scale_vector[k]), int(manifests[k][0].size()));
+                        miny = std::max(int((centery - rect.height) * scale_vector[k]), 0);
+                        maxy = std::min(int((centery + rect.height) * scale_vector[k]), int(manifests[k].size()));
+
+                        for(y = miny; y < maxy; ++y)
+                        {
+                            for(x = minx; x < maxx; ++x)
+                            {
+                                for (j = 0; j < manifests[k][y][x].size(); ++j)
+                                {
+                                    x_ = int(manifests[k][y][x][j].x / scale_vector[k]);
+                                    y_ = int(manifests[k][y][x][j].y / scale_vector[k]);
+
+                                    if(centerx - xm <= x && x <= centerx + xm && centery - ym <= y && y <= centery + ym)
+                                    {
+                                        red   = 255;
+                                        green = 0;
+                                        blue  = 0;
+                                    }
+                                    else
+                                    {
+                                        continue;
+                                    }
 
                                     if(debug_flag)
                                     {
