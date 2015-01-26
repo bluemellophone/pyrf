@@ -610,7 +610,8 @@ struct CRForestDetectorClass
 			CRForest* crForest = new CRForest( num_trees );
 			// Load forest
 			string str_tree_path = tree_path;
-			string str_prefix = prefix;
+			// string str_prefix = prefix;
+			string str_prefix = "tree-";
 			crForest->loadForest( (str_tree_path + "/" + str_prefix).c_str() );
 			return crForest;
 		}

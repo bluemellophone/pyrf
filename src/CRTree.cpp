@@ -35,11 +35,19 @@ CRTree::CRTree(const char* filename) {
 		in >> num_cp;
 
 		// read tree nodes
+		bool first = true;
 		for(unsigned int n=0; n<num_nodes; ++n) {
-			in >> dummy; in >> dummy;
+			in >> dummy;
+			if(first && dummy != 0)
+			{
+				in >> dummy;
+				num_cp = 1;
+			}
+			in >> dummy;
 			for(unsigned int i=0; i<7; ++i, ++ptT) {
 				in >> *ptT;
 			}
+			first = false;
 		}
 
 		// read tree leafs

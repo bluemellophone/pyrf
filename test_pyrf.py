@@ -14,6 +14,7 @@ def test_pyrf():
 
     detect_config = {
         'save_detection_images':        True,
+        'save_scales':                  True,
         'percentage_top':               0.40,
     }
 

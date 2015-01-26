@@ -84,9 +84,9 @@ inline void CRForest::saveForest(const char* filename, unsigned int offset) {
 
 inline void CRForest::loadForest(const char* filename, int type) {
 	char buffer[200];
-
+	int offset = 1;
 	for(unsigned int i=0; i<vTrees.size(); ++i) {
-		sprintf_s(buffer,"%s%03d.txt",filename,i);
+		sprintf_s(buffer,"%s%03d.txt",filename,i+offset);
 		vTrees[i] = new CRTree(buffer);
 	}
 }
