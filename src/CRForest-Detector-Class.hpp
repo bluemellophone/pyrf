@@ -228,7 +228,8 @@ public:
             {
                 // Save scale output mode image
                 cvConvertScale( vImgDetect[k], vImgDetect[k], sensitivity);
-                sprintf(buffer, "%s_scale%d.JPEG", output_scale_gpath.c_str(), k);
+                cvSmooth( vImgDetect[k], vImgDetect[k], CV_GAUSSIAN, 5);
+                sprintf(buffer, "%s_scaled_%0.02f.JPEG", output_scale_gpath.c_str(), scale_vector[k]);
                 cvSaveImage(buffer, vImgDetect[k]);
             }
             // Release images
@@ -294,8 +295,16 @@ public:
                 if (output_gpath.length() > 0)
                 {
                     // Save output mode image
-                    sprintf(buffer, "%s_thresh.JPEG", output_gpath.c_str());
+                    sprintf(buffer, "%s_debug_thresh.JPEG", output_gpath.c_str());
                     cvSaveImage(buffer, output);
+
+                    sprintf(buffer, "%s_debug_add.JPEG", output_gpath.c_str());
+                    cvConvertScale( combinedAdd, combinedAdd, sensitivity / scale_vector.size() );
+                    cvSaveImage(buffer, combinedAdd);
+
+                    sprintf(buffer, "%s_debug_max.JPEG", output_gpath.c_str());
+                    cvConvertScale( combinedMax, combinedMax, sensitivity );
+                    cvSaveImage(buffer, combinedMax);
                 }   
             }
     
@@ -332,12 +341,12 @@ public:
                     ym = int(rect.height * 0.10);
                     cout << "XM: " << xm << ", YM: " << ym << endl;
 
-                    // if(debug_flag)
-                    // {
-                    //     red   = cvRandInt( &cvRNG ) % 256;
-                    //     green = cvRandInt( &cvRNG ) % 256;
-                    //     blue  = cvRandInt( &cvRNG ) % 256;
-                    // }
+                    if(debug_flag)
+                    {
+                        red   = cvRandInt( &cvRNG ) % 256;
+                        green = cvRandInt( &cvRNG ) % 256;
+                        blue  = cvRandInt( &cvRNG ) % 256;
+                    }
 
                     left.clear();
                     right.clear();
@@ -358,73 +367,6 @@ public:
                                 {
                                     x_ = int(manifests[k][y][x][j].x / scale_vector[k]);
                                     y_ = int(manifests[k][y][x][j].y / scale_vector[k]);
-
-                                    if(centerx - xm <= x && x <= centerx + xm && centery - ym <= y && y <= centery + ym)
-                                    {
-                                        continue;
-                                    }
-                                    else
-                                    {
-                                        red   = 0;
-                                        green = 255;
-                                        blue  = 0;
-                                    }
-
-                                    if(debug_flag)
-                                    {
-                                        ptr = (uchar*) ( debug->imageData + y_ * debug->widthStep );
-                                        ptr[3 * x_ + 0] = blue;
-                                        ptr[3 * x_ + 1] = green;
-                                        ptr[3 * x_ + 2] = red;
-                                    }
-
-                                    if(x_ < centerx)
-                                    {
-                                        left.push_back(x_);
-                                    }
-                                    else
-                                    {
-                                        right.push_back(x_);
-                                    }
-                                    if(y_ < centery)
-                                    {
-                                        bottom.push_back(y_);
-                                    }
-                                    else
-                                    {
-                                        top.push_back(y_);
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    for(k = 0; k < manifests.size(); ++k)
-                    {
-                        minx = std::max(int((centerx - rect.width)  * scale_vector[k]), 0);
-                        maxx = std::min(int((centerx + rect.width)  * scale_vector[k]), int(manifests[k][0].size()));
-                        miny = std::max(int((centery - rect.height) * scale_vector[k]), 0);
-                        maxy = std::min(int((centery + rect.height) * scale_vector[k]), int(manifests[k].size()));
-
-                        for(y = miny; y < maxy; ++y)
-                        {
-                            for(x = minx; x < maxx; ++x)
-                            {
-                                for (j = 0; j < manifests[k][y][x].size(); ++j)
-                                {
-                                    x_ = int(manifests[k][y][x][j].x / scale_vector[k]);
-                                    y_ = int(manifests[k][y][x][j].y / scale_vector[k]);
-
-                                    if(centerx - xm <= x && x <= centerx + xm && centery - ym <= y && y <= centery + ym)
-                                    {
-                                        red   = 255;
-                                        green = 0;
-                                        blue  = 0;
-                                    }
-                                    else
-                                    {
-                                        continue;
-                                    }
 
                                     if(debug_flag)
                                     {
@@ -510,6 +452,7 @@ public:
         else if(mode == 1)
         {
             cvConvertScale( combinedMax, output, sensitivity );
+            // cvConvertScale( combinedAdd, output, sensitivity / scale_vector.size() );
             if (output_gpath.length() > 0)
             {
                 // Save output mode image

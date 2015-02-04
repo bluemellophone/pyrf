@@ -42,7 +42,7 @@ void CRForestDetector::detectColor(IplImage *img, IplImage *imgDetect,
     cvGetRawData( imgDetect, (uchar **) & (ptDet), &stepDet);
     stepDet /= sizeof(ptDet[0]);
 
-    int x, y, cx, cy; // x, y top left; cx, cy center of patch
+    int x, y, cx, cy, nx, ny; // x, y top left; cx, cy center of patch
     float weight;
     int xoffset = width / 2;
     int yoffset = height / 2;
@@ -76,19 +76,19 @@ void CRForestDetector::detectColor(IplImage *img, IplImage *imgDetect,
                     // Vote for all center offsets stored in the leaf
                     for (vector<CvPoint>::const_iterator it = (*itL)->vCenter.begin(); it != (*itL)->vCenter.end(); ++it)
                     {
-                        x = cx - it->x;
-                        y = cy - it->y;
+                        nx = cx - it->x;
+                        ny = cy - it->y;
                         // TODO: Let votes vote outside of the image
-                        if (y >= 0 && y < imgDetect->height && x >= 0 && x < imgDetect->width)
+                        if (ny >= 0 && ny < imgDetect->height && nx >= 0 && nx < imgDetect->width)
                         {
                             // Normalize the weight by the number of leaves in the result and by number of centers voting
-                            *(ptDet + x + y * stepDet) += weight;
+                            *(ptDet + nx + ny * stepDet) += weight;
                             // If perfect confidence, add point to the manifest
                             if ((*itL)->pfg == 1.00)
                             {
-                                manifest[y][x].push_back(cvPoint(cx, cy));
+                                manifest[ny][nx].push_back(cvPoint(cx, cy));
                                 // Give perfect patches an additional vote as a reward
-                                *(ptDet + x + y * stepDet) += weight;
+                                *(ptDet + nx + ny * stepDet) += weight;
                             }
                         }
                     }
@@ -138,6 +138,7 @@ void CRForestDetector::detectPyramid(IplImage *img, vector<IplImage * > &vImgDet
         {
             IplImage *scale = cvCreateImage( cvSize(vImgDetect[i]->width, vImgDetect[i]->height) , IPL_DEPTH_8U , 3);
             cvResize( img, scale, CV_INTER_LANCZOS4 );
+            // cvResize( img, scale, CV_INTER_LINEAR );
             // detection
             float multiplier = sqrt(1.0 / scale_vector[i]);
             detectColor(scale, vImgDetect[i], vManifests[i], mode, multiplier);
