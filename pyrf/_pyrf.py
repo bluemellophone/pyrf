@@ -51,7 +51,7 @@ IMPORTANT:
 
 METHODS = {}
 METHODS['init'] = ([
-    # Nothing
+    C_BOOL,          # verbose
 ], C_OBJ)
 
 METHODS['forest'] = ([
@@ -128,9 +128,9 @@ class Random_Forest_Detector(object):
                 detector (object): the Random Forest Detector object
         '''
         rf.verbose = verbose
-        if verbose:
+        if rf.verbose:
             print('[pyrf py] New Random_Forest Object Created')
-        rf.detector_c_obj = RF_CLIB.init()
+        rf.detector_c_obj = RF_CLIB.init(rf.verbose)
 
     def forest(rf, tree_path_list, **kwargs):
         '''

@@ -18,9 +18,9 @@ extern "C"
 #define PYTHON_RANDOM_FOREST extern RANDOM_FOREST_DETECTOR_EXPORT
 
 // TODO: REMOVE STRING WHERE CHAR* SHOULD BE USED
-PYTHON_RANDOM_FOREST CRForestDetectorClass *init()
+PYTHON_RANDOM_FOREST CRForestDetectorClass *init(bool verbose)
 {
-    CRForestDetectorClass *detector = new CRForestDetectorClass();
+    CRForestDetectorClass *detector = new CRForestDetectorClass(verbose);
     return detector;
 }
 

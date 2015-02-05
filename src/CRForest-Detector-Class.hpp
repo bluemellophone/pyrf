@@ -80,18 +80,16 @@ using namespace std;
 struct CRForestDetectorClass
 {
 public:
-    CRForestDetectorClass()
+    CRForestDetectorClass(bool verbose)
     {
-#ifdef _OPENMP
-        cout << "\n\n[pyrf c++]  --- RUNNING PYRF DETECTOR IN PARALLEL ---\n\n" << endl;
-#else
-        cout << "\n\n[pyrf c++]  --- RUNNING PYRF DETECTOR IN SERIAL ---\n\n" << endl;
-#endif
-    }
-
-    CRForestDetectorClass(const CRForestDetectorClass &original)
-    {
-        // Nohting to do to copy the object class
+        if(verbose)
+        {
+            #ifdef _OPENMP
+                    cout << "[pyrf c++] --- RUNNING PYRF DETECTOR IN PARALLEL ---" << endl;
+            #else
+                    cout << "[pyrf c++] --- RUNNING PYRF DETECTOR IN SERIAL ---" << endl;
+            #endif
+        }
     }
 
     CRForest *forest(vector<string> &tree_path_vector, bool serial, bool verbose)
@@ -176,12 +174,18 @@ public:
         {
             if (!img)
             {
-                cout << "[pyrf c++] Could not load image file: " << input_gpath << endl;
+                if(verbose)
+                {
+                    cout << "[pyrf c++] Could not load image file: " << input_gpath << endl;   
+                }
                 exit(-1);
             }
             else
             {
-                cout << "[pyrf c++] Loaded image file: " << input_gpath << endl;
+                if(verbose)
+                {
+                    cout << "[pyrf c++] Loaded image file: " << input_gpath << endl;
+                }
             }
         }
 
