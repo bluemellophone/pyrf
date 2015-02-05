@@ -80,9 +80,9 @@ using namespace std;
 struct CRForestDetectorClass
 {
 public:
-    CRForestDetectorClass(bool verbose)
+    CRForestDetectorClass(bool verbose, bool quiet)
     {
-        if(verbose)
+        if( ! quiet )
         {
             #ifdef _OPENMP
                     cout << "[pyrf c++] --- RUNNING PYRF DETECTOR IN PARALLEL ---" << endl;
@@ -92,7 +92,7 @@ public:
         }
     }
 
-    CRForest *forest(vector<string> &tree_path_vector, bool serial, bool verbose)
+    CRForest *forest(vector<string> &tree_path_vector, bool serial, bool verbose, bool quiet)
     {
         // Init forest with number of trees
         CRForest *crForest = new CRForest( tree_path_vector.size() );
@@ -110,7 +110,7 @@ public:
                float patch_density, int trees_num, int trees_offset,
                int trees_max_depth, int trees_max_patches,
                int trees_leaf_size, int trees_pixel_tests,
-               float trees_prob_optimize_mode, bool serial, bool verbose)
+               float trees_prob_optimize_mode, bool serial, bool verbose, bool quiet)
     {
         // Init new forest with number of trees
         CRForest crForest( trees_num );
@@ -127,21 +127,27 @@ public:
         cout << "[pyrf c++] Loading positive patches..." << endl;
         int pos_patches = extract_Patches(Train, &cvRNG, train_pos_chip_path_string,
                                           train_pos_chip_filename_vector, 1, patch_density,
-                                          trees_max_patches / 2, verbose);
-        cout << endl << "[pyrf c++] ...Loaded " << pos_patches << " patches" << endl;
+                                          trees_max_patches / 2, verbose, quiet);
+        if( ! quiet )
+        {
+            cout << endl << "[pyrf c++] ...Loaded " << pos_patches << " patches" << endl;
+        }
 
         // Extract neg training patches
         cout << "[pyrf c++] Loading negative patches..." << endl;
         int neg_patches = extract_Patches(Train, &cvRNG, train_neg_chip_path_string,
                                           train_neg_chip_filename_vector, 0, patch_density,
-                                          pos_patches, verbose);  // We pass pos_patches as max_patches for balance
-        cout << endl << "[pyrf c++] ...Loaded " << neg_patches << " patches" << endl;
+                                          pos_patches, verbose, quiet);  // We pass pos_patches as max_patches for balance
+        if( ! quiet )
+        {
+            cout << endl << "[pyrf c++] ...Loaded " << neg_patches << " patches" << endl;
+        }
 
         // Train forest and save file
         crForest.trainForest(trees_leaf_size, trees_max_depth, &cvRNG, Train,
                              trees_pixel_tests, trees_prob_optimize_mode,
                              trees_path_string.c_str(), trees_offset, patch_width,
-                             patch_height, serial, verbose);
+                             patch_height, serial, verbose && ! quiet);
     }
 
     // Run detector
@@ -149,7 +155,7 @@ public:
                string output_scale_gpath, int mode, float sensitivity,
                vector<float> &scale_vector, int nms_min_area_contour,
                int nms_min_area_overlap, float **results, int RESULT_LENGTH,
-               bool serial, bool verbose)
+               bool serial, bool verbose, bool quiet)
     {
         // This threshold value is important, but not really because it can be controlled
         // with the sensitivity value
@@ -174,15 +180,12 @@ public:
         {
             if (!img)
             {
-                if(verbose)
-                {
-                    cout << "[pyrf c++] Could not load image file: " << input_gpath << endl;   
-                }
+                cout << "[pyrf c++] Could not load image file: " << input_gpath << endl;   
                 exit(-1);
             }
             else
             {
-                if(verbose)
+                if(! quiet)
                 {
                     cout << "[pyrf c++] Loaded image file: " << input_gpath << endl;
                 }
@@ -252,7 +255,7 @@ public:
             cvMinMaxLoc(combinedAdd, &minvalAdd, &maxvalAdd, &minloc, &maxloc, 0);
             cvMinMaxLoc(combinedMax, &minvalMax, &maxvalMax, &minloc, &maxloc, 0);
             
-            if(debug_flag)
+            if(debug_flag && ! quiet)
             {
                 #pragma omp critical(imageLoad)
                 {
@@ -272,7 +275,7 @@ public:
             double minval, maxval;
             cvMinMaxLoc(combined, &minval, &maxval, &minloc, &maxloc, 0);
 
-            if(debug_flag)
+            if(debug_flag && ! quiet)
             {
                 cout << "[pyrf c++] Detected - min: " << minval << ", max: " << maxval << " / " << scale_vector.size() << endl;
             }
@@ -505,7 +508,7 @@ private:
     // Extract patches from training data
     int extract_Patches(CRPatch &Train, CvRNG *pRNG, string train_pos_chip_path_string,
                         vector<string> &train_pos_chip_filename_vector, int label,
-                        float patch_density, int max_patches, bool verbose)
+                        float patch_density, int max_patches, bool verbose, bool quiet)
     {
         string img_filepath;
         IplImage *img;
@@ -515,14 +518,17 @@ private:
         {
             if (patch_total > max_patches)
             {
-                if (verbose)
+                if (verbose && ! quiet)
                 {
                     cout << endl << "[pyrf c++] Skipping image file: " << img_filepath;
                 }
                 continue;
             }
             // Print status
-            if (i % 10 == 0) cout << i << " " << flush;
+            if( ! quiet )
+            {
+                if (i % 10 == 0) cout << i << " " << flush;
+            }
             // Get the image's filepah
             img_filepath = train_pos_chip_path_string + "/" + train_pos_chip_filename_vector[i];
             // Load image
