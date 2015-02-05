@@ -154,7 +154,7 @@ public:
         // This threshold value is important, but not really because it can be controlled
         // with the sensitivity value
         // int threshold = int(255.0 * 0.90);
-        bool debug_flag = true;
+        bool debug_flag = false;
         int threshold = int(255 * 0.90);
         int accumulate_mode = 1; // 1 - max, 0 - add | 0 - hough, 1 - classification
         float density = 0.990;
@@ -271,7 +271,11 @@ public:
             // Find strength
             double minval, maxval;
             cvMinMaxLoc(combined, &minval, &maxval, &minloc, &maxloc, 0);
-            cout << "[pyrf c++] Detected - min: " << minval << ", max: " << maxval << " / " << scale_vector.size() << endl;
+
+            if(debug_flag)
+            {
+                cout << "[pyrf c++] Detected - min: " << minval << ", max: " << maxval << " / " << scale_vector.size() << endl;
+            }
 
             // Scale to output
             cvConvertScale( combined, output, sensitivity / scale_vector.size() );
@@ -343,7 +347,6 @@ public:
                     centery   = rect.y + (rect.height / 2);
                     xm = int(rect.width  * 0.10);
                     ym = int(rect.height * 0.10);
-                    cout << "XM: " << xm << ", YM: " << ym << endl;
 
                     if(debug_flag)
                     {
