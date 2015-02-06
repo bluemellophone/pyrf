@@ -97,7 +97,7 @@ public:
         // Init forest with number of trees
         CRForest *crForest = new CRForest( tree_path_vector.size() );
         // Load forest
-        crForest->loadForest(tree_path_vector, serial, verbose);
+        crForest->loadForest(tree_path_vector, serial, verbose && ! quiet);
         return crForest;
     }
 
@@ -160,7 +160,7 @@ public:
         // This threshold value is important, but not really because it can be controlled
         // with the sensitivity value
         // int threshold = int(255.0 * 0.90);
-        bool debug_flag = false;
+        bool debug_flag = true;
         int threshold = int(255 * 0.90);
         int accumulate_mode = 1; // 1 - max, 0 - add | 0 - hough, 1 - classification
         float density = 0.990;
@@ -231,7 +231,7 @@ public:
             cvAdd(upscaled, combinedAdd, combinedAdd);
             cvMax(upscaled, combinedMax, combinedMax);
             // Before we release, output the scale
-            if (output_gpath.length() > 0)
+            if (output_scale_gpath.length() > 0)
             {
                 // Save scale output mode image
                 cvConvertScale( vImgDetect[k], vImgDetect[k], sensitivity);
@@ -254,30 +254,27 @@ public:
             double minvalMax, maxvalMax;
             cvMinMaxLoc(combinedAdd, &minvalAdd, &maxvalAdd, &minloc, &maxloc, 0);
             cvMinMaxLoc(combinedMax, &minvalMax, &maxvalMax, &minloc, &maxloc, 0);
-            
-            if(debug_flag && ! quiet)
-            {
-                #pragma omp critical(imageLoad)
-                {
-                    cout << "[pyrf c++] PRE: ADD Detected - min: " << minvalAdd << ", max: " << maxvalAdd << endl;
-                    cout << "[pyrf c++] PRE: MAX Detected - min: " << minvalMax << ", max: " << maxvalMax << endl;
-                }
-            }
 
             // Create combined
-            cvConvertScale( combinedMax, combinedMax, maxvalAdd / maxvalMax );
-            cvMin( combinedMax, combinedAdd, combined ); 
+            cvConvertScale( combinedMax, combined, maxvalAdd / maxvalMax );
+            cvMin( combined, combinedAdd, combined ); 
 
             // Smooth the image
             cvSmooth( combined, combined, CV_GAUSSIAN, 5);
 
             // Find strength
-            double minval, maxval;
-            cvMinMaxLoc(combined, &minval, &maxval, &minloc, &maxloc, 0);
+            double minvalComb, maxvalComb;
+            cvMinMaxLoc(combined, &minvalComb, &maxvalComb, &minloc, &maxloc, 0);
 
             if(debug_flag && ! quiet)
             {
-                cout << "[pyrf c++] Detected - min: " << minval << ", max: " << maxval << " / " << scale_vector.size() << endl;
+                #pragma omp critical(detectionStrengths)
+                {
+                    cout << "[pyrf c++]" << endl;
+                    cout << "[pyrf c++] ADD  Detected - min: " << minvalAdd  << ", max: " << maxvalAdd  << " / " << scale_vector.size() << endl;
+                    cout << "[pyrf c++] MAX  Detected - min: " << minvalMax  << ", max: " << maxvalMax  << " / " << scale_vector.size() << endl;
+                    cout << "[pyrf c++] COMB Detected - min: " << minvalComb << ", max: " << maxvalComb << " / " << scale_vector.size() << endl;
+                }
             }
 
             // Scale to output
