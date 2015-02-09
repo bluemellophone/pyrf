@@ -55,6 +55,344 @@
 </div>
 <div class="section" id="module-pyrf._pyrf">
 <span id="pyrf-pyrf-module"></span><h2>pyrf._pyrf module<a class="headerlink" href="#module-pyrf._pyrf" title="Permalink to this headline">¶</a></h2>
+<<<<<<< HEAD
+<dl class="attribute">
+<dt id="pyrf._pyrf.C_ARRAY_CHAR">
+<tt class="descclassname">pyrf._pyrf.</tt><tt class="descname">C_ARRAY_CHAR</tt><a class="headerlink" href="#pyrf._pyrf.C_ARRAY_CHAR" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <tt class="xref py py-class docutils literal"><span class="pre">LP_c_char_p</span></tt></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pyrf._pyrf.C_ARRAY_FLOAT">
+<tt class="descclassname">pyrf._pyrf.</tt><tt class="descname">C_ARRAY_FLOAT</tt><a class="headerlink" href="#pyrf._pyrf.C_ARRAY_FLOAT" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <tt class="xref py py-class docutils literal"><span class="pre">LP_c_float</span></tt></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pyrf._pyrf.RESULTS_ARRAY">
+<tt class="descclassname">pyrf._pyrf.</tt><tt class="descname">RESULTS_ARRAY</tt><a class="headerlink" href="#pyrf._pyrf.RESULTS_ARRAY" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>IMPORTANT:</dt>
+<dd>For functions that return void, use Python None as the return value.
+For functions that take no parameters, use the Python empty list [].</dd>
+</dl>
+<p>alias of <tt class="xref py py-class docutils literal"><span class="pre">ndpointer_&lt;u8_1d_ALIGNED_C_CONTIGUOUS_WRITEABLE</span></tt></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="pyrf._pyrf.Random_Forest_Detector">
+<em class="property">class </em><tt class="descclassname">pyrf._pyrf.</tt><tt class="descname">Random_Forest_Detector</tt><big>(</big><em>rf</em>, <em>verbose=False</em><big>)</big><a class="reference internal" href="_modules/pyrf/_pyrf.html#Random_Forest_Detector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf._pyrf.Random_Forest_Detector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<dl class="method">
+<dt id="pyrf._pyrf.Random_Forest_Detector.detect">
+<tt class="descname">detect</tt><big>(</big><em>rf</em>, <em>forest</em>, <em>input_gpath_list</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pyrf/_pyrf.html#Random_Forest_Detector.detect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf._pyrf.Random_Forest_Detector.detect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run detection with a given loaded forest on a list of images</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>forest</strong> (<em>object</em>) &#8211; the forest obejct that you want to use during
+detection</li>
+<li><strong>input_gpath_list</strong> (<em>list of str</em>) &#8211; the list of image paths that you want
+to test</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="docutils">
+<dt>Kwargs:</dt>
+<dd><dl class="first docutils">
+<dt>output_gpath_list (list of str, optional): the paralell list of output</dt>
+<dd><p class="first">image paths for detection debugging or results; defaults to None</p>
+<p class="last">When this list is None no images are outputted for any test
+images, whereas the list can be a parallel list where some values
+are strings and others are None</p>
+</dd>
+<dt>output_scale_gpath_list (list of str, optional): the paralell list of output</dt>
+<dd><p class="first">scale image paths for detection debugging or results; defaults
+to None</p>
+<p class="last">When this list is None no images are outputted for any test
+images, whereas the list can be a parallel list where some values
+are strings and others are None</p>
+</dd>
+<dt>mode (int, optional): the mode that the detector outputs; detaults to 0</dt>
+<dd><dl class="first last docutils">
+<dt>0 - Hough Voting - the output is a Hough image that predicts the</dt>
+<dd>locations of the obejct centeroids</dd>
+<dt>0 - Classification Map - the output is a classification probability</dt>
+<dd>map across the entire image where no regression information
+is utilized</dd>
+</dl>
+</dd>
+</dl>
+<p>sensitivity (float, optional): the sensitivity of the detector;</p>
+<blockquote>
+<div>mode = 0 - defaults to 255.0
+mode = 1 - defaults to 255.0</div></blockquote>
+<dl class="docutils">
+<dt>scale_list (list of float, optional): the list of floats that specifies the scales</dt>
+<dd><p class="first">to try during testing;
+defaults to [1.33, 1.00, 0.75, 0.56, 0.42, 0.32, 0.24, 0.18]</p>
+<blockquote>
+<div>scale &gt; 1.0 - Upscale the image
+scale = 1.0 - Original image size
+scale &lt; 1.0 - Downscale the image</div></blockquote>
+<p>The list of scales highly impacts the performance of the detector and
+should be carefully chosen</p>
+<p class="last">The scales are applied to BOTH the width and the height of the image
+in order to scale the image and an interpolation of CV_INTER_LINEAR
+is used</p>
+</dd>
+<dt>batch_size (int, optional): the number of images to test at a single</dt>
+<dd>time in paralell (if None, the number of CPUs is used); defaults to None</dd>
+<dt>nms_min_area_contour (int, optional): the minimum size of a centroid</dt>
+<dd>candidate region; defaults to 300</dd>
+<dt>nms_min_area_overlap (float, optional, DEPRICATED): the allowable overlap in</dt>
+<dd>bounding box predictions; defaults to 0.75</dd>
+</dl>
+<p>serial (bool, optional): flag to signify if to run detection in serial;</p>
+<blockquote>
+<div>len(input_gpath_list) &gt;= batch_size - defaults to False
+len(input_gpath_list) &lt;  batch_size - defaults to False</div></blockquote>
+<dl class="last docutils">
+<dt>verbose (bool, optional): verbose flag; defaults to object&#8217;s verbose or</dt>
+<dd>selectively enabled for this function</dd>
+</dl>
+</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Yields:</th><td class="field-body"><p class="first"><em>(str, (list of dict)): tuple of the input image path and a list</em> &#8211;</p>
+<p>of dictionaries specifying the detected bounding boxes</p>
+<dl class="last docutils">
+<dt>The dictionaries returned by this function are of the form:</dt>
+<dd><p class="first">centerx (int): the x position of the object&#8217;s centroid</p>
+<blockquote>
+<div><p>Note that the center of the bounding box and the location of
+the object&#8217;s centroid can be different</p>
+</div></blockquote>
+<p>centery (int): the y position of the obejct&#8217;s centroid</p>
+<blockquote>
+<div><p>Note that the center of the bounding box and the location of
+the object&#8217;s centroid can be different</p>
+</div></blockquote>
+<p>xtl (int): the top left x position of the bounding box
+ytl (int): the top left y position of the bounding box
+width (int): the width of the bounding box
+height (int): the hiehgt of the bounding box
+confidence (float): the confidence that this bounding box is of</p>
+<blockquote>
+<div><p>the class specified by the trees used during testing</p>
+</div></blockquote>
+<dl class="last docutils">
+<dt>suppressed (bool, DEPRICATED): the flag of if this bounding</dt>
+<dd><p class="first last">box has been marked to be suppressed by the detection
+algorithm</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyrf._pyrf.Random_Forest_Detector.dump">
+<tt class="descname">dump</tt><big>(</big><em>rf</em>, <em>file</em><big>)</big><a class="reference internal" href="_modules/pyrf/_pyrf.html#Random_Forest_Detector.dump"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf._pyrf.Random_Forest_Detector.dump" title="Permalink to this definition">¶</a></dt>
+<dd><p>UNIMPLEMENTED</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyrf._pyrf.Random_Forest_Detector.dumps">
+<tt class="descname">dumps</tt><big>(</big><em>rf</em><big>)</big><a class="reference internal" href="_modules/pyrf/_pyrf.html#Random_Forest_Detector.dumps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf._pyrf.Random_Forest_Detector.dumps" title="Permalink to this definition">¶</a></dt>
+<dd><p>UNIMPLEMENTED</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">string</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyrf._pyrf.Random_Forest_Detector.forest">
+<tt class="descname">forest</tt><big>(</big><em>rf</em>, <em>tree_path_list</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pyrf/_pyrf.html#Random_Forest_Detector.forest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf._pyrf.Random_Forest_Detector.forest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create the forest object by loading a list of tree paths.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>tree_path_list</strong> (<em>list of str</em>) &#8211; list of tree paths as strings</li>
+<li><strong>serial</strong> (<em>bool, optional</em>) &#8211; flag to signify if to load the forest in serial;
+defaults to False</li>
+<li><strong>verbose</strong> (<em>bool, optional</em>) &#8211; verbose flag; defaults to object&#8217;s verbose or
+selectively enabled for this function</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>forest</strong> &#8211;
+the forest object of the loaded trees</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">object</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyrf._pyrf.Random_Forest_Detector.load">
+<tt class="descname">load</tt><big>(</big><em>file</em><big>)</big><a class="reference internal" href="_modules/pyrf/_pyrf.html#Random_Forest_Detector.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf._pyrf.Random_Forest_Detector.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>UNIMPLEMENTED</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">detector (object)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyrf._pyrf.Random_Forest_Detector.loads">
+<tt class="descname">loads</tt><big>(</big><em>string</em><big>)</big><a class="reference internal" href="_modules/pyrf/_pyrf.html#Random_Forest_Detector.loads"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf._pyrf.Random_Forest_Detector.loads" title="Permalink to this definition">¶</a></dt>
+<dd><p>UNIMPLEMENTED</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">detector (object)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyrf._pyrf.Random_Forest_Detector.train">
+<tt class="descname">train</tt><big>(</big><em>rf</em>, <em>train_pos_cpath_list</em>, <em>train_neg_cpath_list</em>, <em>trees_path</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pyrf/_pyrf.html#Random_Forest_Detector.train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf._pyrf.Random_Forest_Detector.train" title="Permalink to this definition">¶</a></dt>
+<dd><p>Train a new forest with the given positive chips and negative chips.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>train_pos_chip_path_list</strong> (<em>list of str</em>) &#8211; list of positive training chips</li>
+<li><strong>train_neg_chip_path_list</strong> (<em>list of str</em>) &#8211; list of negative training chips</li>
+<li><strong>trees_path</strong> (<em>str</em>) &#8211; string path of where the newly trained trees are to be saved</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="docutils">
+<dt>Kwargs:</dt>
+<dd><dl class="first last docutils">
+<dt>chips_norm_width (int, optional): Chip normalization width for resizing;</dt>
+<dd><p class="first">the chip is resized to have a width of chips_norm_width and
+whatever resulting height in order to best match the original
+aspect ratio; defaults to 128</p>
+<p class="last">If both chips_norm_width and chips_norm_height are specified,
+the original aspect ratio of the chip is not respected</p>
+</dd>
+<dt>chips_norm_height (int, optional): Chip normalization height for resizing;</dt>
+<dd><p class="first">the chip is resized to have a height of chips_norm_height and
+whatever resulting width in order to best match the original
+aspect ratio; defaults to None</p>
+<p class="last">If both chips_norm_width and chips_norm_height are specified,
+the original aspect ratio of the chip is not respected</p>
+</dd>
+<dt>chips_prob_flip_horizontally (float, optional): The probability</dt>
+<dd>that a chips is flipped horizontally before training to make
+the training set invariant to horizontal flips in the image;
+defaults to 0.5; 0.0 &lt;= chips_prob_flip_horizontally &lt;= 1.0</dd>
+<dt>chips_prob_flip_vertically (float, optional): The probability</dt>
+<dd>that a chips is flipped vertivcally before training to make
+the training set invariant to vertical flips in the image;
+defaults to 0.5; 0.0 &lt;= chips_prob_flip_vertically &lt;= 1.0</dd>
+<dt>patch_width (int, optional): the width of the patches for extraction</dt>
+<dd>in the tree; defaults to 32; patch_width &gt; 0</dd>
+<dt>patch_height (int, optional): the height of the patches for extraction</dt>
+<dd>in the tree; defaults to 32; patch_height &gt; 0</dd>
+<dt>patch_density (float, optional): the number of patches to extract from</dt>
+<dd><dl class="first docutils">
+<dt>each chip as a function of density; the density is calculated as:</dt>
+<dd>samples = patch_density * [(chip_width * chip_height) / (patch_width * patch_height)]</dd>
+</dl>
+<p class="last">and specifies how many times a particular pixel is sampled
+from the chip; defaults to 4.0; patch_density &gt; 0</p>
+</dd>
+<dt>trees_num (int, optional): the number of trees to train in parallel;</dt>
+<dd>defaults to 10</dd>
+<dt>trees_offset (int, optional): the tree number that begins the sequence</dt>
+<dd><p class="first">of when a tree is trained; defaults to None</p>
+<p>If None is specified, the trees_offset value is automatically guessed
+by using the number of files in trees_path</p>
+<p class="last">Tree model files are overwritten if the offset has overlap with
+previouly generated trees</p>
+</dd>
+<dt>trees_max_depth (int, optional): the maximum depth of the tree during</dt>
+<dd>training, this can used for regularization; defaults to 16</dd>
+<dt>trees_max_patches (int, optional): the maximum number of patches that</dt>
+<dd>should be extracted for training between positives AND negatives
+(the detector attempts to balance between the number of positive
+and negative patches to be roughly the same in quantity);
+defaults to 64000</dd>
+<dt>trees_leaf_size (int, optional): the number of patches in a node that</dt>
+<dd><p class="first">specifies the threshold for becoming a leaf; defaults to 20</p>
+<dl class="last docutils">
+<dt>A node becomes a leaf under two conditions:</dt>
+<dd><p class="first">1.) The maximum tree depth has been reached (trees_max_depth)
+2.) The patches in the node is less than trees_leaf_size and</p>
+<blockquote class="last">
+<div>is stopped prematurely</div></blockquote>
+</dd>
+</dl>
+</dd>
+<dt>trees_pixel_tests (int, optional): the number of pixel tests to perform</dt>
+<dd>at each node; defaults to 2000</dd>
+<dt>trees_prob_optimize_mode (float, optional): The probability of the</dt>
+<dd>tree optimizing between classification and regression; defaults to
+0.5</dd>
+<dt>serial (bool, optional): flag to signify if to run training in serial;</dt>
+<dd>defaults to False</dd>
+<dt>verbose (bool, optional): verbose flag; defaults to object&#8217;s verbose or</dt>
+<dd>selectively enabled for this function</dd>
+</dl>
+</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyrf._pyrf.Random_Forest_Detector.train_folder">
+<tt class="descname">train_folder</tt><big>(</big><em>rf</em>, <em>train_pos_path</em>, <em>train_neg_path</em>, <em>trees_path</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pyrf/_pyrf.html#Random_Forest_Detector.train_folder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf._pyrf.Random_Forest_Detector.train_folder" title="Permalink to this definition">¶</a></dt>
+=======
 <dl class="class">
 <dt id="pyrf._pyrf.Random_Forest_Detector">
 <em class="property">class </em><tt class="descclassname">pyrf._pyrf.</tt><tt class="descname">Random_Forest_Detector</tt><big>(</big><em>rf</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pyrf/_pyrf.html#Random_Forest_Detector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf._pyrf.Random_Forest_Detector" title="Permalink to this definition">¶</a></dt>
@@ -98,10 +436,17 @@
 <dl class="method">
 <dt id="pyrf._pyrf.Random_Forest_Detector.train">
 <tt class="descname">train</tt><big>(</big><em>rf</em>, <em>database_path</em>, <em>category</em>, <em>pos_path</em>, <em>neg_path</em>, <em>val_path</em>, <em>test_path</em>, <em>trees_path</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pyrf/_pyrf.html#Random_Forest_Detector.train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf._pyrf.Random_Forest_Detector.train" title="Permalink to this definition">¶</a></dt>
+>>>>>>> 9c6f78462ce4b654324c88400f3c4166e9d8d920
 <dd></dd></dl>
 
 </dd></dl>
 
+<<<<<<< HEAD
+<dl class="data">
+<dt id="pyrf._pyrf.VERBOSE_RF">
+<tt class="descclassname">pyrf._pyrf.</tt><tt class="descname">VERBOSE_RF</tt><em class="property"> = False</em><a class="headerlink" href="#pyrf._pyrf.VERBOSE_RF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bindings for C Variable Types</p>
+=======
 <dl class="function">
 <dt id="pyrf._pyrf.arrptr_to_np">
 <tt class="descclassname">pyrf._pyrf.</tt><tt class="descname">arrptr_to_np</tt><big>(</big><em>c_arrptr</em>, <em>shape</em>, <em>arr_t</em>, <em>dtype</em><big>)</big><a class="reference internal" href="_modules/pyrf/_pyrf.html#arrptr_to_np"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf._pyrf.arrptr_to_np" title="Permalink to this definition">¶</a></dt>
@@ -152,11 +497,14 @@ The order of this list must match the C++ constructor parameter order</p>
 <dt id="pyrf._pyrf.str_list_t">
 <tt class="descclassname">pyrf._pyrf.</tt><tt class="descname">str_list_t</tt><a class="headerlink" href="#pyrf._pyrf.str_list_t" title="Permalink to this definition">¶</a></dt>
 <dd><p>alias of <tt class="xref py py-class docutils literal"><span class="pre">LP_c_char_p</span></tt></p>
+>>>>>>> 9c6f78462ce4b654324c88400f3c4166e9d8d920
 </dd></dl>
 
 </div>
 <div class="section" id="module-pyrf.pyrf_helpers">
 <span id="pyrf-pyrf-helpers-module"></span><h2>pyrf.pyrf_helpers module<a class="headerlink" href="#module-pyrf.pyrf_helpers" title="Permalink to this headline">¶</a></h2>
+<<<<<<< HEAD
+=======
 <dl class="function">
 <dt id="pyrf.pyrf_helpers.ensuredir">
 <tt class="descclassname">pyrf.pyrf_helpers.</tt><tt class="descname">ensuredir</tt><big>(</big><em>path</em><big>)</big><a class="reference internal" href="_modules/pyrf/pyrf_helpers.html#ensuredir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf.pyrf_helpers.ensuredir" title="Permalink to this definition">¶</a></dt>
@@ -172,6 +520,7 @@ The order of this list must match the C++ constructor parameter order</p>
 <tt class="descclassname">pyrf.pyrf_helpers.</tt><tt class="descname">rmtreedir</tt><big>(</big><em>path</em><big>)</big><a class="reference internal" href="_modules/pyrf/pyrf_helpers.html#rmtreedir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrf.pyrf_helpers.rmtreedir" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+>>>>>>> 9c6f78462ce4b654324c88400f3c4166e9d8d920
 </div>
 <div class="section" id="module-pyrf">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-pyrf" title="Permalink to this headline">¶</a></h2>
@@ -236,7 +585,11 @@ The order of this list must match the C++ constructor parameter order</p>
       </ul>
     </div>
     <div class="footer">
+<<<<<<< HEAD
+        &copy; Copyright 2015, Jon Crall.
+=======
         &copy; Copyright 2014, Jon Crall.
+>>>>>>> 9c6f78462ce4b654324c88400f3c4166e9d8d920
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
     </div>
   </body>

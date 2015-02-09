@@ -1,443 +1,625 @@
 from __future__ import absolute_import, division, print_function
 # Standard
-#import time
-import sys
-from six.moves import zip
-import threading
-from os.path import dirname, realpath, split
 from collections import OrderedDict as odict
+import multiprocessing
 import ctypes as C
 # Scientific
-from random import shuffle
+import utool as ut
 import numpy as np
-from os.path import join
-from subprocess import call
-import detecttools.ctypes_interface as ctypes_interface
+import time
+from os.path import join, exists, abspath, isdir
+import shutil
 from detecttools.directory import Directory
-from .pyrf_helpers import (ensuredir, rmtreedir, get_training_data_from_ibeis,
-                           _build_shared_c_library)
+from pyrf.pyrf_helpers import (_load_c_shared_library, _cast_list_to_c, _cache_data, _extract_np_array)
+
+
+VERBOSE_RF = ut.get_argflag('--verbrf') or ut.VERBOSE
 
 
 #============================
 # CTypes Interface Data Types
 #============================
-
-
-# Bindings for Numpy Arrays
-FLAGS_RW = 'aligned, c_contiguous, writeable'
-CNPFLOAT = np.ctypeslib.ndpointer(dtype=np.float32, ndim=2, flags=FLAGS_RW)
-CNPINT   = np.ctypeslib.ndpointer(dtype=np.uint8,   ndim=2, flags=FLAGS_RW)
-
-# Bindings for C Variable Types
-COBJ     = C.c_void_p
-CCHAR    = C.c_char_p
-CINT     = C.c_int
-CBOOL    = C.c_bool
-CFLOAT   = C.c_float
-
-# hesaff style
-str_t     = C.c_char_p
-int_t     = C.c_int
-byte_t    = C.c_char
-float_t   = C.c_float
-str_list_t   = C.POINTER(str_t)
-int_array_t  = np.ctypeslib.ndpointer(dtype=int_t, ndim=1, flags=FLAGS_RW)
-float_array_t  = np.ctypeslib.ndpointer(dtype=float_t, ndim=1, flags=FLAGS_RW)
-
-results_dtype   = np.float32
-results_t       = np.ctypeslib.ndpointer(dtype=results_dtype, ndim=2, flags=FLAGS_RW)
-results_array_t = np.ctypeslib.ndpointer(dtype=results_t, ndim=1, flags=FLAGS_RW)
+'''
+    Bindings for C Variable Types
+'''
+NP_FLAGS       = 'aligned, c_contiguous, writeable'
+# Primatives
+C_OBJ          = C.c_void_p
+C_BYTE         = C.c_char
+C_CHAR         = C.c_char_p
+C_INT          = C.c_int
+C_BOOL         = C.c_bool
+C_FLOAT        = C.c_float
+NP_INT8        = np.uint8
+NP_FLOAT32     = np.float32
+# Arrays
+C_ARRAY_CHAR   = C.POINTER(C_CHAR)
+C_ARRAY_FLOAT  = C.POINTER(C_FLOAT)
+NP_ARRAY_INT   = np.ctypeslib.ndpointer(dtype=C_INT,          ndim=1, flags=NP_FLAGS)
+NP_ARRAY_FLOAT = np.ctypeslib.ndpointer(dtype=NP_FLOAT32,     ndim=2, flags=NP_FLAGS)
+RESULTS_ARRAY  = np.ctypeslib.ndpointer(dtype=NP_ARRAY_FLOAT, ndim=1, flags=NP_FLAGS)
 
 
 #=================================
-# Default / Constructor Parameters
+# Method Parameter Types
 #=================================
-
-
-"""
-    This defines the default constructor parameters for the algorithm.
-    These values may be overwritten by passing in a dictionary to the
-    class constructor using kwargs
-
-    constructor_parameters = [
-        (parameter type, parameter name, parameter default value),
-    ]
-
-    IMPORTANT:
-    The order of this list must match the C++ constructor parameter order
-"""
-constructor_parameters = [
-    (CINT,  'patch_width',              32),
-    (CINT,  'patch_height',             32),
-    (CINT,  'out_scale',                128),
-    (CINT,  'default_split',            -1),
-
-    (CINT,  'pos_like',                 0),
-    # 0 - Hough
-    # 1 - Classification
-    # 2 - Regression
-
-    (CBOOL, 'legacy',                   False),
-    (CBOOL, 'include_horizontal_flip',   True),
-    (CINT,  'patch_sample_density_pos',     4),
-    (CINT,  'patch_sample_density_neg',     4),
-    (CCHAR, 'scales',                       '6 1.0 0.75 0.55 0.40 0.30 0.20'),
-    (CCHAR, 'ratios',                       '1 1.0'),
-]
-
-# Do not touch
-PARAM_ODICT = odict([(key, val) for (_type, key, val) in constructor_parameters])
-PARAM_TYPES = [_type for (_type, key, val) in constructor_parameters]
-
-
-DETECT_PARAM_TYPES = [CBOOL, CBOOL, CBOOL, CINT, CINT, CFLOAT, CFLOAT, CFLOAT,
-                      CINT]
-
-
-def load_pyrf_clib(rebuild=False):
-    """ Loads the pyrf dynamic library and defines its functions """
-    #if VERBOSE:
-    #    print('[rf] Testing Random_Forest')
-    if rebuild:
-        _build_shared_c_library(rebuild)
-    # FIXME: This will break on packaging
-    root_dir = realpath(dirname(__file__))
-    libname = 'pyrf'
-    rf_clib, def_cfunc = ctypes_interface.load_clib(libname, root_dir)
-    """
-    def_lib_func is used to expose the Python bindings that are declared
-    inside the .cpp files to the Python clib object.
-
-    def_lib_func(return type, function name, list of parameter types)
-
-    IMPORTANT:
+'''
+IMPORTANT:
     For functions that return void, use Python None as the return value.
     For functions that take no parameters, use the Python empty list [].
-    """
-    def_cfunc(COBJ, 'constructor',      PARAM_TYPES)
-    def_cfunc(None, 'train',            [COBJ, CCHAR, CINT, CINT, CCHAR, CCHAR])
-    def_cfunc(CINT, 'detect',           [COBJ, COBJ, CCHAR, CCHAR] + DETECT_PARAM_TYPES )
-    def_cfunc(None, 'detect_many',      [COBJ, COBJ, int_t, str_list_t, str_list_t,
-                                         int_array_t, results_array_t] + DETECT_PARAM_TYPES)
-    def_cfunc(None, 'detect_results',   [COBJ, CNPFLOAT])
-    def_cfunc(None, 'segment',          [COBJ])
-    def_cfunc(COBJ, 'load',             [COBJ, CCHAR, CCHAR, CINT])
-    def_cfunc(None, 'save',             [COBJ])
-    return rf_clib
+'''
+
+METHODS = {}
+METHODS['init'] = ([
+    # Nothing
+], C_OBJ)
+
+METHODS['forest'] = ([
+    C_OBJ,           # detector
+    C_ARRAY_CHAR,    # tree_path_array
+    C_INT,           # _tree_path_num
+    C_BOOL,          # serial
+    C_BOOL,          # verbose
+], C_OBJ)
+
+METHODS['train'] = ([
+    C_OBJ,           # detector
+    C_CHAR,          # train_pos_chip_path
+    C_ARRAY_CHAR,    # train_pos_chip_filename_array
+    C_INT,           # _train_pos_chip_num
+    C_CHAR,          # train_neg_chip_path
+    C_ARRAY_CHAR,    # train_neg_chip_filename_array
+    C_INT,           # _train_neg_chip_num
+    C_CHAR,          # trees_path
+    C_INT,           # patch_width
+    C_INT,           # patch_height
+    C_FLOAT,         # patch_density
+    C_INT,           # trees_num
+    C_INT,           # trees_offset
+    C_INT,           # trees_max_depth
+    C_INT,           # trees_max_patches
+    C_INT,           # trees_leaf_size
+    C_INT,           # trees_pixel_tests
+    C_FLOAT,         # trees_prob_optimize_mode
+    C_BOOL,          # serial
+    C_BOOL,          # verbose
+], None)
+
+METHODS['detect'] = ([
+    C_OBJ,           # detector
+    C_OBJ,           # forest
+    C_ARRAY_CHAR,    # input_gpath_array
+    C_INT,           # _input_gpath_num
+    C_ARRAY_CHAR,    # output_gpath_array
+    C_ARRAY_CHAR,    # output_scale_gpath_array
+    C_INT,           # mode
+    C_FLOAT,         # sensitivity
+    C_ARRAY_FLOAT,   # scale_array
+    C_INT,           # _scale_num
+    C_INT,           # nms_min_area_contour
+    C_FLOAT,         # nms_min_area_overlap
+    RESULTS_ARRAY,   # results_val_array
+    NP_ARRAY_INT,    # results_len_array
+    C_INT,           # RESULT_LENGTH
+    C_BOOL,          # serial
+    C_BOOL,          # verbose
+], None)
+RESULT_LENGTH = 8
+
+#=================================
+# Load Dynamic Library
+#=================================
+RF_CLIB = _load_c_shared_library(METHODS)
 
 
-# Load the dnamic library at module load time
-RF_CLIB = load_pyrf_clib()
-
-
-def _new_pyrf(**kwargs):
-    """ Create the C object using the default parameter values and any updated
-    parameter values from kwargs """
-    param_odict = PARAM_ODICT.copy()
-    param_odict.update(kwargs)
-
-    print('[rf] New Random_Forest Object Created')
-    print('[rf] Algorithm Settings=%r' % (param_odict,))
-
-    param_values = param_odict.values()  # pass all parameters to the C constructor
-    pyrf_ptr = RF_CLIB.constructor(*param_values)
-    return pyrf_ptr
-
-
-def _kwargs(kwargs, key, value):
-    if key not in kwargs:
-        kwargs[key] = value
-
-
-def _cast_strlist_to_C(py_strlist):
-    """
-    Converts a python list of strings into a c array of strings
-    adapted from "http://stackoverflow.com/questions/3494598/passing-a-list-of
-    -strings-to-from-python-ctypes-to-c-function-expecting-char"
-    Avi's code
-    """
-    c_strarr = (str_t * len(py_strlist))()
-    c_strarr[:] = py_strlist
-    return c_strarr
-
-
-def arrptr_to_np(c_arrptr, shape, arr_t, dtype):
-    """
-    Casts an array pointer from C to numpy
-    Input:
-        c_arrpt - an array pointer returned from C
-        shape   - shape of that array pointer
-        arr_t   - the ctypes datatype of c_arrptr
-    Avi's code
-    """
-    arr_t_size = C.POINTER(byte_t * dtype().itemsize)  # size of each item
-    c_arr = C.cast(c_arrptr.astype(int), arr_t_size)   # cast to ctypes
-    np_arr = np.ctypeslib.as_array(c_arr, shape)       # cast to numpy
-    np_arr.dtype = dtype                               # fix numpy dtype
-    return np_arr
-
-
-def extract_2darr_list(size_list, ptr_list, arr_t, arr_dtype,
-                        arr_dim):
-    """
-    size_list - contains the size of each output 2d array
-    ptr_list  - an array of pointers to the head of each output 2d
-                array (which was allocated in C)
-    arr_t     - the C pointer type
-    arr_dtype - the numpy array type
-    arr_dim   - the number of columns in each output 2d array
-    """
-    arr_list = [arrptr_to_np(arr_ptr, (size, arr_dim), arr_t, arr_dtype)
-                    for (arr_ptr, size) in zip(ptr_list, size_list)]
-    return arr_list
-
-
+#=================================
+# Random Forest Detector
+#=================================
 class Random_Forest_Detector(object):
-    #TODO: Picklize me!
-    #dump(object, file)
-    #dumps(object) -> string
-    #load(file) -> object
-    #loads(string) -> object
 
-    #=============================
-    # Algorithm Constructor
-    #=============================
-    def __init__(rf, **kwargs):
-        rf.pyrf_ptr = _new_pyrf(**kwargs)
-        rf.detect_params = None  # must be set before running detection
+    def __init__(rf, verbose=VERBOSE_RF):
+        '''
+            Create the C object for the PyRF detector.
 
-    def set_detect_params(rf, **kwargs):
-        # Default params
-        default_param_dict = odict([
-            ('save_detection_images',   False),
-            ('save_scales',             False),
-            ('draw_supressed',          False),
-            ('detection_width',         128),
-            ('detection_height',        80),
-            ('percentage_left',         0.50),
-            ('percentage_top',          0.50),
-            ('nms_margin_percentage',   0.75),
-            ('min_contour_area',        300),
+            Args:
+                verbose (bool, optional): verbose flag; defaults to --verbrf flag
+
+            Returns:
+                detector (object): the Random Forest Detector object
+        '''
+        rf.verbose = verbose
+        if verbose:
+            print('[pyrf py] New Random_Forest Object Created')
+        rf.detector_c_obj = RF_CLIB.init()
+
+    def forest(rf, tree_path_list, **kwargs):
+        '''
+            Create the forest object by loading a list of tree paths.
+
+            Args:
+                tree_path_list (list of str): list of tree paths as strings
+                serial (bool, optional): flag to signify if to load the forest in serial;
+                    defaults to False
+                verbose (bool, optional): verbose flag; defaults to object's verbose or
+                    selectively enabled for this function
+
+            Returns:
+                forest (object): the forest object of the loaded trees
+        '''
+        # Default values
+        params = odict([
+            ('serial',                       False),
+            ('verbose',                      True),
         ])
-        default_param_dict.update(kwargs)
-        rf.detect_params = default_param_dict.values()
+        params.update(kwargs)
 
-    def _run(rf, target, args):
-        t = threading.Thread(target=target, args=args)
-        t.daemon = True
-        t.start()
-        while t.is_alive():  # wait for the thread to exit
-            t.join(.1)
+        # Data integrity
+        assert len(tree_path_list) > 0, \
+            'Must specify at least one tree path to load'
+        assert all( [ exists(tree_path) for tree_path in tree_path_list ] ), \
+            'At least one specified tree path does not exist'
 
-    #=============================
-    # Train Algorithm with Data
-    #=============================
+        params_list = [
+            _cast_list_to_c(tree_path_list, C_CHAR),
+            len(tree_path_list),
+        ] + params.values()
+        return RF_CLIB.forest(rf.detector_c_obj, *params_list)
 
-    def train(rf, dataset, category, pos_path, neg_path,
-              val_path, test_path, test_pos_path, test_neg_path,
-              trees_path, reshuffle=True, offset=None, **kwargs):
-        _kwargs(kwargs, 'num_trees', 5)
+    def train_folder(rf, train_pos_path, train_neg_path, trees_path, **kwargs):
+        direct = Directory(train_pos_path, include_file_extensions='images')
+        train_pos_cpath_list = direct.files()
+        direct = Directory(train_neg_path, include_file_extensions='images')
+        train_neg_cpath_list = direct.files()
+        return rf.train(train_pos_cpath_list, train_neg_cpath_list, trees_path, **kwargs)
 
-        # Gather training data from IBEIS database
-        if reshuffle:
-            print('[rf] Clearing Test Cache Directories')
-            rmtreedir(pos_path)
-            rmtreedir(neg_path)
-            rmtreedir(val_path)
-            rmtreedir(test_path)
-            rmtreedir(test_pos_path)
-            rmtreedir(test_neg_path)
+    def train(rf, train_pos_cpath_list, train_neg_cpath_list, trees_path, **kwargs):
+        '''
+            Train a new forest with the given positive chips and negative chips.
 
-            print('[rf] Creating Test Cache Directories')
-            ensuredir(pos_path)
-            ensuredir(neg_path)
-            ensuredir(val_path)
-            ensuredir(test_path)
-            ensuredir(test_pos_path)
-            ensuredir(test_neg_path)
+            Args:
+                train_pos_chip_path_list (list of str): list of positive training chips
+                train_neg_chip_path_list (list of str): list of negative training chips
+                trees_path (str): string path of where the newly trained trees are to be saved
 
-            fpath_pos, fpath_neg, fpath_val, fpath_test, fpath_test_pos, fpath_test_neg = get_training_data_from_ibeis(
-                dataset, category, pos_path, neg_path, val_path,
-                test_path, test_pos_path, test_neg_path, **kwargs)
-        else:
-            print('[rf] Using Previous Test Cache Directories')
-            fpath_pos, fpath_neg, fpath_val, fpath_test, fpath_test_pos, fpath_test_neg = (
-                pos_path      + '.txt',
-                neg_path      + '.txt',
-                val_path      + '.txt',
-                test_path     + '.txt',
-                test_pos_path + '.txt',
-                test_neg_path + '.txt',
-            )
+            Kwargs:
+                chips_norm_width (int, optional): Chip normalization width for resizing;
+                    the chip is resized to have a width of chips_norm_width and
+                    whatever resulting height in order to best match the original
+                    aspect ratio; defaults to 128
+
+                    If both chips_norm_width and chips_norm_height are specified,
+                    the original aspect ratio of the chip is not respected
+                chips_norm_height (int, optional): Chip normalization height for resizing;
+                    the chip is resized to have a height of chips_norm_height and
+                    whatever resulting width in order to best match the original
+                    aspect ratio; defaults to None
+
+                    If both chips_norm_width and chips_norm_height are specified,
+                    the original aspect ratio of the chip is not respected
+                chips_prob_flip_horizontally (float, optional): The probability
+                    that a chips is flipped horizontally before training to make
+                    the training set invariant to horizontal flips in the image;
+                    defaults to 0.5; 0.0 <= chips_prob_flip_horizontally <= 1.0
+                chips_prob_flip_vertically (float, optional): The probability
+                    that a chips is flipped vertivcally before training to make
+                    the training set invariant to vertical flips in the image;
+                    defaults to 0.5; 0.0 <= chips_prob_flip_vertically <= 1.0
+                patch_width (int, optional): the width of the patches for extraction
+                    in the tree; defaults to 32; patch_width > 0
+                patch_height (int, optional): the height of the patches for extraction
+                    in the tree; defaults to 32; patch_height > 0
+                patch_density (float, optional): the number of patches to extract from
+                    each chip as a function of density; the density is calculated as:
+                        samples = patch_density * [(chip_width * chip_height) / (patch_width * patch_height)]
+                    and specifies how many times a particular pixel is sampled
+                    from the chip; defaults to 4.0; patch_density > 0
+                trees_num (int, optional): the number of trees to train in parallel;
+                    defaults to 10
+                trees_offset (int, optional): the tree number that begins the sequence
+                    of when a tree is trained; defaults to None
+
+                    If None is specified, the trees_offset value is automatically guessed
+                    by using the number of files in trees_path
+
+                    Tree model files are overwritten if the offset has overlap with
+                    previouly generated trees
+                trees_max_depth (int, optional): the maximum depth of the tree during
+                    training, this can used for regularization; defaults to 16
+                trees_max_patches (int, optional): the maximum number of patches that
+                    should be extracted for training between positives AND negatives
+                    (the detector attempts to balance between the number of positive
+                    and negative patches to be roughly the same in quantity);
+                    defaults to 64000
+                trees_leaf_size (int, optional): the number of patches in a node that
+                    specifies the threshold for becoming a leaf; defaults to 20
+
+                    A node becomes a leaf under two conditions:
+                        1.) The maximum tree depth has been reached (trees_max_depth)
+                        2.) The patches in the node is less than trees_leaf_size and
+                            is stopped prematurely
+                trees_pixel_tests (int, optional): the number of pixel tests to perform
+                    at each node; defaults to 2000
+                trees_prob_optimize_mode (float, optional): The probability of the
+                    tree optimizing between classification and regression; defaults to
+                    0.5
+                serial (bool, optional): flag to signify if to run training in serial;
+                    defaults to False
+                verbose (bool, optional): verbose flag; defaults to object's verbose or
+                    selectively enabled for this function
+
+            Returns:
+                None
+        '''
+        # Default values
+        params = odict([
+            ('chips_norm_width',             128),
+            ('chips_norm_height',            None),
+            ('chips_prob_flip_horizontally', 0.5),
+            ('chips_prob_flip_vertically',   0.0),
+            ('patch_width',                  32),
+            ('patch_height',                 32),
+            ('patch_density',                4.0),
+            ('trees_num',                    10),
+            ('trees_offset',                 None),
+            ('trees_max_depth',              16),
+            ('trees_max_patches',            64000),
+            ('trees_leaf_size',              20),
+            ('trees_pixel_tests',            10000),
+            ('trees_prob_optimize_mode',     0.5),
+            ('serial',                       False),
+            ('verbose',                      rf.verbose),
+        ])
+        params.update(kwargs)
+        # Make the tree path absolute
+        trees_path = abspath(trees_path)
+
+        # cout << "AIM FOR A SPLIT OF 24k - 32k POSITIVE & NEGATIVE PATCHES EACH FOR GOOD REGULARIZATION AT DEPTH 16" << endl;
 
         # Ensure the trees_path exists
-        ensuredir(trees_path)
+        ut.ensuredir(trees_path)
+        data_path = join(trees_path, 'data')
+        if isdir(data_path):
+            shutil.rmtree(data_path)
+        ut.ensuredir(data_path)
+        data_path_pos = join(data_path, 'pos')
+        ut.ensuredir(data_path_pos)
+        data_path_neg = join(data_path, 'neg')
+        ut.ensuredir(data_path_neg)
 
-        # Try to figure out the correct tree offset, if not givern
-        if offset is None:
-            direct = Directory(trees_path, include_file_extensions=["txt"])
-            offset = len(direct.files())
-            print('[rf] Auto Tree Offset: %d' % offset)
-        else:
-            offset = int(offset)
+        # Try to figure out the correct tree offset
+        if params['trees_offset'] is None:
+            direct = Directory(trees_path, include_file_extensions=['txt'])
+            params['trees_offset'] = len(direct.files()) + 1
+            print('[pyrf py] Auto Tree Offset: %d' % params['trees_offset'])
+
+        # Data integrity
+        assert params['chips_norm_width'] is None or params['chips_norm_width'] >= params['patch_width'], \
+            'Normalization width too small for patch width'
+        assert params['chips_norm_height'] is None or params['chips_norm_height'] >= params['patch_height'], \
+            'Normalization height too small for patch height'
+        assert params['patch_width'] > 0, \
+            'Patch width must be positive'
+        assert params['patch_height'] > 0, \
+            'Patch height must be positive'
+        assert params['patch_density'] > 0.0, \
+            'Patch density must be positive'
+        assert 0.0 <= params['chips_prob_flip_horizontally'] and params['chips_prob_flip_horizontally'] <= 1.0, \
+            'Horizontal flip probability must be between 0 and 1'
+        assert 0.0 <= params['chips_prob_flip_vertically'] and params['chips_prob_flip_vertically'] <= 1.0, \
+            'Vertical flip probability must be between 0 and 1'
+        assert params['trees_num'] > 0, \
+            'Number of trees must be positive'
+        assert params['trees_offset'] >= 0, \
+            'Number of trees must be non-negative'
+        assert params['trees_max_depth'] > 1, \
+            'Tree depth must be greater than 1'
+        assert params['trees_max_patches'] % 2 == 0 and params['trees_max_patches'] > 0, \
+            'A tree must have an even (positive) number of patches'
+        assert 0.0 <= params['trees_prob_optimize_mode'] and params['trees_prob_optimize_mode'] <= 1.0, \
+            'Tree optimization mode probability must be between 0 and 1 (inclusive)'
+        assert all( [ exists(train_pos_cpath) for train_pos_cpath in train_pos_cpath_list ] ), \
+            'At least one specified positive chip path does not exist'
+        assert all( [ exists(train_neg_cpath) for train_neg_cpath in train_neg_cpath_list ] ), \
+            'At least one specified positive chip path does not exist'
+        # We will let the C++ code perform the patch size checks
+
+        print('[pyrf py] Caching positives into %r' % (data_path_pos, ))
+        train_pos_chip_filename_list = _cache_data(train_pos_cpath_list, data_path_pos, **params)
+
+        print('[pyrf py] Caching negatives into %r' % (data_path_neg, ))
+        train_neg_chip_filename_list = _cache_data(train_neg_cpath_list, data_path_neg, **params)
+
+        # We no longer need these parameters (and they should not be transferred to the C++ library)
+        del params['chips_norm_width']
+        del params['chips_norm_height']
+        del params['chips_prob_flip_horizontally']
+        del params['chips_prob_flip_vertically']
 
         # Run training algorithm
-        params = [rf.pyrf_ptr, join(trees_path, category + '-'), kwargs['num_trees'], offset, fpath_pos, fpath_neg]
-        rf._run(RF_CLIB.train, params)
+        params_list = [
+            data_path_pos,
+            _cast_list_to_c(train_pos_chip_filename_list, C_CHAR),
+            len(train_pos_chip_filename_list),
+            data_path_neg,
+            _cast_list_to_c(train_neg_chip_filename_list, C_CHAR),
+            len(train_neg_chip_filename_list),
+            trees_path,
+        ] + params.values()
+        RF_CLIB.train(rf.detector_c_obj, *params_list)
+        print('\n\n[pyrf py] *************************************')
+        print('[pyrf py] Training Completed')
 
-    def boosting(rf, phase, forest, dataset, category, pos_path, neg_path,
-                 test_pos_path, test_neg_path, detect_path):
-        # Function that calculates error on the training set and removes cases that the
-        # forest got correct
-        def _prepare(test_path, train_path, _type, balance=None):
-            manifest_path = train_path + '.txt'
-            counter = 0
-            # Copy current manifest file
-            call(['cp', manifest_path, "%s_%d.txt" % (manifest_path, phase)])
-            # Get contents of current manifest
-            temp = open(manifest_path, 'r')
-            line_list = temp.readlines()
-            line_list = line_list[1:]
-            temp.close()
-            direct = Directory(test_path, include_file_extensions=["jpg"])
-            accuracy_list = []
-            image_filepath_list = direct.files()
-            if balance is not None:
-                shuffle(image_filepath_list)
-            for index, image_filepath in enumerate(image_filepath_list):
-                if balance is not None and counter >= balance:
-                    # We want to balance the negative cases with the positives
-                    # The random shuffle will make this pre-stopping unbiased
-                    break
-                image_path, image_filename = split(image_filepath)
-                predictions = rf.detect(forest, image_filepath, join(detect_path, image_filename))
-                image = dataset[image_filename]
-                accuracy, true_pos, false_pos, false_neg = image.accuracy(predictions, category)
-                accuracy_list.append(accuracy)
-                progress = "%0.2f" % (float(index) / len(image_filepath_list))
-                print("TEST %s %s %0.4f %s" % (_type, image, accuracy, progress), end='\r')
-                sys.stdout.flush()
-                # Remove perfects
-                if accuracy == 1.0:
-                    for line in line_list:
-                        if image_filename in line:
-                            counter += 1
-                            line_list.remove(line)
-                # image.show(prediction_list=predictions, category=category)
-            print(' ' * 1000, end='\r')
-            print("TEST %s ERROR: %0.4f" % (_type , 1.0 - (float(sum(accuracy_list)) / len(accuracy_list))))
-            print("TEST %s RETRAIN: %d / %d" % (_type , len(image_filepath_list) - counter, len(image_filepath_list)))
-            temp = open(manifest_path, 'w')
-            temp.write("%d 1\n%s" % (len(line_list), ''.join(line_list),))
-            temp.close()
-            return counter
+    def detect(rf, forest, input_gpath_list, **kwargs):
+        '''
+            Run detection with a given loaded forest on a list of images
 
-        # Calculate error on positives set
-        balance = _prepare(test_pos_path, pos_path, "POS")
-        _prepare(test_neg_path, neg_path, "NEG", balance=balance)
+            Args:
+                forest (object): the forest obejct that you want to use during
+                    detection
+                input_gpath_list (list of str): the list of image paths that you want
+                    to test
 
-    def retrain(rf):
-        rf._run(RF_CLIB.retrain, [rf.pyrf_ptr])
+            Kwargs:
+                output_gpath_list (list of str, optional): the paralell list of output
+                    image paths for detection debugging or results; defaults to None
 
-    #=============================
-    # Run Algorithm
-    #=============================
+                    When this list is None no images are outputted for any test
+                    images, whereas the list can be a parallel list where some values
+                    are strings and others are None
+                output_scale_gpath_list (list of str, optional): the paralell list of output
+                    scale image paths for detection debugging or results; defaults
+                    to None
 
-    def detect_many(rf, forest, image_fpath_list, result_fpath_list, use_openmp=False):
-        """ WIP """
-        OPENMP_SOLUTION = '--pyrf-openmp' in sys.argv or use_openmp
-        if OPENMP_SOLUTION:
-            # OPENMP SOLUTION
-            nImgs = len(image_fpath_list)
-            c_src_strs = _cast_strlist_to_C(map(realpath, image_fpath_list))
-            c_dst_strs = _cast_strlist_to_C(map(realpath, result_fpath_list))
-            results_ptr_arr = np.empty(nImgs, results_t)  # outvar of results ptrs
-            length_arr = np.empty(nImgs, int_t)  # outvar of lengths
-            # Execute batch detection
-            RF_CLIB.detect_many(
-                rf.pyrf_ptr,
+                    When this list is None no images are outputted for any test
+                    images, whereas the list can be a parallel list where some values
+                    are strings and others are None
+                mode (int, optional): the mode that the detector outputs; detaults to 0
+                    0 - Hough Voting - the output is a Hough image that predicts the
+                        locations of the obejct centeroids
+                    0 - Classification Map - the output is a classification probability
+                        map across the entire image where no regression information
+                        is utilized
+                sensitivity (float, optional): the sensitivity of the detector;
+
+                        mode = 0 - defaults to 255.0
+                        mode = 1 - defaults to 255.0
+
+                scale_list (list of float, optional): the list of floats that specifies the scales
+                    to try during testing;
+                    defaults to [1.33, 1.00, 0.75, 0.56, 0.42, 0.32, 0.24, 0.18]
+
+                        scale > 1.0 - Upscale the image
+                        scale = 1.0 - Original image size
+                        scale < 1.0 - Downscale the image
+
+                    The list of scales highly impacts the performance of the detector and
+                    should be carefully chosen
+
+                    The scales are applied to BOTH the width and the height of the image
+                    in order to scale the image and an interpolation of CV_INTER_LINEAR
+                    is used
+                batch_size (int, optional): the number of images to test at a single
+                    time in paralell (if None, the number of CPUs is used); defaults to None
+                nms_min_area_contour (int, optional): the minimum size of a centroid
+                    candidate region; defaults to 300
+                nms_min_area_overlap (float, optional, DEPRICATED): the allowable overlap in
+                    bounding box predictions; defaults to 0.75
+                serial (bool, optional): flag to signify if to run detection in serial;
+
+                        len(input_gpath_list) >= batch_size - defaults to False
+                        len(input_gpath_list) <  batch_size - defaults to False
+
+                verbose (bool, optional): verbose flag; defaults to object's verbose or
+                    selectively enabled for this function
+
+            Yields:
+                (str, (list of dict)): tuple of the input image path and a list
+                    of dictionaries specifying the detected bounding boxes
+
+                    The dictionaries returned by this function are of the form:
+                        centerx (int): the x position of the object's centroid
+
+                            Note that the center of the bounding box and the location of
+                            the object's centroid can be different
+                        centery (int): the y position of the obejct's centroid
+
+                            Note that the center of the bounding box and the location of
+                            the object's centroid can be different
+                        xtl (int): the top left x position of the bounding box
+                        ytl (int): the top left y position of the bounding box
+                        width (int): the width of the bounding box
+                        height (int): the hiehgt of the bounding box
+                        confidence (float): the confidence that this bounding box is of
+                            the class specified by the trees used during testing
+                        suppressed (bool, DEPRICATED): the flag of if this bounding
+                            box has been marked to be suppressed by the detection
+                            algorithm
+
+        '''
+        # Default values
+        params = odict([
+            ('output_gpath_list',            None),
+            ('output_scale_gpath_list',      None),
+            ('mode',                         0),
+            ('sensitivity',                  None),
+            # 0.85 - [1.63, 1.38, 1.18, 1.0, 0.85, 0.72, 0.61, 0.52, 0.44, 0.38, 0.32, 0.27, 0.23, 0.2, 0.17, 0.14, 0.12, 0.1]
+            # 0.85 edited - [1.38, 1.18, 1.00, 0.85, 0.72, 0.61, 0.52, 0.44, 0.38, 0.32, 0.26, 0.20, 0.17, 0.14, 0.10]
+            # ('scale_list',                   [1.3, 1.2, 1.1, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]),
+            ('scale_list',                   [1.15, 1.0, 0.85, 0.7, 0.55, 0.4, 0.25, 0.10]),
+            ('_scale_num',                   None),  # This value always gets overwritten
+            ('batch_size',                   None),
+            ('nms_min_area_contour',         100),
+            ('nms_min_area_overlap',         0.75),
+            ('results_val_array',            None),  # This value always gets overwritten
+            ('results_len_array',            None),  # This value always gets overwritten
+            ('RESULT_LENGTH',                None),  # This value always gets overwritten
+            ('serial',                       False),
+            ('verbose',                      rf.verbose),
+        ])
+        params.update(kwargs)
+        params['RESULT_LENGTH'] = RESULT_LENGTH
+        output_gpath_list = params['output_gpath_list']
+        output_scale_gpath_list = params['output_scale_gpath_list']
+        # We no longer want these parameters in params
+        del params['output_gpath_list']
+        del params['output_scale_gpath_list']
+
+        if params['sensitivity'] is None:
+            assert params['mode'] in [0, 1], 'Invalid mode provided'
+            if params['mode'] == 0:
+                params['sensitivity'] = 255.0
+                # params['sensitivity'] = 200.0 # add
+            elif params['mode'] == 1:
+                params['sensitivity'] = 255.0
+
+        # Try to determine the parallel processing batch size
+        if params['batch_size'] is None:
+            try:
+                cpu_count = multiprocessing.cpu_count()
+                print('[pyrf py] Detecting with %d CPUs' % (cpu_count, ))
+                params['batch_size'] = cpu_count
+            except:
+                params['batch_size'] = 8
+
+        # Data integrity
+        assert params['mode'] >= 0, \
+            'Detection mode must be non-negative'
+        assert 0.0 <= params['sensitivity'], \
+            'Sensitivity must be non-negative'
+        assert len(params['scale_list']) > 0 , \
+            'The scale list cannot be empty'
+        assert all( [ scale > 0.0 for scale in params['scale_list'] ]), \
+            'All scales must be positive'
+        assert params['batch_size'] > 0, \
+            'Batch size must be positive'
+        assert params['nms_min_area_contour'] > 0, \
+            'Non-maximum suppression minimum contour area cannot be negative'
+        assert 0.0 <= params['nms_min_area_overlap'] and params['nms_min_area_overlap'] <= 1.0, \
+            'Non-maximum supression minimum area overlap percentage must be between 0 and 1 (inclusive)'
+
+        # Convert optional parameters to C-valid default options
+        if output_gpath_list is None:
+            output_gpath_list = [''] * len(input_gpath_list)
+        elif output_gpath_list is not None:
+            assert len(output_gpath_list) == len(input_gpath_list), \
+                'Output image path list is invalid or is not the same length as the input list'
+            for index in range(len(output_gpath_list)):
+                if output_gpath_list[index] is None:
+                    output_gpath_list[index] = ''
+        output_gpath_list = _cast_list_to_c(output_gpath_list, C_CHAR)
+
+        if output_scale_gpath_list is None:
+            output_scale_gpath_list = [''] * len(input_gpath_list)
+        elif output_scale_gpath_list is not None:
+            assert len(output_scale_gpath_list) == len(input_gpath_list), \
+                'Output scale image path list is invalid or is not the same length as the input list'
+            for index in range(len(output_scale_gpath_list)):
+                if output_scale_gpath_list[index] is None:
+                    output_scale_gpath_list[index] = ''
+        output_scale_gpath_list = _cast_list_to_c(output_scale_gpath_list, C_CHAR)
+
+        # Prepare for C
+        params['_scale_num'] = len(params['scale_list'])
+        params['scale_list'] = _cast_list_to_c(params['scale_list'], C_FLOAT)
+        print('[pyrf py] Detecting over %d scales' % (params['_scale_num'], ))
+
+        # Run training algorithm
+        batch_size = params['batch_size']
+        del params['batch_size']  # Remove this value from params
+        batch_num = int(len(input_gpath_list) / batch_size) + 1
+        # Detect for each batch
+        for batch in ut.ProgressIter(range(batch_num), lbl="[pyrf py]", freq=1, message_type=2):
+            begin = time.time()
+            start = batch * batch_size
+            end   = start + batch_size
+            if end > len(input_gpath_list):
+                end = len(input_gpath_list)
+            input_gpath_list_        = input_gpath_list[start:end]
+            output_gpath_list_       = output_gpath_list[start:end]
+            output_scale_gpath_list_ = output_scale_gpath_list[start:end]
+            num_images = len(input_gpath_list_)
+            # Set image detection to be run in serial if less than half a batch to run
+            if num_images < min(batch_size / 2, 8):
+                params['serial'] = True
+            # Final sanity check
+            assert len(input_gpath_list_) == len(output_gpath_list_) and len(input_gpath_list_) == len(output_scale_gpath_list_)
+            params['results_val_array'] = np.empty(num_images, dtype=NP_ARRAY_FLOAT)
+            params['results_len_array'] = np.empty(num_images, dtype=C_INT)
+            # Make the params_list
+            params_list = [
                 forest,
-                nImgs,
-                c_src_strs,
-                c_dst_strs,
-                length_arr,
-                results_ptr_arr,
-                *rf.detect_params)
+                _cast_list_to_c(input_gpath_list_, C_CHAR),
+                num_images,
+                _cast_list_to_c(output_gpath_list_, C_CHAR),
+                _cast_list_to_c(output_scale_gpath_list_, C_CHAR)
+            ] + params.values()
+            RF_CLIB.detect(rf.detector_c_obj, *params_list)
+            results_list = _extract_np_array(params['results_len_array'], params['results_val_array'], NP_ARRAY_FLOAT, NP_FLOAT32, RESULT_LENGTH)
+            conclude = time.time()
+            print('[pyrf py] Took %r seconds to compute %d images' % (conclude - begin, num_images, ))
+            for input_gpath, result_list in zip(input_gpath_list_, results_list):
+                if params['mode'] == 0:
+                    result_list_ = []
+                    for result in result_list:
+                        # Unpack result into a nice Python dictionary and return
+                        temp = {}
+                        temp['centerx']    = int(result[0])
+                        temp['centery']    = int(result[1])
+                        temp['xtl']        = int(result[2])
+                        temp['ytl']        = int(result[3])
+                        temp['width']      = int(result[4])
+                        temp['height']     = int(result[5])
+                        temp['confidence'] = float(np.round(result[6], decimals=4))
+                        temp['suppressed'] = int(result[7]) == 1
+                        result_list_.append(temp)
+                    yield (input_gpath, result_list_)
+                else:
+                    yield (input_gpath, None)
+            params['results_val_array'] = None
+            params['results_len_array'] = None
 
-            results_list = extract_2darr_list(length_arr, results_ptr_arr, results_t, results_dtype, 8)
+    # Pickle functions
+    def dump(rf, file):
+        '''
+            UNIMPLEMENTED
 
-            # Finish getting results using lengths and heads of arrays
-            #results_list = [arrptr_to_np(results_ptr, (len_, 8), results_t,
-            #                             np.float32)
-            #                for (results_ptr, len_) in zip(results_ptr_arr, length_arr)]
-        else:
-            # FOR LOOP SOLUTION
-            results_list = []
-            for image_fpath, result_fpath in zip(image_fpath_list, result_fpath_list):
-                # Execute detection
-                length = RF_CLIB.detect(
-                    rf.pyrf_ptr,
-                    forest,
-                    image_fpath,
-                    result_fpath,
-                    *rf.detect_params)
-                # Read results
-                results = np.empty((length, 8), np.float32)
-                RF_CLIB.detect_results(rf.pyrf_ptr, results)
-                results_list.append(results)
-        return results_list
+            Args:
+                file (object)
 
-    def detect(rf, forest, image_fpath, result_fpath):
-        # Removed to simplify inner loop. User a Timer object around this instead.
-        #start = time.time()
+            Returns:
+                None
+        '''
+        pass
 
-        # Removed because this will be interpreted as individual
-        # function calls, which is not very python efficient
-        #_kwargs(kwargs, 'save_detection_images',   False)
-        #_kwargs(kwargs, 'save_scales',             False)
-        #_kwargs(kwargs, 'draw_supressed',          False)
-        #_kwargs(kwargs, 'detection_width',         128)
-        #_kwargs(kwargs, 'detection_height',        80)
-        #_kwargs(kwargs, 'percentage_left',         0.50)
-        #_kwargs(kwargs, 'percentage_top',          0.50)
-        #_kwargs(kwargs, 'nms_margin_percentage',   0.75)
-        #_kwargs(kwargs, 'min_contour_area',        300)
+    def dumps(rf):
+        '''
+            UNIMPLEMENTED
 
-        # Execute detection
-        length = RF_CLIB.detect(
-            rf.pyrf_ptr,
-            forest,
-            image_fpath,
-            result_fpath,
-            *rf.detect_params)
-        #    kwargs['save_detection_images'],
-        #    kwargs['save_scales'],
-        #    kwargs['draw_supressed'],
-        #    kwargs['detection_width'],
-        #    kwargs['detection_height'],
-        #    kwargs['percentage_left'],
-        #    kwargs['percentage_top'],
-        #    kwargs['nms_margin_percentage'],
-        #    kwargs['min_contour_area'],
-        #)
+            Returns:
+                string
+        '''
+        pass
 
-        # Read results
-        results = np.empty((length, 8), np.float32)
-        RF_CLIB.detect_results(rf.pyrf_ptr, results)
+    def load(file):
+        '''
+            UNIMPLEMENTED
 
-        #done = time.time()
-        return results  # , done - start
+            Args:
+                file (object)
 
-    def segment(rf):
-        rf._run(RF_CLIB.segment, [rf.pyrf_ptr])
+            Returns:
+                detector (object)
+        '''
+        pass
 
-    #=============================
-    # Load / Save Trained Data
-    #=============================
+    def loads(string):
+        '''
+            UNIMPLEMENTED
 
-    def load(rf, tree_path, prefix, num_trees=10):
-        forest = RF_CLIB.load(rf.pyrf_ptr, tree_path, prefix, num_trees)
-        return forest
+            Args:
+                string (str)
 
-    def save(rf):
-        rf._run(RF_CLIB.save, [rf.pyrf_ptr])
+            Returns:
+                detector (object)
+        '''
+        pass

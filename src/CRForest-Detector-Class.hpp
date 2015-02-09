@@ -63,6 +63,9 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <numeric>
+#include <cmath>
+#include <ctime>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -76,639 +79,461 @@ using namespace std;
 
 struct CRForestDetectorClass
 {
-	public:
-		int 	patch_width;
-		int 	patch_height;
-		int 	out_scale;
-		int 	default_split;
-		int 	positive_like;
-	  	bool 	legacy;
-	  	bool 	include_horizontal_flip;
-		int 	patch_sample_density_pos;
-		int 	patch_sample_density_neg;
-		vector<float> scales;
-		vector<float> ratios;
-		vector<vector<vector<float> > > points;
+public:
+    CRForestDetectorClass()
+    {
+#ifdef _OPENMP
+        cout << "\n\n[pyrf c++]  --- RUNNING PYRF DETECTOR IN PARALLEL ---\n\n" << endl;
+#else
+        cout << "\n\n[pyrf c++]  --- RUNNING PYRF DETECTOR IN SERIAL ---\n\n" << endl;
+#endif
+    }
 
-	public:
-		// Constructor
-		CRForestDetectorClass(
-			int 	param_patch_width,
-			int 	param_patch_height,
-			int 	param_out_scale,
-			int 	param_default_split,
-			int 	param_positive_like,
-		  	bool 	param_legacy,
-		  	bool 	param_include_horizontal_flip,
-			int 	param_patch_sample_density_pos,
-			int 	param_patch_sample_density_neg,
-			char*	param_scales,
-			char*	param_ratios
-			)
-		{
-			#ifdef _OPENMP
-			cout << "\n\n[pyrf.cpp]  --- RUNNING PYRF DETECTOR IN PARALLEL ---\n\n" << endl;
-			#else
-			cout << "\n\n[pyrf.cpp]  --- RUNNING PYRF DETECTOR IN SERIAL ---\n\n" << endl;
-			#endif
+    CRForestDetectorClass(const CRForestDetectorClass &original)
+    {
+        // Nohting to do to copy the object class
+    }
 
-			patch_width = 				param_patch_width;
-			patch_height = 				param_patch_height;
-			out_scale = 				param_out_scale;
-			default_split = 			param_default_split;
-			positive_like = 			param_positive_like;
-		  	legacy = 					param_legacy;
-		  	include_horizontal_flip = 	param_include_horizontal_flip;
-			patch_sample_density_pos = 	param_patch_sample_density_pos;
-			patch_sample_density_neg = 	param_patch_sample_density_neg;
+    CRForest *forest(vector<string> &tree_path_vector, bool serial, bool verbose)
+    {
+        // Init forest with number of trees
+        CRForest *crForest = new CRForest( tree_path_vector.size() );
+        // Load forest
+        crForest->loadForest(tree_path_vector, serial, verbose);
+        return crForest;
+    }
 
-			int size;
-			string str_param_scales = param_scales;
-			string str_param_ratios = param_ratios;
+    // Init and start training
+    void train(string train_pos_chip_path_string,
+               vector<string> &train_pos_chip_filename_vector,
+               string train_neg_chip_path_string,
+               vector<string> &train_neg_chip_filename_vector,
+               string trees_path_string, int patch_width, int patch_height,
+               float patch_density, int trees_num, int trees_offset,
+               int trees_max_depth, int trees_max_patches,
+               int trees_leaf_size, int trees_pixel_tests,
+               float trees_prob_optimize_mode, bool serial, bool verbose)
+    {
+        // Init new forest with number of trees
+        CRForest crForest( trees_num );
 
-			istringstream iss1 (str_param_scales, istringstream::in);
+        // Init random generator
+        time_t t = time(NULL);
+        int seed = (int) t;
+        CvRNG cvRNG(seed);
 
-			iss1 >> size;
-			scales.resize(size);
-			for(int i = 0; i < size; ++i)
-			{
-				iss1 >> scales[i];
-			}
+        // Init training data
+        CRPatch Train(&cvRNG, patch_width, patch_height, 2);
 
-			istringstream iss2 (str_param_ratios, istringstream::in);
-			iss2 >> size;
-			ratios.resize(size);
-			for(int i = 0; i < size; ++i)
-			{
-				iss2 >> ratios[i];
-			}
+        // Extract pos training patches
+        cout << "[pyrf c++] Loading positive patches..." << endl;
+        int pos_patches = extract_Patches(Train, &cvRNG, train_pos_chip_path_string,
+                                          train_pos_chip_filename_vector, 1, patch_density,
+                                          trees_max_patches / 2, verbose);
+        cout << endl << "[pyrf c++] ...Loaded " << pos_patches << " patches" << endl;
 
-		}
+        // Extract neg training patches
+        cout << "[pyrf c++] Loading negative patches..." << endl;
+        int neg_patches = extract_Patches(Train, &cvRNG, train_neg_chip_path_string,
+                                          train_neg_chip_filename_vector, 0, patch_density,
+                                          pos_patches, verbose);  // We pass pos_patches as max_patches for balance
+        cout << endl << "[pyrf c++] ...Loaded " << neg_patches << " patches" << endl;
 
-        CRForestDetectorClass(const CRForestDetectorClass& other)
+        // Train forest and save file
+        crForest.trainForest(trees_leaf_size, trees_max_depth, &cvRNG, Train,
+                             trees_pixel_tests, trees_prob_optimize_mode,
+                             trees_path_string.c_str(), trees_offset, patch_width,
+                             patch_height, serial, verbose);
+    }
+
+    // Run detector
+    int detect(CRForest *forest, string input_gpath, string output_gpath,
+               string output_scale_gpath, int mode, float sensitivity,
+               vector<float> &scale_vector, int nms_min_area_contour,
+               int nms_min_area_overlap, float **results, int RESULT_LENGTH,
+               bool serial, bool verbose)
+    {
+        // This threshold value is important, but not really because it can be controlled
+        // with the sensitivity value
+        // int threshold = int(255.0 * 0.90);
+        bool debug_flag = false;
+        int threshold = int(255 * 0.90);
+        int accumulate_mode = 1; // 1 - max, 0 - add | 0 - hough, 1 - classification
+        float density = 0.990;
+
+        // Load forest into detector object
+        CRForestDetector crDetect(forest);
+        char buffer[512];
+
+        // Storage for output
+        vector<IplImage *> vImgDetect(scale_vector.size());
+        vector<vector<vector<vector<CvPoint > > > > manifests(scale_vector.size());
+        // <VECTOR> | scale | y | x | cvPoint
+
+        // Load image and create temporary objects
+        IplImage *img = cvLoadImage(input_gpath.c_str(), CV_LOAD_IMAGE_COLOR);
+        #pragma omp critical(imageLoad)
         {
-            this->patch_width              = other.patch_width;
-            this->patch_height             = other.patch_height;
-            this->out_scale                = other.out_scale;
-            this->default_split            = other.default_split;
-            this->positive_like            = other.positive_like;
-            this->legacy                   = other.legacy;
-            this->include_horizontal_flip  = other.include_horizontal_flip;
-            this->patch_sample_density_pos = other.patch_sample_density_pos;
-            this->patch_sample_density_neg = other.patch_sample_density_neg;
-            this->scales = other.scales;
-            this->ratios = other.ratios;
-            //this->points = other.points;
+            if (!img)
+            {
+                cout << "[pyrf c++] Could not load image file: " << input_gpath << endl;
+                exit(-1);
+            }
+            else
+            {
+                cout << "[pyrf c++] Loaded image file: " << input_gpath << endl;
+            }
         }
 
-		// load test image filenames
-		void loadImFile(std::vector<string>& vFilenames, string detection_inventory) {
-
-			char buffer[400];
-
-			ifstream in(detection_inventory.c_str());
-			if(in.is_open()) {
-
-				unsigned int size;
-				in >> size; //size = 10;
-				in.getline(buffer,400);
-				vFilenames.resize(size);
-
-				for(unsigned int i=0; i<size; ++i) {
-					in.getline(buffer,400);
-					vFilenames[i] = buffer;
-				}
-
-			} else {
-				cerr << "File not found " << detection_inventory.c_str() << endl;
-				exit(-1);
-			}
-
-			in.close();
-		}
-
-		// load positive training image filenames
-		void loadTrainPosFile(	std::vector<string>& vFilenames,
-								std::vector<CvRect>& vBBox,
-								std::vector<std::vector<CvPoint> >& vCenter,
-								string training_inventory_pos) {
-
-			unsigned int size, numop;
-			ifstream in(training_inventory_pos.c_str());
-
-			if(in.is_open()) {
-				in >> size;
-				in >> numop;
-				cout << "Load Train Pos Examples: " << size << " - " << numop << endl;
-
-				vFilenames.resize(size);
-				vCenter.resize(size);
-				vBBox.resize(size);
-
-				for(unsigned int i=0; i<size; ++i) {
-					// Read filename
-					in >> vFilenames[i];
-
-					// Read bounding box
-					in >> vBBox[i].x; in >> vBBox[i].y;
-					in >> vBBox[i].width;
-					vBBox[i].width -= vBBox[i].x;
-					in >> vBBox[i].height;
-					vBBox[i].height -= vBBox[i].y;
-
-					if(vBBox[i].width<patch_width || vBBox[i].height<patch_height) {
-					  cout << "Width or height are too small" << endl;
-					  cout << vFilenames[i] << endl;
-					  exit(-1);
-					}
-
-					// Read center points
-					vCenter[i].resize(numop);
-					for(unsigned int c=0; c<numop; ++c) {
-						in >> vCenter[i][c].x;
-						in >> vCenter[i][c].y;
-					}
-				}
-
-				in.close();
-			} else {
-				cerr << "File not found " << training_inventory_pos.c_str() << endl;
-				exit(-1);
-			}
-		}
-
-		// load negative training image filenames
-		void loadTrainNegFile(	std::vector<string>& vFilenames,
-								std::vector<CvRect>& vBBox,
-								string training_inventory_neg) {
-
-			unsigned int size, numop;
-			ifstream in(training_inventory_neg.c_str());
-
-			if(in.is_open()) {
-				in >> size;
-				in >> numop;
-				cout << "Load Train Neg Examples: " << size << " - " << numop << endl;
-
-				vFilenames.resize(size);
-				if(numop>0)
-					vBBox.resize(size);
-				else
-					vBBox.clear();
-
-				for(unsigned int i=0; i<size; ++i) {
-					// Read filename
-					in >> vFilenames[i];
-
-					// Read bounding box (if available)
-					if(numop>0) {
-						in >> vBBox[i].x; in >> vBBox[i].y;
-						in >> vBBox[i].width;
-						vBBox[i].width -= vBBox[i].x;
-						in >> vBBox[i].height;
-						vBBox[i].height -= vBBox[i].y;
-
-						if(vBBox[i].width<patch_width || vBBox[i].height<patch_height) {
-						  cout << "Width or height are too small" << endl;
-						  cout << vFilenames[i] << endl;
-						  exit(-1);
-						}
-					}
-				}
-
-				in.close();
-			} else {
-				cerr << "File not found " << training_inventory_neg.c_str() << endl;
-				exit(-1);
-			}
-		}
-
-		bool new_center(std::vector<vector<vector<float> > >& points, float nms_margin_percentage, int centerx, int centery, int minx, int miny, int maxx, int maxy)
-		{
-			float distance;
-			int left1, right1, bottom1, top1, left2, right2, bottom2, top2;
-			for(unsigned int k=0;k<points.size(); ++k) {
-				for(unsigned int i=0;i<points[k].size(); ++i) {
-					left1 = points[k][i][0] - ((points[k][i][0] - points[k][i][2]) * nms_margin_percentage);
-					right1 = points[k][i][0] + ((points[k][i][4] - points[k][i][0]) * nms_margin_percentage);
-					bottom1 = points[k][i][1] - ((points[k][i][1] - points[k][i][3]) * nms_margin_percentage);
-					top1 = points[k][i][1] + ((points[k][i][5] - points[k][i][1]) * nms_margin_percentage);
-
-					// left2 = centerx - ((centerx - minx) * nms_margin_percentage);
-					// right2 = centerx + ((maxx - centerx) * nms_margin_percentage);
-					// bottom2 = centery - ((centery - miny) * nms_margin_percentage);
-					// top2 = centery + ((maxy - centery) * nms_margin_percentage);
-
-					if(left1 <= centerx && centerx <= right1 && bottom1 <= centery && centery <= top1)
-					   //left2 <= points[k][i][0] && points[k][i][0] <= right2 && bottom2 <= points[k][i][1] && points[k][i][1] <= top2)
-					{
-						return false;
-					}
-				}
-			}
-
-			return true;
-		}
-
-		// Run detector
-		int detect(CRForestDetector& crDetect,
-					char* detection_image_filepath,
-					char* detection_result_filepath,
-					bool save_detection_images,
-					bool save_scales,
-					bool draw_supressed,
-					int detection_width,
-					int detection_height,
-					float percentage_left,
-					float percentage_top,
-					float nms_margin_percentage,
-					int min_contour_area
-				   	)
-		{
-			char buffer[512];  // was 200
-
-			// Storage for output
-			vector<vector<IplImage*> > vImgDetect(scales.size());
-
-			// Load image
-			IplImage *img = 0;
-			img = cvLoadImage(detection_image_filepath,CV_LOAD_IMAGE_COLOR);
-			if(!img) {
-				cout << "[pyrf.cpp] Could not load image file: " << detection_image_filepath << endl;
-				exit(-1);
-			}
-
-			// Prepare scales
-			for(unsigned int k=0;k<vImgDetect.size(); ++k) {
-				vImgDetect[k].resize(ratios.size());
-				for(unsigned int c=0;c<vImgDetect[k].size(); ++c) {
-					vImgDetect[k][c] = cvCreateImage( cvSize(int(img->width*scales[k]+0.5),int(img->height*scales[k]+0.5)), IPL_DEPTH_32F, 1 );
-				}
-			}
-
-			// Detection for all scales
-			crDetect.detectPyramid(img, vImgDetect, ratios, positive_like, legacy);
-
-			// Store result of all scales
-			IplImage* combined = cvCreateImage( cvSize(img->width, img->height), IPL_DEPTH_8U , 1);
-			IplImage* temp = cvCreateImage( cvSize(img->width, img->height), IPL_DEPTH_8U , 1);
-            cvSet(combined, cvScalar(0));  // Combined needs to be initialized to 0
-
-			// Prepare results vector
-			points.clear();
-			points.resize(scales.size());
-			double minVal; double maxVal;
-			for(int k=vImgDetect.size() - 1;k >= 0; --k)
-			{
-				// cout << k;
-				IplImage* scaled = cvCreateImage( cvSize(vImgDetect[k][0]->width,vImgDetect[k][0]->height) , IPL_DEPTH_8U , 1);
-
-				for(unsigned int c=0;c<vImgDetect[k].size(); ++c)
-				{
-					// Find confidence
-					cvMinMaxLoc(vImgDetect[k][c], &minVal, &maxVal);
-
-					// Resize image
-					cvConvertScale(vImgDetect[k][c], scaled, out_scale);
-					cvResize(scaled, temp);
-
-					// Save detection
-					if(save_scales)
-					{
-						sprintf_s(buffer,"%s_scaled_%.2f_%d.png",detection_result_filepath,scales[k],c);
-						cvSaveImage( buffer, scaled );
-					}
-
-					// Accumulate max image
-					cvMax(combined, temp, combined);
-
-					// Threshold scaled image
-					cvThreshold(scaled, scaled, 250, 0, CV_THRESH_TOZERO);
-					// sprintf_s(buffer,"%s_threshold_%.2f_%d.png", detection_result_filepath, scales[k], c);
-					// cvSaveImage( buffer, scaled );
-
-					// Calculate contours for scaled image
-					CvSeq* contours = 0;
-					CvMemStorage* storage = cvCreateMemStorage(0);
-					cvFindContours(scaled, storage, &contours, sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
-
-					// Draw contours on image
-					// cvDrawContours(scaled, contours, cvScalar(255,255,255), cvScalarAll(255), 100);
-					// sprintf_s(buffer,"%s_contours_%.2f_%d.png", detection_result_filepath, scales[k], c);
-					// cvSaveImage( buffer, scaled );
-
-					CvRect rect;
-					int centerx, centery, minx, miny, maxx, maxy, area, supressed;
-
-					int i = 0;
-					for (int i = 0; contours != 0; contours = contours->h_next, ++i)
-					{
-						rect = cvBoundingRect(contours);
-
-						centerx = (int) ((rect.x)+rect.width/2) / scales[k];
-						centery = (int) ((rect.y)+rect.height/2) / scales[k];
-						minx = (int) centerx - ((detection_width * (percentage_left)) / scales[k]);
-						miny = (int) centery - ((detection_height * (percentage_top)) / scales[k]);
-						maxx = (int) centerx + ((detection_width * (1 - percentage_left)) / scales[k]);
-						maxy = (int) centery + ((detection_height * (1 - percentage_top)) / scales[k]);
-						area = (maxx - minx) * (maxy - miny);
-
-						if(area > min_contour_area && new_center(points, nms_margin_percentage, centerx, centery, minx, miny, maxx, maxy))
-						{
-							supressed = 0;
-						}
-						else
-						{
-							supressed = 1;
-						}
-
-						vector<float> temp;
-						temp.push_back((float) centerx);
-						temp.push_back((float) centery);
-						temp.push_back((float) minx);
-						temp.push_back((float) miny);
-						temp.push_back((float) maxx);
-						temp.push_back((float) maxy);
-						temp.push_back((float) maxVal);
-						temp.push_back((float) supressed);
-
-						points[k].push_back(temp);
-
-					}
-					cvReleaseImage(&vImgDetect[k][c]);
-				}
-				cvReleaseImage(&scaled);
-
-				// cout << k << endl;
-			}
-
-			int red, green, blue;
-			int num_detections = 0;
-			for(unsigned int k=0;k<points.size(); ++k) {
-				// cout << "Scale: " << scales[k] << endl;
-				for(unsigned int i=0;i<points[k].size(); ++i) {
-					num_detections++;
-
-					// Print on screen
-					// if(points[k][i][7] == 0)
-					// {
-					// 	cout << "	[ ] ";
-					// }
-					// else
-					// {
-					// 	cout << "	[S] ";
-					// }
-
-					// cout << "(" << points[k][i][0] << "," << points[k][i][1] << ") ";
-					// cout << "[" << points[k][i][2];
-					// cout << " " << points[k][i][3];
-					// cout << " " << points[k][i][4];
-					// cout << " " << points[k][i][5] << "]";
-					// cout << endl;
-
-					// Output if not squelched
-					if(points[k][i][7] == 0)
-					{
-						red = 255;
-						green = 0;
-						blue = 0;
-				   	}
-				   	else
-				   	{
-						red = 0;
-						green = 0;
-						blue = 255;
-				   	}
-
-				   	if(points[k][i][7] == 0 || draw_supressed)
-				   	{
-						// Draw on image
-						CvPoint centroid[1];
-						centroid[0].x = points[k][i][0];
-						centroid[0].y = points[k][i][1];
-
-						cvCircle(img, centroid[0], 3, CV_RGB(red, green, blue), -1, 0, 0);
-						cvRectangle(img,	cvPoint(points[k][i][2], points[k][i][3]),
-											cvPoint(points[k][i][4], points[k][i][5]),
-											cvScalar(blue, green, red), 2, 8, 0);
-				   }
-				}
-			}
-
-			if(save_detection_images)
-			{
-				//cvSmooth(combined, combined, CV_GAUSSIAN, 3);
-				sprintf_s(buffer,"%s.png", detection_result_filepath);
-				cvSaveImage( buffer, combined );
-
-				sprintf_s(buffer,"%s_points.png", detection_result_filepath);
-				cvSaveImage( buffer, img );
-			}
-
-			// Release image
-			cvReleaseImage(&img);
-			cvReleaseImage(&combined);
-			cvReleaseImage(&temp);
-
-			return num_detections;
-		}
-
-		// Extract patches from training data
-		void extract_Patches(	CRPatch& Train,
-								CvRNG* pRNG,
-								string training_inventory_pos,
-								string training_inventory_neg
-							)
-		{
-
-			vector<string> vFilenames;
-			vector<CvRect> vBBox;
-			vector<vector<CvPoint> > vCenter;
-
-			//////////////////////
-
-			// load positive file list
-			loadTrainPosFile(vFilenames,  vBBox, vCenter, training_inventory_pos);
-
-			bool flag;
-			// load postive images and extract patches
-			for(int i=0; i<(int)vFilenames.size(); ++i) {
-
-				if(i%10==0) cout << i << " " << flush;
-				// cout << i << " " << (int)vFilenames.size() << " " << vFilenames[i] << endl;
-
-				// Load image
-				IplImage *img = 0;
-				img = cvLoadImage(vFilenames[i].c_str(),CV_LOAD_IMAGE_COLOR);
-				if(!img) {
-					cout << "[pyrf.cpp] Could not load image file: " << vFilenames[i].c_str() << endl;
-					exit(-1);
-				}
-				
-				// Flip coin, or always use regular rotation
-				if(include_horizontal_flip)
-				{
-					flag = cvRandInt( pRNG ) % 2 == 0;
-					if(flag)
-					{
-						cvFlip(img, img, 1);
-					}
-				}
-
-				// Extract patches
-				Train.extractPatches(img, patch_sample_density_pos, 1, &vBBox[i], &vCenter[i], legacy);
-				
-				// Release image
-				cvReleaseImage(&img);
-			}
-			cout << endl;
-
-			///////////////////
-
-			// load negative file list
-			loadTrainNegFile(vFilenames, vBBox, training_inventory_neg);
-
-			// load negative images and extract patches
-			for(int i=0; i<(int)vFilenames.size(); ++i) {
-
-				if(i%10==0) cout << i << " " << flush;
-				// cout << i << " " << (int)vFilenames.size() << " " << vFilenames[i] << endl;
-
-				// Load image
-				IplImage *img = 0;
-				img = cvLoadImage(vFilenames[i].c_str(),CV_LOAD_IMAGE_COLOR);
-				if(!img) {
-					cout << "[pyrf.cpp] Could not load image file: " << vFilenames[i].c_str() << endl;
-					exit(-1);
-				}
-
-				// Flip coin, or always use regular rotation
-				if(include_horizontal_flip)
-				{
-					flag = cvRandInt( pRNG ) % 2 == 0;
-					if(flag)
-					{
-						cvFlip(img, img, 1);
-					}
-				}
-
-				// Extract negative training patches
-				if(vBBox.size()==vFilenames.size())
-					Train.extractPatches(img, patch_sample_density_neg, 0, &vBBox[i], 0, legacy);
-				else
-					Train.extractPatches(img, patch_sample_density_neg, 0, 0, 0, legacy);
-
-				// Release image
-				cvReleaseImage(&img);
-			}
-			cout << endl;
-		}
-
-		CRForest* load_forest(char* tree_path, char* prefix, int num_trees)
-		{
-			// Init forest with number of trees
-			CRForest* crForest = new CRForest( num_trees );
-			// Load forest
-			string str_tree_path = tree_path;
-			// string str_prefix = prefix;
-			string str_prefix = "tree-";
-			crForest->loadForest( (str_tree_path + "/" + str_prefix).c_str() );
-			return crForest;
-		}
-
-		// Init and start detector
-		int run_detect(CRForest* crForest,
-						char* detection_image_filepath,
-						char* detection_result_filepath,
-						bool save_detection_images,
-						bool save_scales,
-						bool draw_supressed,
-						int detection_width,
-						int detection_height,
-						float percentage_left,
-						float percentage_top,
-						float nms_margin_percentage,
-						int min_contour_area
-						)
-		{
-			// Init detector
-			CRForestDetector crDetect(crForest, patch_width, patch_height);
-
-			// run detector
-			return detect(	crDetect,
-					detection_image_filepath,
-					detection_result_filepath,
-					save_detection_images,
-					save_scales,
-					draw_supressed,
-					detection_width,
-					detection_height,
-					percentage_left,
-					percentage_top,
-					nms_margin_percentage,
-					min_contour_area
-				);
-		}
-
-		void detect_results(float *results)
-		{
-			int size = 8;
-			int index = 0;
-			for(unsigned int k=0;k<points.size(); ++k) {
-				for(unsigned int i=0;i<points[k].size(); ++i) {
-					results[index * size + 0] = points[k][i][0];
-					results[index * size + 1] = points[k][i][1];
-					results[index * size + 2] = points[k][i][2];
-					results[index * size + 3] = points[k][i][3];
-					results[index * size + 4] = points[k][i][4];
-					results[index * size + 5] = points[k][i][5];
-					results[index * size + 6] = points[k][i][6];
-					results[index * size + 7] = points[k][i][7];
-
-					index++;
-				}
-			}
-		}
-
-		// Init and start training
-		void run_train(	char* tree_path,
-						int num_trees,
-						int offset,
-						char* training_inventory_pos,
-						char* training_inventory_neg
-						)
-		{
-
-
-			// Init forest with number of trees
-			CRForest crForest( num_trees );
-
-			// Init random generator
-			time_t t = time(NULL);
-			int seed = (int)t;
-
-			CvRNG cvRNG(seed);
-
-			// Create directory
-			string tpath(tree_path);
-			tpath.erase(tpath.find_last_of(PATH_SEP));
-			string execstr = "mkdir ";
-			execstr += tpath;
-			int result = system( execstr.c_str() );
-
-			// Init training data
-			CRPatch Train(&cvRNG, patch_width, patch_height, 2);
-
-			// Extract training patches
-			extract_Patches(Train, &cvRNG,
-							training_inventory_pos,
-							training_inventory_neg);
-
-			// Train forest
-			crForest.trainForest(20, 15, &cvRNG, Train, 2000, default_split, tree_path, offset);
-
-			// Save forest
-			// crForest.saveForest(tree_path, 0);
-
-		}
+        IplImage *combined = cvCreateImage(cvSize(img->width, img->height), IPL_DEPTH_32F, 1);
+        IplImage *combinedAdd = cvCreateImage(cvSize(img->width, img->height), IPL_DEPTH_32F, 1);
+        IplImage *combinedMax = cvCreateImage(cvSize(img->width, img->height), IPL_DEPTH_32F, 1);
+        IplImage *upscaled = cvCreateImage(cvSize(img->width, img->height), IPL_DEPTH_32F, 1);
+        IplImage *output   = cvCreateImage(cvSize(img->width, img->height), IPL_DEPTH_8U,  1);
+        IplImage *debug    = cvLoadImage(input_gpath.c_str(), CV_LOAD_IMAGE_COLOR);
+        
+        // Prepare scale_vector
+        int w, h, k;
+        for (k = 0; k < vImgDetect.size(); ++k)
+        {
+            w = int(img->width * scale_vector[k] + 0.5);
+            h = int(img->height * scale_vector[k] + 0.5);
+            vImgDetect[k] = cvCreateImage(cvSize(w, h), IPL_DEPTH_32F, 1 );
+            // manifests
+            manifests[k].resize(h);
+            for (int y = 0; y < h; ++y)
+            {
+                manifests[k][y].resize(w);
+            }
+        }
+
+        // Detection for all scale_vector
+        crDetect.detectPyramid(img, vImgDetect, manifests, scale_vector, mode, serial);
+
+        // Create combined images for add and max
+        vector<vector<float> > temp;
+        cvSet(combined, cvScalar(0));    // Set combined to 0
+        cvSet(combinedAdd, cvScalar(0)); // Set combinedAdd to 0
+        cvSet(combinedMax, cvScalar(0)); // Set combinedMax to 0
+        for (k = 0; k < vImgDetect.size(); k++)
+        {
+            // Add scale to combined
+            cvResize(vImgDetect[k], upscaled);
+            cvAdd(upscaled, combinedAdd, combinedAdd);
+            cvMax(upscaled, combinedMax, combinedMax);
+            // Release images
+            cvReleaseImage(&vImgDetect[k]);
+        }
+
+        // Take minimum of add and max, this will give good negatives and good centers.
+        if(mode == 0)
+        {
+            cvSmooth( combinedAdd, combinedAdd, CV_GAUSSIAN, 5);
+            cvSmooth( combinedMax, combinedMax, CV_GAUSSIAN, 5);
+
+            CvPoint minloc, maxloc;
+            double minvalAdd, maxvalAdd;
+            double minvalMax, maxvalMax;
+            cvMinMaxLoc(combinedAdd, &minvalAdd, &maxvalAdd, &minloc, &maxloc, 0);
+            cvMinMaxLoc(combinedMax, &minvalMax, &maxvalMax, &minloc, &maxloc, 0);
+            
+            if(debug_flag)
+            {
+                #pragma omp critical(imageLoad)
+                {
+                    cout << "[pyrf c++] PRE: ADD Detected - min: " << minvalAdd << ", max: " << maxvalAdd << endl;
+                    cout << "[pyrf c++] PRE: MAX Detected - min: " << minvalMax << ", max: " << maxvalMax << endl;
+                }
+            }
+
+            // Create combined
+            cvConvertScale( combinedMax, combinedMax, maxvalAdd / maxvalMax );
+            cvMin( combinedMax, combinedAdd, combined ); 
+
+            // Smooth the image
+            cvSmooth( combined, combined, CV_GAUSSIAN, 5);
+
+            // Find strength
+            double minval, maxval;
+            cvMinMaxLoc(combined, &minval, &maxval, &minloc, &maxloc, 0);
+            cout << "[pyrf c++] Detected - min: " << minval << ", max: " << maxval << " / " << scale_vector.size() << endl;
+
+            // Scale to output
+            cvConvertScale( combined, output, sensitivity / scale_vector.size() );
+
+            if (output_gpath.length() > 0)
+            {
+                // Save output mode image
+                cvSaveImage(output_gpath.c_str(), output);
+            }
+            
+            // if (output_gpath.length() > 0)
+            // {
+            //     cvErode(output, output, NULL, 3);
+            //     cvSmooth( output, output, CV_GAUSSIAN, 5);
+            //     // Save output mode image
+            //     sprintf(buffer, "%s_dialate.JPEG", output_gpath.c_str());
+            //     cvSaveImage(buffer, output);
+            // }
+
+            cvThreshold(output, output, threshold, 0, CV_THRESH_TOZERO);
+
+            if(debug_flag)
+            {
+                if (output_gpath.length() > 0)
+                {
+                    // Save output mode image
+                    sprintf(buffer, "%s_thresh.JPEG", output_gpath.c_str());
+                    cvSaveImage(buffer, output);
+                }   
+            }
+    
+            // Calculate contours for scaled image
+            CvSeq *contours;
+            CvMemStorage *storage = cvCreateMemStorage(0);
+            cvFindContours(output, storage, &contours, sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+            cvClearMemStorage(storage);
+            
+            CvRect rect;
+            float centerx, centery, xtl, ytl, width, height, confidence, supressed;
+            vector<int> left, right, bottom, top;
+            int minx, maxx, miny, maxy;
+            int x_, y_;
+            int i, x, y, j;
+    
+            /////// DEBUG ///////
+            int red, green, blue;
+            time_t t = time(NULL);
+            int seed = (int) t;
+            CvRNG cvRNG(seed);
+            uchar* ptr;
+            /////// DEBUG ///////
+
+            for (i = 0; contours != 0; contours = contours->h_next, ++i)
+            {    
+                rect = cvBoundingRect(contours);
+                if(rect.width * rect.height >= nms_min_area_contour)
+                {
+                    centerx   = rect.x + (rect.width  / 2);
+                    centery   = rect.y + (rect.height / 2);
+
+                    if(debug_flag)
+                    {
+                        red   = cvRandInt( &cvRNG ) % 256;
+                        green = cvRandInt( &cvRNG ) % 256;
+                        blue  = cvRandInt( &cvRNG ) % 256;
+                    }
+
+                    left.clear();
+                    right.clear();
+                    bottom.clear();
+                    top.clear();
+                    for(k = 0; k < manifests.size(); ++k)
+                    {
+                        minx = std::max(int((centerx - rect.width)  * scale_vector[k]), 0);
+                        maxx = std::min(int((centerx + rect.width)  * scale_vector[k]), int(manifests[k][0].size()));
+                        miny = std::max(int((centery - rect.height) * scale_vector[k]), 0);
+                        maxy = std::min(int((centery + rect.height) * scale_vector[k]), int(manifests[k].size()));
+
+                        for(y = miny; y < maxy; ++y)
+                        {
+                            for(x = minx; x < maxx; ++x)
+                            {
+                                for (j = 0; j < manifests[k][y][x].size(); ++j)
+                                {
+                                    x_ = int(manifests[k][y][x][j].x / scale_vector[k]);
+                                    y_ = int(manifests[k][y][x][j].y / scale_vector[k]);
+
+                                    if(debug_flag)
+                                    {
+                                        ptr = (uchar*) ( debug->imageData + y_ * debug->widthStep );
+                                        ptr[3 * x_ + 0] = blue;
+                                        ptr[3 * x_ + 1] = green;
+                                        ptr[3 * x_ + 2] = red;
+                                    }
+
+                                    if(x_ < centerx)
+                                    {
+                                        left.push_back(x_);
+                                    }
+                                    else
+                                    {
+                                        right.push_back(x_);
+                                    }
+                                    if(y_ < centery)
+                                    {
+                                        bottom.push_back(y_);
+                                    }
+                                    else
+                                    {
+                                        top.push_back(y_);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if(debug_flag)
+                    {
+                        cvCircle(debug, cvPoint(centerx, centery), 3, cvScalar(0, 0, 255), -1);
+
+                        xtl    = accumulate(left.begin(),   left.end(),   0.0) / left.size();
+                        ytl    = accumulate(bottom.begin(), bottom.end(), 0.0) / bottom.size();
+                        width  = accumulate(right.begin(),  right.end(),  0.0) / right.size();
+                        height = accumulate(top.begin(),    top.end(),    0.0) / top.size();
+                        cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(0, 0, 255), 3);
+
+                        xtl    = *min_element( left.begin(), left.end() );
+                        ytl    = *min_element( bottom.begin(), bottom.end() );
+                        width  = *max_element( right.begin(), right.end() );
+                        height = *max_element( top.begin(), top.end() );
+                        cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(0, 255, 255), 3);
+                    }
+
+                    std::sort(left.begin(),   left.end(),   std::greater<int>());
+                    std::sort(bottom.begin(), bottom.end(), std::greater<int>());
+                    std::sort(right.begin(),  right.end());
+                    std::sort(top.begin(),    top.end());
+
+                    xtl    = left  [int(density * left.size())];
+                    ytl    = bottom[int(density * bottom.size())];
+                    width  = right [int(density * right.size())];
+                    height = top   [int(density * top.size())];
+
+                    if(debug_flag)
+                    {
+                        cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(255, 255, 0), 3);   
+                    }
+
+                    // Fix width and height
+                    width  -= xtl;
+                    height -= ytl;
+                    confidence = 0.0;
+                    supressed = 0.0;
+
+                    vector<float> temp_(RESULT_LENGTH);
+                    temp_[0] = centerx;
+                    temp_[1] = centery;
+                    temp_[2] = xtl;
+                    temp_[3] = ytl;
+                    temp_[4] = width;
+                    temp_[5] = height;
+                    temp_[6] = confidence;
+                    temp_[7] = supressed;
+                    temp.push_back(temp_);
+                }
+            }
+            cvReleaseMemStorage(&storage);
+        }
+        else if(mode == 1)
+        {
+            cvConvertScale( combinedMax, output, sensitivity );
+            if (output_gpath.length() > 0)
+            {
+                // Save output mode image
+                cvSaveImage(output_gpath.c_str(), output);
+            }
+        }
+
+        if(debug_flag)
+        {
+            if(output_gpath.length() > 0)
+            {
+                sprintf(buffer, "%s_debug_original.JPEG", output_gpath.c_str());
+                cvSaveImage(buffer, img);
+
+                sprintf(buffer, "%s_debug.JPEG", output_gpath.c_str());
+                cvSaveImage(buffer, debug);
+            }
+        }
+
+        // Release image
+        cvReleaseImage(&img);
+        cvReleaseImage(&combined);
+        cvReleaseImage(&combinedAdd);
+        cvReleaseImage(&combinedMax);
+        cvReleaseImage(&upscaled);
+        cvReleaseImage(&output);        
+        cvReleaseImage(&debug);   
+
+        // Save results
+        int size = temp.size();
+        *results = new float[ size * RESULT_LENGTH ];
+        for (int i = 0; i < size; ++i)
+        {
+            for (int j = 0; j < RESULT_LENGTH; ++j)
+            {
+                (*results)[i * RESULT_LENGTH + j] = temp[i][j];
+            }
+        }
+        return size;
+    }
+
+private:
+    // Extract patches from training data
+    int extract_Patches(CRPatch &Train, CvRNG *pRNG, string train_pos_chip_path_string,
+                        vector<string> &train_pos_chip_filename_vector, int label,
+                        float patch_density, int max_patches, bool verbose)
+    {
+        string img_filepath;
+        IplImage *img;
+        int patch_total = 0;
+        // load postive images and extract patches
+        for (int i = 0; i < train_pos_chip_filename_vector.size(); ++i)
+        {
+            if (patch_total > max_patches)
+            {
+                if (verbose)
+                {
+                    cout << endl << "[pyrf c++] Skipping image file: " << img_filepath;
+                }
+                continue;
+            }
+            // Print status
+            if (i % 10 == 0) cout << i << " " << flush;
+            // Get the image's filepah
+            img_filepath = train_pos_chip_path_string + "/" + train_pos_chip_filename_vector[i];
+            // Load image
+            img = cvLoadImage(img_filepath.c_str(), CV_LOAD_IMAGE_COLOR);
+            if (!img)
+            {
+                cout << endl << "[pyrf c++] Could not load image file: " << img_filepath;
+                continue;
+            }
+            // Extract patches
+            patch_total += Train.extractPatches(img, patch_density, label);
+            // Release image
+            cvReleaseImage(&img);
+        }
+        return patch_total;
+    }
+
+    int pdf(vector<int> &data, float percentile)
+    {
+        // INVOCATION:
+        //     xtl    = pdf(left,   density);
+        //     ytl    = pdf(bottom, density);
+        //     width  = pdf(right,  density);
+        //     height = pdf(top,    density);
+        int val = 0, counter = 0, total = 0;
+        int cutoff = int(percentile * data.size());
+        for(int c = 0; c < data.size(); ++c)
+        {   
+            if(data[c] != val || c == data.size() - 1)
+            {
+                total += counter;
+                if(total >= cutoff)
+                {
+                    break;
+                }
+                val = data[c];
+                counter = 0;
+            }
+            else
+            {
+               counter++;
+            }
+        }
+        return val;
+    }
 };

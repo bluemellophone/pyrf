@@ -81,3 +81,7 @@ _doc
 test_times.txt
 CMakeCache.txt
 CMakeFiles
+
+_doc/
+_test/output*
+_test/trees

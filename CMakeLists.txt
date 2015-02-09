@@ -40,7 +40,6 @@ if(APPLE AND CLANG2)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lstdc++ -stdlib=libstdc++")
 endif()
 
-
 #######################################
 message(STATUS "Checking OpenMP")
 find_package(OpenMP)

@@ -1,230 +1,118 @@
-/*
-Source: http://nbviewer.ipython.org/github/pv/SciPy-CookBook/blob/master/ipython/Ctypes.ipynb
-
-TO BEGIN:
-1.) Search, replace RANDOM_FOREST with an all-caps moniker for the alrogithm
-    Examples: 'HESAFF', 'RANDOM_FOREST', 'DPM_MKL'
-
-2.) Search, replace CRForestDetectorClass with the C++ class for the algorithm.
-
-3.) Include all C++ header files for the algorithm you intend to wrap
-
-4.) Change the wrapper functions for all of the pre-set functions to
-    match the appropriate functions in the algorithm's C++ code
-*/
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include "pyrf.h"
+#include <vector>
 
+#include "pyrf.h"
 #include "CRForest-Detector-Class.hpp"
 #include "CRForest.h"
 
+using namespace std;
+
 typedef unsigned char uint8;
-int RESULTS_DIM = 8;
 
 #ifdef __cplusplus
-    extern "C" {
+extern "C"
+{
 #endif
-    #define PYTHON_RANDOM_FOREST extern RANDOM_FOREST_DETECTOR_EXPORT
+#define PYTHON_RANDOM_FOREST extern RANDOM_FOREST_DETECTOR_EXPORT
 
-        //=============================
-        // Algorithm Constructor
-        //=============================
-        PYTHON_RANDOM_FOREST CRForestDetectorClass* constructor(
-                int     patch_width,
-                int     patch_height,
-                int     out_scale,
-                int     default_split,
-                int     positive_like,
-                bool    legacy,
-                bool    include_horizontal_flip,
-                int     patch_sample_density_pos,
-                int     patch_sample_density_neg,
-                char*   scales,
-                char*   ratios
-            )
-        {
-            CRForestDetectorClass* detector = new CRForestDetectorClass(
-                patch_width,
-                patch_height,
-                out_scale,
-                default_split,
-                positive_like,
-                legacy,
-                include_horizontal_flip,
-                patch_sample_density_pos,
-                patch_sample_density_neg,
-                scales,
-                ratios
-            );
-            return detector;
-        }
+// TODO: REMOVE STRING WHERE CHAR* SHOULD BE USED
+PYTHON_RANDOM_FOREST CRForestDetectorClass *init()
+{
+    CRForestDetectorClass *detector = new CRForestDetectorClass();
+    return detector;
+}
 
-        //=============================
-        // Train Algorithm with Data
-        //=============================
-        PYTHON_RANDOM_FOREST void train(
-                CRForestDetectorClass* detector,
-                char* tree_path,
-                int num_trees,
-                int offset,
-                char* training_inventory_pos,
-                char* training_inventory_neg
-            )
-        {
-            detector->run_train(
-                tree_path,
-                num_trees,
-                offset,
-                training_inventory_pos,
-                training_inventory_neg
-            );
-        }
-
-        //=============================
-        // Run Algorithm
-        //=============================
-
-        PYTHON_RANDOM_FOREST int detect(
-                CRForestDetectorClass* detector,
-                CRForest* forest,
-                char* detection_image_filepath,
-                char* detection_result_filepath,
-                bool save_detection_images,
-                bool save_scales,
-                bool draw_supressed,
-                int detection_width,
-                int detection_height,
-                float percentage_left,
-                float percentage_top,
-                float nms_margin_percentage,
-                int min_contour_area
-            )
-        {
-            return detector->run_detect(
-                forest,
-                detection_image_filepath,
-                detection_result_filepath,
-                save_detection_images,
-                save_scales,
-                draw_supressed,
-                detection_width,
-                detection_height,
-                percentage_left,
-                percentage_top,
-                nms_margin_percentage,
-                min_contour_area
-            );
-        }
-
-
-        PYTHON_RANDOM_FOREST void detect_many(
-                CRForestDetectorClass* detector,
-                CRForest* forest,
-                int nImgs,
-                char** detection_image_filepath_list,
-                char** detection_result_filepath_list,
-                int* length_array,
-                float** results_array,
-                bool save_detection_images,
-                bool save_scales,
-                bool draw_supressed,
-                int detection_width,
-                int detection_height,
-                float percentage_left,
-                float percentage_top,
-                float nms_margin_percentage,
-                int min_contour_area
-            )
-        {
-            int index;
-            #ifdef CMAKE_BUILD_TYPE
-                //printf("[pyrf.c] CMAKE_BUILD_TYPE=%s", CMAKE_BUILD_TYPE);
-            #endif
-            //#if CMAKE_BUILD_TYPE == Debug
-            //printf("[pyrf.c] DEBUG MODE\n");
-            //#else
-                //#if CMAKE_BUILD_TYPE == Release
-                //printf("[pyrf.c] RELEASE MODE\n");
-                //#else
-                //printf("[pyrf.c] UNKNOWN MODE\n");
-                //#endif
-            //#endif
-
-            //printf("\n[pyrf.c] detect_many nImgs=%d\n", nImgs);
-            //std::cout << "[pyrf.cpp] detect_many " << nImgs << std::endl;
-            #pragma omp parallel for
-            for(index=0;index < nImgs;++index)
-            {
-                CRForestDetectorClass detector_copy = CRForestDetectorClass(*detector);
-                int length = detector_copy.run_detect(
-                    forest,
-                    detection_image_filepath_list[index],
-                    detection_result_filepath_list[index],
-                    save_detection_images,
-                    save_scales,
-                    draw_supressed,
-                    detection_width,
-                    detection_height,
-                    percentage_left,
-                    percentage_top,
-                    nms_margin_percentage,
-                    min_contour_area
-                    );
-                length_array[index] = length;
-                results_array[index] = new float[RESULTS_DIM * length];  // will be cast to a 2d array in python
-                detector_copy.detect_results(results_array[index]);
-                if(length > 0)
-                {
-                    //printf("[pyrf.c] made %d detections.\n", length);
-                }
-                else
-                {
-                    //printf("[pyrf.c] made no detections.\n");   
-                }
-            }
-            //printf("[pyrf.c] finished detect_many nImgs=%d\n", nImgs);
-        }
-
-        PYTHON_RANDOM_FOREST void detect_results(
-                CRForestDetectorClass* detector,
-                float *results
-            )
-        {
-            detector->detect_results(
-                results
-            );
-        }
-
-
-        PYTHON_RANDOM_FOREST void segment(CRForestDetectorClass* detector)
-        {
-            // detector->segment();
-        }
-
-        //=============================
-        // Load / Save Trained Data
-        //=============================
-
-        PYTHON_RANDOM_FOREST CRForest* load(
-                CRForestDetectorClass* detector,
-                char* tree_path,
-                char* prefix,
-                int num_trees
-            )
-        {
-            return detector->load_forest(tree_path, prefix, num_trees);
-        }
-
-        PYTHON_RANDOM_FOREST void save(CRForestDetectorClass* detector)
-        {
-            // Not used
-        }
-
-#ifdef __cplusplus
+PYTHON_RANDOM_FOREST CRForest *forest(CRForestDetectorClass *detector, char **tree_path_array,
+                                      int _tree_path_num, bool serial, bool verbose)
+{
+    // Convert char* pointers to vector of strings for convenience
+    vector<string> tree_path_vector(_tree_path_num);
+    for (int index = 0; index < _tree_path_num; ++index)
+    {
+        tree_path_vector[index] = tree_path_array[index];
     }
+    return detector->forest(tree_path_vector, serial, verbose);
+}
+
+PYTHON_RANDOM_FOREST void train(CRForestDetectorClass *detector, char *train_pos_chip_path,
+                                char **train_pos_chip_filename_array, int _train_pos_chip_num,
+                                char *train_neg_chip_path, char **train_neg_chip_filename_array,
+                                int _train_neg_chip_num, char *trees_path,
+                                int patch_width, int patch_height, 
+                                float patch_density, int trees_num, int trees_offset, 
+                                int trees_max_depth, int trees_max_patches,
+                                int trees_leaf_size, int trees_pixel_tests,
+                                float trees_prob_optimize_mode, bool serial, bool verbose)
+{
+    // Convert char* to nice strings, we are not Neanderthals
+    string train_pos_chip_path_string = train_pos_chip_path;
+    string train_neg_chip_path_string = train_neg_chip_path;
+    string trees_path_string          = trees_path;
+
+    // Convert char* pointers to vector of strings for convenience
+    vector<string> train_pos_chip_filename_vector(_train_pos_chip_num);
+    for (int index = 0; index < _train_pos_chip_num; ++index)
+    {
+        train_pos_chip_filename_vector[index] = train_pos_chip_filename_array[index];
+    }
+
+    // Convert char* pointers to vector of strings for convenience
+    vector<string> train_neg_chip_filename_vector(_train_neg_chip_num);
+    for (int index = 0; index < _train_neg_chip_num; ++index)
+    {
+        train_neg_chip_filename_vector[index] = train_neg_chip_filename_array[index];
+    }
+
+    detector->train(train_pos_chip_path_string, train_pos_chip_filename_vector,
+                    train_neg_chip_path_string, train_neg_chip_filename_vector,
+                    trees_path_string,
+                    patch_width, patch_height, patch_density, trees_num, 
+                    trees_offset, trees_max_depth, trees_max_patches,
+                    trees_leaf_size, trees_pixel_tests, trees_prob_optimize_mode,
+                    serial, verbose);
+}
+
+PYTHON_RANDOM_FOREST void detect(CRForestDetectorClass *detector, CRForest *forest,
+                                 char **input_gpath_array, int _input_gpath_num,
+                                 char **output_gpath_array,
+                                 char **output_scale_gpath_array, int mode,
+                                 float sensitivity, float *scale_array, int _scale_num,
+                                 int nms_min_area_contour, float nms_min_area_overlap,
+                                 float** results_array, int* length_array, 
+                                 int RESULT_LENGTH, bool serial, bool verbose)
+{
+    vector<float> scale_vector(_scale_num);
+    for (int index = 0; index < _scale_num; ++index)
+    {
+        scale_vector[index] = scale_array[index];
+    }
+    // Parallel processing of the images, ideally, one image per core
+    if(serial)
+    {
+        cout << "[pyrf c++] Detecting images parallelized across scales" << endl;
+    }
+    else
+    {
+        cout << "[pyrf c++] Detecting images parallelized across batch" << endl;
+    }
+    
+    #pragma omp parallel for if(!serial)
+    for (int index = 0; index < _input_gpath_num; ++index)
+    {
+        string input_gpath = input_gpath_array[index];
+        string output_gpath = output_gpath_array[index];
+        string output_scale_gpath = output_scale_gpath_array[index];
+        // Run detection
+        int length = detector->detect(forest, input_gpath, output_gpath,
+                                       output_scale_gpath, mode, sensitivity,
+                                       scale_vector, nms_min_area_contour,
+                                       nms_min_area_overlap, &results_array[index], 
+                                       RESULT_LENGTH, serial, verbose);
+        length_array[index] = length;
+    }
+}
+#ifdef __cplusplus
+}
 #endif

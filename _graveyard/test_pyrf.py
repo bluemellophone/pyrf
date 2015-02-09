@@ -33,6 +33,11 @@ def test_pyrf():
     test_path = utool.grab_zipped_url(TEST_DATA_DETECT_URL, appname='utool')
     models_path = utool.grab_zipped_url(TEST_DATA_MODEL_URL, appname='utool')
     trees_path = join(models_path, category)
+
+    results_path  = join(utool.unixpath('~/code/pyrf/results'), category)
+    # detect_path   = join(results_path, 'detect')
+    trees_path    = join(results_path, 'trees')
+
     detect_path = join(test_path, category, 'detect')
     utool.ensuredir(detect_path)
     utool.ensuredir(test_path)
@@ -64,7 +69,7 @@ def test_pyrf():
     print('Testing on %r images' % num_images)
 
     # Load forest, so we don't have to reload every time
-    forest = detector.load(trees_path, category + '-')
+    forest = detector.load(trees_path, category + '-', num_trees=25)
     detector.set_detect_params(**detect_config)
     results_list1 = []
     with utool.Timer('[test_pyrf] for loop detector.detect') as t1:
@@ -81,17 +86,17 @@ def test_pyrf():
             else:
                 print('...skipped')
 
-    with utool.Timer('[test_pyrf] detector.detect_many') as t2:
-        results_list2 = detector.detect_many(forest, std_gpath_list,
-                                             dst_gpath_list, use_openmp=True)
+    # with utool.Timer('[test_pyrf] detector.detect_many') as t2:
+    #     results_list2 = detector.detect_many(forest, std_gpath_list,
+    #                                          dst_gpath_list, use_openmp=True)
 
     print('')
     print('+ --------------')
     print('| total time1: %r' % t1.ellapsed)
-    print('| total time2: %r' % t2.ellapsed)
+    # print('| total time2: %r' % t2.ellapsed)
     print('|')
     print('| num results1 = %r' % (list(map(len, results_list1))))
-    print('| num results2 = %r' % (list(map(len, results_list2))))
+    # print('| num results2 = %r' % (list(map(len, results_list2))))
     #assert results_list2 == results_list1
     return locals()
 

@@ -49,6 +49,22 @@
   <h1>Source code for pyrf._pyrf</h1><div class="highlight"><pre>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span>
 <span class="c"># Standard</span>
+<<<<<<< HEAD
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span> <span class="k">as</span> <span class="n">odict</span>
+<span class="kn">import</span> <span class="nn">multiprocessing</span>
+<span class="kn">import</span> <span class="nn">ctypes</span> <span class="kn">as</span> <span class="nn">C</span>
+<span class="c"># Scientific</span>
+<span class="kn">import</span> <span class="nn">utool</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">os.path</span> <span class="kn">import</span> <span class="n">join</span><span class="p">,</span> <span class="n">exists</span><span class="p">,</span> <span class="n">abspath</span><span class="p">,</span> <span class="n">isdir</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">from</span> <span class="nn">detecttools.directory</span> <span class="kn">import</span> <span class="n">Directory</span>
+<span class="kn">from</span> <span class="nn">pyrf.pyrf_helpers</span> <span class="kn">import</span> <span class="p">(</span><span class="n">_load_c_shared_library</span><span class="p">,</span> <span class="n">_cast_list_to_c</span><span class="p">,</span> <span class="n">_cache_data</span><span class="p">,</span> <span class="n">_extract_np_array</span><span class="p">)</span>
+
+
+<span class="n">VERBOSE_RF</span> <span class="o">=</span> <span class="n">utool</span><span class="o">.</span><span class="n">get_argflag</span><span class="p">(</span><span class="s">&#39;--verbrf&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">utool</span><span class="o">.</span><span class="n">VERBOSE</span>
+=======
 <span class="c">#import time</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">zip</span>
@@ -62,11 +78,611 @@
 <span class="kn">import</span> <span class="nn">detecttools.ctypes_interface</span> <span class="kn">as</span> <span class="nn">ctypes_interface</span>
 <span class="kn">from</span> <span class="nn">.pyrf_helpers</span> <span class="kn">import</span> <span class="p">(</span><span class="n">ensuredir</span><span class="p">,</span> <span class="n">rmtreedir</span><span class="p">,</span> <span class="n">get_training_data_from_ibeis</span><span class="p">,</span>
                            <span class="n">_build_shared_c_library</span><span class="p">)</span>
+>>>>>>> 9c6f78462ce4b654324c88400f3c4166e9d8d920
 
 
 <span class="c">#============================</span>
 <span class="c"># CTypes Interface Data Types</span>
 <span class="c">#============================</span>
+<<<<<<< HEAD
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Bindings for C Variable Types</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="n">NP_FLAGS</span>       <span class="o">=</span> <span class="s">&#39;aligned, c_contiguous, writeable&#39;</span>
+<span class="c"># Primatives</span>
+<span class="n">C_OBJ</span>          <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">c_void_p</span>
+<span class="n">C_BYTE</span>         <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">c_char</span>
+<span class="n">C_CHAR</span>         <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">c_char_p</span>
+<span class="n">C_INT</span>          <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">c_int</span>
+<span class="n">C_BOOL</span>         <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">c_bool</span>
+<span class="n">C_FLOAT</span>        <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">c_float</span>
+<span class="n">NP_INT8</span>        <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">uint8</span>
+<span class="n">NP_FLOAT32</span>     <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span>
+<span class="c"># Arrays</span>
+<span class="n">C_ARRAY_CHAR</span>   <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">C_CHAR</span><span class="p">)</span>
+<span class="n">C_ARRAY_FLOAT</span>  <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">C_FLOAT</span><span class="p">)</span>
+<span class="n">NP_ARRAY_INT</span>   <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ctypeslib</span><span class="o">.</span><span class="n">ndpointer</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">C_INT</span><span class="p">,</span>          <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="n">NP_FLAGS</span><span class="p">)</span>
+<span class="n">NP_ARRAY_FLOAT</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ctypeslib</span><span class="o">.</span><span class="n">ndpointer</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">NP_FLOAT32</span><span class="p">,</span>     <span class="n">ndim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="n">NP_FLAGS</span><span class="p">)</span>
+<span class="n">RESULTS_ARRAY</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ctypeslib</span><span class="o">.</span><span class="n">ndpointer</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">NP_ARRAY_FLOAT</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="n">NP_FLAGS</span><span class="p">)</span>
+
+
+<span class="c">#=================================</span>
+<span class="c"># Method Parameter Types</span>
+<span class="c">#=================================</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">IMPORTANT:</span>
+<span class="sd">    For functions that return void, use Python None as the return value.</span>
+<span class="sd">    For functions that take no parameters, use the Python empty list [].</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="n">METHODS</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">METHODS</span><span class="p">[</span><span class="s">&#39;init&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">([</span>
+    <span class="c"># Nothing</span>
+<span class="p">],</span> <span class="n">C_OBJ</span><span class="p">)</span>
+
+<span class="n">METHODS</span><span class="p">[</span><span class="s">&#39;forest&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">([</span>
+    <span class="n">C_OBJ</span><span class="p">,</span>           <span class="c"># detector</span>
+    <span class="n">C_ARRAY_CHAR</span><span class="p">,</span>    <span class="c"># tree_path_array</span>
+    <span class="n">C_INT</span><span class="p">,</span>           <span class="c"># _tree_path_num</span>
+    <span class="n">C_BOOL</span><span class="p">,</span>          <span class="c"># serial</span>
+    <span class="n">C_BOOL</span><span class="p">,</span>          <span class="c"># verbose</span>
+<span class="p">],</span> <span class="n">C_OBJ</span><span class="p">)</span>
+
+<span class="n">METHODS</span><span class="p">[</span><span class="s">&#39;train&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">([</span>
+    <span class="n">C_OBJ</span><span class="p">,</span>           <span class="c"># detector</span>
+    <span class="n">C_CHAR</span><span class="p">,</span>          <span class="c"># train_pos_chip_path</span>
+    <span class="n">C_ARRAY_CHAR</span><span class="p">,</span>    <span class="c"># train_pos_chip_filename_array</span>
+    <span class="n">C_INT</span><span class="p">,</span>           <span class="c"># _train_pos_chip_num</span>
+    <span class="n">C_CHAR</span><span class="p">,</span>          <span class="c"># train_neg_chip_path</span>
+    <span class="n">C_ARRAY_CHAR</span><span class="p">,</span>    <span class="c"># train_neg_chip_filename_array</span>
+    <span class="n">C_INT</span><span class="p">,</span>           <span class="c"># _train_neg_chip_num</span>
+    <span class="n">C_CHAR</span><span class="p">,</span>          <span class="c"># trees_path</span>
+    <span class="n">C_INT</span><span class="p">,</span>           <span class="c"># patch_width</span>
+    <span class="n">C_INT</span><span class="p">,</span>           <span class="c"># patch_height</span>
+    <span class="n">C_FLOAT</span><span class="p">,</span>         <span class="c"># patch_density</span>
+    <span class="n">C_INT</span><span class="p">,</span>           <span class="c"># trees_num</span>
+    <span class="n">C_INT</span><span class="p">,</span>           <span class="c"># trees_offset</span>
+    <span class="n">C_INT</span><span class="p">,</span>           <span class="c"># trees_max_depth</span>
+    <span class="n">C_INT</span><span class="p">,</span>           <span class="c"># trees_max_patches</span>
+    <span class="n">C_INT</span><span class="p">,</span>           <span class="c"># trees_leaf_size</span>
+    <span class="n">C_INT</span><span class="p">,</span>           <span class="c"># trees_pixel_tests</span>
+    <span class="n">C_FLOAT</span><span class="p">,</span>         <span class="c"># trees_prob_optimize_mode</span>
+    <span class="n">C_BOOL</span><span class="p">,</span>          <span class="c"># serial</span>
+    <span class="n">C_BOOL</span><span class="p">,</span>          <span class="c"># verbose</span>
+<span class="p">],</span> <span class="bp">None</span><span class="p">)</span>
+
+<span class="n">METHODS</span><span class="p">[</span><span class="s">&#39;detect&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">([</span>
+    <span class="n">C_OBJ</span><span class="p">,</span>           <span class="c"># detector</span>
+    <span class="n">C_OBJ</span><span class="p">,</span>           <span class="c"># forest</span>
+    <span class="n">C_ARRAY_CHAR</span><span class="p">,</span>    <span class="c"># input_gpath_array</span>
+    <span class="n">C_INT</span><span class="p">,</span>           <span class="c"># _input_gpath_num</span>
+    <span class="n">C_ARRAY_CHAR</span><span class="p">,</span>    <span class="c"># output_gpath_array</span>
+    <span class="n">C_ARRAY_CHAR</span><span class="p">,</span>    <span class="c"># output_scale_gpath_array</span>
+    <span class="n">C_INT</span><span class="p">,</span>           <span class="c"># mode</span>
+    <span class="n">C_FLOAT</span><span class="p">,</span>         <span class="c"># sensitivity</span>
+    <span class="n">C_ARRAY_FLOAT</span><span class="p">,</span>   <span class="c"># scale_array</span>
+    <span class="n">C_INT</span><span class="p">,</span>           <span class="c"># _scale_num</span>
+    <span class="n">C_INT</span><span class="p">,</span>           <span class="c"># nms_min_area_contour</span>
+    <span class="n">C_FLOAT</span><span class="p">,</span>         <span class="c"># nms_min_area_overlap</span>
+    <span class="n">RESULTS_ARRAY</span><span class="p">,</span>   <span class="c"># results_val_array</span>
+    <span class="n">NP_ARRAY_INT</span><span class="p">,</span>    <span class="c"># results_len_array</span>
+    <span class="n">C_INT</span><span class="p">,</span>           <span class="c"># RESULT_LENGTH</span>
+    <span class="n">C_BOOL</span><span class="p">,</span>          <span class="c"># serial</span>
+    <span class="n">C_BOOL</span><span class="p">,</span>          <span class="c"># verbose</span>
+<span class="p">],</span> <span class="bp">None</span><span class="p">)</span>
+<span class="n">RESULT_LENGTH</span> <span class="o">=</span> <span class="mi">8</span>
+
+<span class="c">#=================================</span>
+<span class="c"># Load Dynamic Library</span>
+<span class="c">#=================================</span>
+<span class="n">RF_CLIB</span> <span class="o">=</span> <span class="n">_load_c_shared_library</span><span class="p">(</span><span class="n">METHODS</span><span class="p">)</span>
+
+
+<span class="c">#=================================</span>
+<span class="c"># Random Forest Detector</span>
+<span class="c">#=================================</span>
+<div class="viewcode-block" id="Random_Forest_Detector"><a class="viewcode-back" href="../../pyrf.html#pyrf._pyrf.Random_Forest_Detector">[docs]</a><span class="k">class</span> <span class="nc">Random_Forest_Detector</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="n">rf</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">VERBOSE_RF</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            Create the C object for the PyRF detector.</span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                verbose (bool, optional): verbose flag; defaults to --verbrf flag</span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">                detector (object): the Random Forest Detector object</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">rf</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="k">print</span><span class="p">(</span><span class="s">&#39;[rf] New Random_Forest Object Created&#39;</span><span class="p">)</span>
+        <span class="n">rf</span><span class="o">.</span><span class="n">detector_c_obj</span> <span class="o">=</span> <span class="n">RF_CLIB</span><span class="o">.</span><span class="n">init</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Random_Forest_Detector.forest"><a class="viewcode-back" href="../../pyrf.html#pyrf._pyrf.Random_Forest_Detector.forest">[docs]</a>    <span class="k">def</span> <span class="nf">forest</span><span class="p">(</span><span class="n">rf</span><span class="p">,</span> <span class="n">tree_path_list</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            Create the forest object by loading a list of tree paths.</span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                tree_path_list (list of str): list of tree paths as strings</span>
+<span class="sd">                serial (bool, optional): flag to signify if to load the forest in serial;</span>
+<span class="sd">                    defaults to False</span>
+<span class="sd">                verbose (bool, optional): verbose flag; defaults to object&#39;s verbose or</span>
+<span class="sd">                    selectively enabled for this function</span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">                forest (object): the forest object of the loaded trees</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c"># Default values</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">odict</span><span class="p">([</span>
+            <span class="p">(</span><span class="s">&#39;serial&#39;</span><span class="p">,</span>                       <span class="bp">False</span><span class="p">),</span>
+            <span class="p">(</span><span class="s">&#39;verbose&#39;</span><span class="p">,</span>                      <span class="bp">True</span><span class="p">),</span>
+        <span class="p">])</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c"># Data integrity</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tree_path_list</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> \
+            <span class="s">&#39;Must specify at least one tree path to load&#39;</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span> <span class="p">[</span> <span class="n">exists</span><span class="p">(</span><span class="n">tree_path</span><span class="p">)</span> <span class="k">for</span> <span class="n">tree_path</span> <span class="ow">in</span> <span class="n">tree_path_list</span> <span class="p">]</span> <span class="p">),</span> \
+            <span class="s">&#39;At least one specified tree path does not exist&#39;</span>
+
+        <span class="n">params_list</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">_cast_list_to_c</span><span class="p">(</span><span class="n">tree_path_list</span><span class="p">,</span> <span class="n">C_CHAR</span><span class="p">),</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">tree_path_list</span><span class="p">),</span>
+        <span class="p">]</span> <span class="o">+</span> <span class="n">params</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">RF_CLIB</span><span class="o">.</span><span class="n">forest</span><span class="p">(</span><span class="n">rf</span><span class="o">.</span><span class="n">detector_c_obj</span><span class="p">,</span> <span class="o">*</span><span class="n">params_list</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Random_Forest_Detector.train_folder"><a class="viewcode-back" href="../../pyrf.html#pyrf._pyrf.Random_Forest_Detector.train_folder">[docs]</a>    <span class="k">def</span> <span class="nf">train_folder</span><span class="p">(</span><span class="n">rf</span><span class="p">,</span> <span class="n">train_pos_path</span><span class="p">,</span> <span class="n">train_neg_path</span><span class="p">,</span> <span class="n">trees_path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">direct</span> <span class="o">=</span> <span class="n">Directory</span><span class="p">(</span><span class="n">train_pos_path</span><span class="p">,</span> <span class="n">include_file_extensions</span><span class="o">=</span><span class="s">&#39;images&#39;</span><span class="p">)</span>
+        <span class="n">train_pos_cpath_list</span> <span class="o">=</span> <span class="n">direct</span><span class="o">.</span><span class="n">files</span><span class="p">()</span>
+        <span class="n">direct</span> <span class="o">=</span> <span class="n">Directory</span><span class="p">(</span><span class="n">train_neg_path</span><span class="p">,</span> <span class="n">include_file_extensions</span><span class="o">=</span><span class="s">&#39;images&#39;</span><span class="p">)</span>
+        <span class="n">train_neg_cpath_list</span> <span class="o">=</span> <span class="n">direct</span><span class="o">.</span><span class="n">files</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">rf</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">train_pos_cpath_list</span><span class="p">,</span> <span class="n">train_neg_cpath_list</span><span class="p">,</span> <span class="n">trees_path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Random_Forest_Detector.train"><a class="viewcode-back" href="../../pyrf.html#pyrf._pyrf.Random_Forest_Detector.train">[docs]</a>    <span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="n">rf</span><span class="p">,</span> <span class="n">train_pos_cpath_list</span><span class="p">,</span> <span class="n">train_neg_cpath_list</span><span class="p">,</span> <span class="n">trees_path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            Train a new forest with the given positive chips and negative chips.</span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                train_pos_chip_path_list (list of str): list of positive training chips</span>
+<span class="sd">                train_neg_chip_path_list (list of str): list of negative training chips</span>
+<span class="sd">                trees_path (str): string path of where the newly trained trees are to be saved</span>
+
+<span class="sd">            Kwargs:</span>
+<span class="sd">                chips_norm_width (int, optional): Chip normalization width for resizing;</span>
+<span class="sd">                    the chip is resized to have a width of chips_norm_width and</span>
+<span class="sd">                    whatever resulting height in order to best match the original</span>
+<span class="sd">                    aspect ratio; defaults to 128</span>
+
+<span class="sd">                    If both chips_norm_width and chips_norm_height are specified,</span>
+<span class="sd">                    the original aspect ratio of the chip is not respected</span>
+<span class="sd">                chips_norm_height (int, optional): Chip normalization height for resizing;</span>
+<span class="sd">                    the chip is resized to have a height of chips_norm_height and</span>
+<span class="sd">                    whatever resulting width in order to best match the original</span>
+<span class="sd">                    aspect ratio; defaults to None</span>
+
+<span class="sd">                    If both chips_norm_width and chips_norm_height are specified,</span>
+<span class="sd">                    the original aspect ratio of the chip is not respected</span>
+<span class="sd">                chips_prob_flip_horizontally (float, optional): The probability</span>
+<span class="sd">                    that a chips is flipped horizontally before training to make</span>
+<span class="sd">                    the training set invariant to horizontal flips in the image;</span>
+<span class="sd">                    defaults to 0.5; 0.0 &lt;= chips_prob_flip_horizontally &lt;= 1.0</span>
+<span class="sd">                chips_prob_flip_vertically (float, optional): The probability</span>
+<span class="sd">                    that a chips is flipped vertivcally before training to make</span>
+<span class="sd">                    the training set invariant to vertical flips in the image;</span>
+<span class="sd">                    defaults to 0.5; 0.0 &lt;= chips_prob_flip_vertically &lt;= 1.0</span>
+<span class="sd">                patch_width (int, optional): the width of the patches for extraction</span>
+<span class="sd">                    in the tree; defaults to 32; patch_width &gt; 0</span>
+<span class="sd">                patch_height (int, optional): the height of the patches for extraction</span>
+<span class="sd">                    in the tree; defaults to 32; patch_height &gt; 0</span>
+<span class="sd">                patch_density (float, optional): the number of patches to extract from</span>
+<span class="sd">                    each chip as a function of density; the density is calculated as:</span>
+<span class="sd">                        samples = patch_density * [(chip_width * chip_height) / (patch_width * patch_height)]</span>
+<span class="sd">                    and specifies how many times a particular pixel is sampled</span>
+<span class="sd">                    from the chip; defaults to 4.0; patch_density &gt; 0</span>
+<span class="sd">                trees_num (int, optional): the number of trees to train in parallel;</span>
+<span class="sd">                    defaults to 10</span>
+<span class="sd">                trees_offset (int, optional): the tree number that begins the sequence</span>
+<span class="sd">                    of when a tree is trained; defaults to None</span>
+
+<span class="sd">                    If None is specified, the trees_offset value is automatically guessed</span>
+<span class="sd">                    by using the number of files in trees_path</span>
+
+<span class="sd">                    Tree model files are overwritten if the offset has overlap with</span>
+<span class="sd">                    previouly generated trees</span>
+<span class="sd">                trees_max_depth (int, optional): the maximum depth of the tree during</span>
+<span class="sd">                    training, this can used for regularization; defaults to 16</span>
+<span class="sd">                trees_max_patches (int, optional): the maximum number of patches that</span>
+<span class="sd">                    should be extracted for training between positives AND negatives</span>
+<span class="sd">                    (the detector attempts to balance between the number of positive</span>
+<span class="sd">                    and negative patches to be roughly the same in quantity);</span>
+<span class="sd">                    defaults to 64000</span>
+<span class="sd">                trees_leaf_size (int, optional): the number of patches in a node that</span>
+<span class="sd">                    specifies the threshold for becoming a leaf; defaults to 20</span>
+
+<span class="sd">                    A node becomes a leaf under two conditions:</span>
+<span class="sd">                        1.) The maximum tree depth has been reached (trees_max_depth)</span>
+<span class="sd">                        2.) The patches in the node is less than trees_leaf_size and</span>
+<span class="sd">                            is stopped prematurely</span>
+<span class="sd">                trees_pixel_tests (int, optional): the number of pixel tests to perform</span>
+<span class="sd">                    at each node; defaults to 2000</span>
+<span class="sd">                trees_prob_optimize_mode (float, optional): The probability of the</span>
+<span class="sd">                    tree optimizing between classification and regression; defaults to</span>
+<span class="sd">                    0.5</span>
+<span class="sd">                serial (bool, optional): flag to signify if to run training in serial;</span>
+<span class="sd">                    defaults to False</span>
+<span class="sd">                verbose (bool, optional): verbose flag; defaults to object&#39;s verbose or</span>
+<span class="sd">                    selectively enabled for this function</span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">                None</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c"># Default values</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">odict</span><span class="p">([</span>
+            <span class="p">(</span><span class="s">&#39;chips_norm_width&#39;</span><span class="p">,</span>             <span class="mi">128</span><span class="p">),</span>
+            <span class="p">(</span><span class="s">&#39;chips_norm_height&#39;</span><span class="p">,</span>            <span class="bp">None</span><span class="p">),</span>
+            <span class="p">(</span><span class="s">&#39;chips_prob_flip_horizontally&#39;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span>
+            <span class="p">(</span><span class="s">&#39;chips_prob_flip_vertically&#39;</span><span class="p">,</span>   <span class="mf">0.0</span><span class="p">),</span>
+            <span class="p">(</span><span class="s">&#39;patch_width&#39;</span><span class="p">,</span>                  <span class="mi">32</span><span class="p">),</span>
+            <span class="p">(</span><span class="s">&#39;patch_height&#39;</span><span class="p">,</span>                 <span class="mi">32</span><span class="p">),</span>
+            <span class="p">(</span><span class="s">&#39;patch_density&#39;</span><span class="p">,</span>                <span class="mf">4.0</span><span class="p">),</span>
+            <span class="p">(</span><span class="s">&#39;trees_num&#39;</span><span class="p">,</span>                    <span class="mi">10</span><span class="p">),</span>
+            <span class="p">(</span><span class="s">&#39;trees_offset&#39;</span><span class="p">,</span>                 <span class="bp">None</span><span class="p">),</span>
+            <span class="p">(</span><span class="s">&#39;trees_max_depth&#39;</span><span class="p">,</span>              <span class="mi">16</span><span class="p">),</span>
+            <span class="p">(</span><span class="s">&#39;trees_max_patches&#39;</span><span class="p">,</span>            <span class="mi">64000</span><span class="p">),</span>
+            <span class="p">(</span><span class="s">&#39;trees_leaf_size&#39;</span><span class="p">,</span>              <span class="mi">20</span><span class="p">),</span>
+            <span class="p">(</span><span class="s">&#39;trees_pixel_tests&#39;</span><span class="p">,</span>            <span class="mi">2000</span><span class="p">),</span>
+            <span class="p">(</span><span class="s">&#39;trees_prob_optimize_mode&#39;</span><span class="p">,</span>     <span class="mf">0.5</span><span class="p">),</span>
+            <span class="p">(</span><span class="s">&#39;serial&#39;</span><span class="p">,</span>                       <span class="bp">False</span><span class="p">),</span>
+            <span class="p">(</span><span class="s">&#39;verbose&#39;</span><span class="p">,</span>                      <span class="n">rf</span><span class="o">.</span><span class="n">verbose</span><span class="p">),</span>
+        <span class="p">])</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c"># Make the tree path absolute</span>
+        <span class="n">trees_path</span> <span class="o">=</span> <span class="n">abspath</span><span class="p">(</span><span class="n">trees_path</span><span class="p">)</span>
+
+        <span class="c"># cout &lt;&lt; &quot;AIM FOR A SPLIT OF 24k - 32k POSITIVE &amp; NEGATIVE PATCHES EACH FOR GOOD REGULARIZATION AT DEPTH 16&quot; &lt;&lt; endl;</span>
+
+        <span class="c"># Ensure the trees_path exists</span>
+        <span class="n">utool</span><span class="o">.</span><span class="n">ensuredir</span><span class="p">(</span><span class="n">trees_path</span><span class="p">)</span>
+        <span class="n">data_path</span> <span class="o">=</span> <span class="n">join</span><span class="p">(</span><span class="n">trees_path</span><span class="p">,</span> <span class="s">&#39;data&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">isdir</span><span class="p">(</span><span class="n">data_path</span><span class="p">):</span>
+            <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">data_path</span><span class="p">)</span>
+        <span class="n">utool</span><span class="o">.</span><span class="n">ensuredir</span><span class="p">(</span><span class="n">data_path</span><span class="p">)</span>
+        <span class="n">data_path_pos</span> <span class="o">=</span> <span class="n">join</span><span class="p">(</span><span class="n">data_path</span><span class="p">,</span> <span class="s">&#39;pos&#39;</span><span class="p">)</span>
+        <span class="n">utool</span><span class="o">.</span><span class="n">ensuredir</span><span class="p">(</span><span class="n">data_path_pos</span><span class="p">)</span>
+        <span class="n">data_path_neg</span> <span class="o">=</span> <span class="n">join</span><span class="p">(</span><span class="n">data_path</span><span class="p">,</span> <span class="s">&#39;neg&#39;</span><span class="p">)</span>
+        <span class="n">utool</span><span class="o">.</span><span class="n">ensuredir</span><span class="p">(</span><span class="n">data_path_neg</span><span class="p">)</span>
+
+        <span class="c"># Try to figure out the correct tree offset</span>
+        <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;trees_offset&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">direct</span> <span class="o">=</span> <span class="n">Directory</span><span class="p">(</span><span class="n">trees_path</span><span class="p">,</span> <span class="n">include_file_extensions</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;txt&#39;</span><span class="p">])</span>
+            <span class="n">params</span><span class="p">[</span><span class="s">&#39;trees_offset&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">direct</span><span class="o">.</span><span class="n">files</span><span class="p">())</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="k">print</span><span class="p">(</span><span class="s">&#39;[rf] Auto Tree Offset: </span><span class="si">%d</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;trees_offset&#39;</span><span class="p">])</span>
+
+        <span class="c"># Data integrity</span>
+        <span class="k">assert</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;chips_norm_width&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;chips_norm_width&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;patch_width&#39;</span><span class="p">],</span> \
+            <span class="s">&#39;Normalization width too small for patch width&#39;</span>
+        <span class="k">assert</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;chips_norm_height&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;chips_norm_height&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;patch_height&#39;</span><span class="p">],</span> \
+            <span class="s">&#39;Normalization height too small for patch height&#39;</span>
+        <span class="k">assert</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;patch_width&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> \
+            <span class="s">&#39;Patch width must be positive&#39;</span>
+        <span class="k">assert</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;patch_height&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> \
+            <span class="s">&#39;Patch height must be positive&#39;</span>
+        <span class="k">assert</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;patch_density&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> \
+            <span class="s">&#39;Patch density must be positive&#39;</span>
+        <span class="k">assert</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;chips_prob_flip_horizontally&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;chips_prob_flip_horizontally&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">,</span> \
+            <span class="s">&#39;Horizontal flip probability must be between 0 and 1&#39;</span>
+        <span class="k">assert</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;chips_prob_flip_vertically&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;chips_prob_flip_vertically&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">,</span> \
+            <span class="s">&#39;Vertical flip probability must be between 0 and 1&#39;</span>
+        <span class="k">assert</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;trees_num&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> \
+            <span class="s">&#39;Number of trees must be positive&#39;</span>
+        <span class="k">assert</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;trees_offset&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> \
+            <span class="s">&#39;Number of trees must be non-negative&#39;</span>
+        <span class="k">assert</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;trees_max_depth&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">,</span> \
+            <span class="s">&#39;Tree depth must be greater than 1&#39;</span>
+        <span class="k">assert</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;trees_max_patches&#39;</span><span class="p">]</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;trees_max_patches&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> \
+            <span class="s">&#39;A tree must have an even (positive) number of patches&#39;</span>
+        <span class="k">assert</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;trees_prob_optimize_mode&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;trees_prob_optimize_mode&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">,</span> \
+            <span class="s">&#39;Tree optimization mode probability must be between 0 and 1 (inclusive)&#39;</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span> <span class="p">[</span> <span class="n">exists</span><span class="p">(</span><span class="n">train_pos_cpath</span><span class="p">)</span> <span class="k">for</span> <span class="n">train_pos_cpath</span> <span class="ow">in</span> <span class="n">train_pos_cpath_list</span> <span class="p">]</span> <span class="p">),</span> \
+            <span class="s">&#39;At least one specified positive chip path does not exist&#39;</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span> <span class="p">[</span> <span class="n">exists</span><span class="p">(</span><span class="n">train_neg_cpath</span><span class="p">)</span> <span class="k">for</span> <span class="n">train_neg_cpath</span> <span class="ow">in</span> <span class="n">train_neg_cpath_list</span> <span class="p">]</span> <span class="p">),</span> \
+            <span class="s">&#39;At least one specified positive chip path does not exist&#39;</span>
+        <span class="c"># We will let the C++ code perform the patch size checks</span>
+
+        <span class="k">print</span><span class="p">(</span><span class="s">&#39;Caching positives into </span><span class="si">%r</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">data_path_pos</span><span class="p">,</span> <span class="p">))</span>
+        <span class="n">train_pos_chip_filename_list</span> <span class="o">=</span> <span class="n">_cache_data</span><span class="p">(</span><span class="n">train_pos_cpath_list</span><span class="p">,</span> <span class="n">data_path_pos</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
+
+        <span class="k">print</span><span class="p">(</span><span class="s">&#39;Caching negatives into </span><span class="si">%r</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">data_path_neg</span><span class="p">,</span> <span class="p">))</span>
+        <span class="n">train_neg_chip_filename_list</span> <span class="o">=</span> <span class="n">_cache_data</span><span class="p">(</span><span class="n">train_neg_cpath_list</span><span class="p">,</span> <span class="n">data_path_neg</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
+
+        <span class="c"># We no longer need these parameters (and they should not be transferred to the C++ library)</span>
+        <span class="k">del</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;chips_norm_width&#39;</span><span class="p">]</span>
+        <span class="k">del</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;chips_norm_height&#39;</span><span class="p">]</span>
+        <span class="k">del</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;chips_prob_flip_horizontally&#39;</span><span class="p">]</span>
+        <span class="k">del</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;chips_prob_flip_vertically&#39;</span><span class="p">]</span>
+
+        <span class="c"># Run training algorithm</span>
+        <span class="n">params_list</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">data_path_pos</span><span class="p">,</span>
+            <span class="n">_cast_list_to_c</span><span class="p">(</span><span class="n">train_pos_chip_filename_list</span><span class="p">,</span> <span class="n">C_CHAR</span><span class="p">),</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">train_pos_chip_filename_list</span><span class="p">),</span>
+            <span class="n">data_path_neg</span><span class="p">,</span>
+            <span class="n">_cast_list_to_c</span><span class="p">(</span><span class="n">train_neg_chip_filename_list</span><span class="p">,</span> <span class="n">C_CHAR</span><span class="p">),</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">train_neg_chip_filename_list</span><span class="p">),</span>
+            <span class="n">trees_path</span><span class="p">,</span>
+        <span class="p">]</span> <span class="o">+</span> <span class="n">params</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+        <span class="n">RF_CLIB</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">rf</span><span class="o">.</span><span class="n">detector_c_obj</span><span class="p">,</span> <span class="o">*</span><span class="n">params_list</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n\n</span><span class="s">[pyrf] *************************************&#39;</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">&#39;[pyrf] Training Completed&#39;</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Random_Forest_Detector.detect"><a class="viewcode-back" href="../../pyrf.html#pyrf._pyrf.Random_Forest_Detector.detect">[docs]</a>    <span class="k">def</span> <span class="nf">detect</span><span class="p">(</span><span class="n">rf</span><span class="p">,</span> <span class="n">forest</span><span class="p">,</span> <span class="n">input_gpath_list</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            Run detection with a given loaded forest on a list of images</span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                forest (object): the forest obejct that you want to use during</span>
+<span class="sd">                    detection</span>
+<span class="sd">                input_gpath_list (list of str): the list of image paths that you want</span>
+<span class="sd">                    to test</span>
+
+<span class="sd">            Kwargs:</span>
+<span class="sd">                output_gpath_list (list of str, optional): the paralell list of output</span>
+<span class="sd">                    image paths for detection debugging or results; defaults to None</span>
+
+<span class="sd">                    When this list is None no images are outputted for any test</span>
+<span class="sd">                    images, whereas the list can be a parallel list where some values</span>
+<span class="sd">                    are strings and others are None</span>
+<span class="sd">                output_scale_gpath_list (list of str, optional): the paralell list of output</span>
+<span class="sd">                    scale image paths for detection debugging or results; defaults</span>
+<span class="sd">                    to None</span>
+
+<span class="sd">                    When this list is None no images are outputted for any test</span>
+<span class="sd">                    images, whereas the list can be a parallel list where some values</span>
+<span class="sd">                    are strings and others are None</span>
+<span class="sd">                mode (int, optional): the mode that the detector outputs; detaults to 0</span>
+<span class="sd">                    0 - Hough Voting - the output is a Hough image that predicts the</span>
+<span class="sd">                        locations of the obejct centeroids</span>
+<span class="sd">                    0 - Classification Map - the output is a classification probability</span>
+<span class="sd">                        map across the entire image where no regression information</span>
+<span class="sd">                        is utilized</span>
+<span class="sd">                sensitivity (float, optional): the sensitivity of the detector;</span>
+
+<span class="sd">                        mode = 0 - defaults to 255.0</span>
+<span class="sd">                        mode = 1 - defaults to 255.0</span>
+
+<span class="sd">                scale_list (list of float, optional): the list of floats that specifies the scales</span>
+<span class="sd">                    to try during testing;</span>
+<span class="sd">                    defaults to [1.33, 1.00, 0.75, 0.56, 0.42, 0.32, 0.24, 0.18]</span>
+
+<span class="sd">                        scale &gt; 1.0 - Upscale the image</span>
+<span class="sd">                        scale = 1.0 - Original image size</span>
+<span class="sd">                        scale &lt; 1.0 - Downscale the image</span>
+
+<span class="sd">                    The list of scales highly impacts the performance of the detector and</span>
+<span class="sd">                    should be carefully chosen</span>
+
+<span class="sd">                    The scales are applied to BOTH the width and the height of the image</span>
+<span class="sd">                    in order to scale the image and an interpolation of CV_INTER_LINEAR</span>
+<span class="sd">                    is used</span>
+<span class="sd">                batch_size (int, optional): the number of images to test at a single</span>
+<span class="sd">                    time in paralell (if None, the number of CPUs is used); defaults to None</span>
+<span class="sd">                nms_min_area_contour (int, optional): the minimum size of a centroid</span>
+<span class="sd">                    candidate region; defaults to 300</span>
+<span class="sd">                nms_min_area_overlap (float, optional, DEPRICATED): the allowable overlap in</span>
+<span class="sd">                    bounding box predictions; defaults to 0.75</span>
+<span class="sd">                serial (bool, optional): flag to signify if to run detection in serial;</span>
+
+<span class="sd">                        len(input_gpath_list) &gt;= batch_size - defaults to False</span>
+<span class="sd">                        len(input_gpath_list) &lt;  batch_size - defaults to False</span>
+
+<span class="sd">                verbose (bool, optional): verbose flag; defaults to object&#39;s verbose or</span>
+<span class="sd">                    selectively enabled for this function</span>
+
+<span class="sd">            Yields:</span>
+<span class="sd">                (str, (list of dict)): tuple of the input image path and a list</span>
+<span class="sd">                    of dictionaries specifying the detected bounding boxes</span>
+
+<span class="sd">                    The dictionaries returned by this function are of the form:</span>
+<span class="sd">                        centerx (int): the x position of the object&#39;s centroid</span>
+
+<span class="sd">                            Note that the center of the bounding box and the location of</span>
+<span class="sd">                            the object&#39;s centroid can be different</span>
+<span class="sd">                        centery (int): the y position of the obejct&#39;s centroid</span>
+
+<span class="sd">                            Note that the center of the bounding box and the location of</span>
+<span class="sd">                            the object&#39;s centroid can be different</span>
+<span class="sd">                        xtl (int): the top left x position of the bounding box</span>
+<span class="sd">                        ytl (int): the top left y position of the bounding box</span>
+<span class="sd">                        width (int): the width of the bounding box</span>
+<span class="sd">                        height (int): the hiehgt of the bounding box</span>
+<span class="sd">                        confidence (float): the confidence that this bounding box is of</span>
+<span class="sd">                            the class specified by the trees used during testing</span>
+<span class="sd">                        suppressed (bool, DEPRICATED): the flag of if this bounding</span>
+<span class="sd">                            box has been marked to be suppressed by the detection</span>
+<span class="sd">                            algorithm</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c"># Default values</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">odict</span><span class="p">([</span>
+            <span class="p">(</span><span class="s">&#39;output_gpath_list&#39;</span><span class="p">,</span>            <span class="bp">None</span><span class="p">),</span>
+            <span class="p">(</span><span class="s">&#39;output_scale_gpath_list&#39;</span><span class="p">,</span>      <span class="bp">None</span><span class="p">),</span>
+            <span class="p">(</span><span class="s">&#39;mode&#39;</span><span class="p">,</span>                         <span class="mi">0</span><span class="p">),</span>
+            <span class="p">(</span><span class="s">&#39;sensitivity&#39;</span><span class="p">,</span>                  <span class="bp">None</span><span class="p">),</span>
+            <span class="p">(</span><span class="s">&#39;scale_list&#39;</span><span class="p">,</span>                   <span class="p">[</span><span class="mf">1.33</span><span class="p">,</span> <span class="mf">1.00</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">,</span> <span class="mf">0.56</span><span class="p">,</span> <span class="mf">0.42</span><span class="p">,</span> <span class="mf">0.32</span><span class="p">,</span> <span class="mf">0.24</span><span class="p">,</span> <span class="mf">0.18</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s">&#39;_scale_num&#39;</span><span class="p">,</span>                   <span class="bp">None</span><span class="p">),</span>  <span class="c"># This value always gets overwritten</span>
+            <span class="p">(</span><span class="s">&#39;batch_size&#39;</span><span class="p">,</span>                   <span class="bp">None</span><span class="p">),</span>
+            <span class="p">(</span><span class="s">&#39;nms_min_area_contour&#39;</span><span class="p">,</span>         <span class="mi">300</span><span class="p">),</span>
+            <span class="p">(</span><span class="s">&#39;nms_min_area_overlap&#39;</span><span class="p">,</span>         <span class="mf">0.75</span><span class="p">),</span>
+            <span class="p">(</span><span class="s">&#39;results_val_array&#39;</span><span class="p">,</span>            <span class="bp">None</span><span class="p">),</span>  <span class="c"># This value always gets overwritten</span>
+            <span class="p">(</span><span class="s">&#39;results_len_array&#39;</span><span class="p">,</span>            <span class="bp">None</span><span class="p">),</span>  <span class="c"># This value always gets overwritten</span>
+            <span class="p">(</span><span class="s">&#39;RESULT_LENGTH&#39;</span><span class="p">,</span>                <span class="bp">None</span><span class="p">),</span>  <span class="c"># This value always gets overwritten</span>
+            <span class="p">(</span><span class="s">&#39;serial&#39;</span><span class="p">,</span>                       <span class="bp">False</span><span class="p">),</span>
+            <span class="p">(</span><span class="s">&#39;verbose&#39;</span><span class="p">,</span>                      <span class="n">rf</span><span class="o">.</span><span class="n">verbose</span><span class="p">),</span>
+        <span class="p">])</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">params</span><span class="p">[</span><span class="s">&#39;RESULT_LENGTH&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">RESULT_LENGTH</span>
+        <span class="n">output_gpath_list</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;output_gpath_list&#39;</span><span class="p">]</span>
+        <span class="n">output_scale_gpath_list</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;output_scale_gpath_list&#39;</span><span class="p">]</span>
+        <span class="c"># We no longer want these parameters in params</span>
+        <span class="k">del</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;output_gpath_list&#39;</span><span class="p">]</span>
+        <span class="k">del</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;output_scale_gpath_list&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;sensitivity&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;mode&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="s">&#39;Invalid mode provided&#39;</span>
+            <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;mode&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">params</span><span class="p">[</span><span class="s">&#39;sensitivity&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">255.0</span>
+            <span class="k">elif</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;mode&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">params</span><span class="p">[</span><span class="s">&#39;sensitivity&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">255.0</span>
+
+        <span class="c"># Try to determine the parallel processing batch size</span>
+        <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">params</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="n">params</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">8</span>
+
+        <span class="c"># Data integrity</span>
+        <span class="k">assert</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;mode&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> \
+            <span class="s">&#39;Detection mode must be non-negative&#39;</span>
+        <span class="k">assert</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;sensitivity&#39;</span><span class="p">],</span> \
+            <span class="s">&#39;Sensitivity must be non-negative&#39;</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s">&#39;scale_list&#39;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="p">,</span> \
+            <span class="s">&#39;The scale list cannot be empty&#39;</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span> <span class="p">[</span> <span class="n">scale</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="k">for</span> <span class="n">scale</span> <span class="ow">in</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;scale_list&#39;</span><span class="p">]</span> <span class="p">]),</span> \
+            <span class="s">&#39;All scales must be positive&#39;</span>
+        <span class="k">assert</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> \
+            <span class="s">&#39;Batch size must be positive&#39;</span>
+        <span class="k">assert</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;nms_min_area_contour&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> \
+            <span class="s">&#39;Non-maximum suppression minimum contour area cannot be negative&#39;</span>
+        <span class="k">assert</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;nms_min_area_overlap&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;nms_min_area_overlap&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">,</span> \
+            <span class="s">&#39;Non-maximum supression minimum area overlap percentage must be between 0 and 1 (inclusive)&#39;</span>
+
+        <span class="c"># Convert optional parameters to C-valid default options</span>
+        <span class="k">if</span> <span class="n">output_gpath_list</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">output_gpath_list</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_gpath_list</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">output_gpath_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_gpath_list</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_gpath_list</span><span class="p">),</span> \
+                <span class="s">&#39;Output image path list is invalid or is not the same length as the input list&#39;</span>
+            <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">output_gpath_list</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="n">output_gpath_list</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="n">output_gpath_list</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+        <span class="n">output_gpath_list</span> <span class="o">=</span> <span class="n">_cast_list_to_c</span><span class="p">(</span><span class="n">output_gpath_list</span><span class="p">,</span> <span class="n">C_CHAR</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">output_scale_gpath_list</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">output_scale_gpath_list</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_gpath_list</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">output_scale_gpath_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_scale_gpath_list</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_gpath_list</span><span class="p">),</span> \
+                <span class="s">&#39;Output scale image path list is invalid or is not the same length as the input list&#39;</span>
+            <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">output_scale_gpath_list</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="n">output_scale_gpath_list</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="n">output_scale_gpath_list</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+        <span class="n">output_scale_gpath_list</span> <span class="o">=</span> <span class="n">_cast_list_to_c</span><span class="p">(</span><span class="n">output_scale_gpath_list</span><span class="p">,</span> <span class="n">C_CHAR</span><span class="p">)</span>
+
+        <span class="c"># Prepare for C</span>
+        <span class="n">params</span><span class="p">[</span><span class="s">&#39;_scale_num&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s">&#39;scale_list&#39;</span><span class="p">])</span>
+        <span class="n">params</span><span class="p">[</span><span class="s">&#39;scale_list&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_cast_list_to_c</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s">&#39;scale_list&#39;</span><span class="p">],</span> <span class="n">C_FLOAT</span><span class="p">)</span>
+
+        <span class="c"># Run training algorithm</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span>
+        <span class="k">del</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span>  <span class="c"># Remove this value from params</span>
+        <span class="n">batch_num</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">input_gpath_list</span><span class="p">)</span> <span class="o">/</span> <span class="n">batch_size</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="c"># Detect for each batch</span>
+        <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">batch_num</span><span class="p">):</span>
+            <span class="n">begin</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">batch</span> <span class="o">*</span> <span class="n">batch_size</span>
+            <span class="n">end</span>   <span class="o">=</span> <span class="n">start</span> <span class="o">+</span> <span class="n">batch_size</span>
+            <span class="k">if</span> <span class="n">end</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_gpath_list</span><span class="p">):</span>
+                <span class="n">end</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_gpath_list</span><span class="p">)</span>
+            <span class="n">input_gpath_list_</span>        <span class="o">=</span> <span class="n">input_gpath_list</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span>
+            <span class="n">output_gpath_list_</span>       <span class="o">=</span> <span class="n">output_gpath_list</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span>
+            <span class="n">output_scale_gpath_list_</span> <span class="o">=</span> <span class="n">output_scale_gpath_list</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span>
+            <span class="n">num_images</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_gpath_list_</span><span class="p">)</span>
+            <span class="c"># Set image detection to be run in serial if less than half a batch to run</span>
+            <span class="k">if</span> <span class="n">num_images</span> <span class="o">&lt;</span> <span class="n">batch_size</span> <span class="o">/</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">params</span><span class="p">[</span><span class="s">&#39;serial&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="c"># Final sanity check</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_gpath_list_</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_gpath_list_</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_gpath_list_</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_scale_gpath_list_</span><span class="p">)</span>
+            <span class="n">params</span><span class="p">[</span><span class="s">&#39;results_val_array&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">num_images</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">NP_ARRAY_FLOAT</span><span class="p">)</span>
+            <span class="n">params</span><span class="p">[</span><span class="s">&#39;results_len_array&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">num_images</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">C_INT</span><span class="p">)</span>
+            <span class="c"># Make the params_list</span>
+            <span class="n">params_list</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">forest</span><span class="p">,</span>
+                <span class="n">_cast_list_to_c</span><span class="p">(</span><span class="n">input_gpath_list_</span><span class="p">,</span> <span class="n">C_CHAR</span><span class="p">),</span>
+                <span class="n">num_images</span><span class="p">,</span>
+                <span class="n">_cast_list_to_c</span><span class="p">(</span><span class="n">output_gpath_list_</span><span class="p">,</span> <span class="n">C_CHAR</span><span class="p">),</span>
+                <span class="n">_cast_list_to_c</span><span class="p">(</span><span class="n">output_scale_gpath_list_</span><span class="p">,</span> <span class="n">C_CHAR</span><span class="p">)</span>
+            <span class="p">]</span> <span class="o">+</span> <span class="n">params</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+            <span class="n">RF_CLIB</span><span class="o">.</span><span class="n">detect</span><span class="p">(</span><span class="n">rf</span><span class="o">.</span><span class="n">detector_c_obj</span><span class="p">,</span> <span class="o">*</span><span class="n">params_list</span><span class="p">)</span>
+            <span class="n">results_list</span> <span class="o">=</span> <span class="n">_extract_np_array</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s">&#39;results_len_array&#39;</span><span class="p">],</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;results_val_array&#39;</span><span class="p">],</span> <span class="n">NP_ARRAY_FLOAT</span><span class="p">,</span> <span class="n">NP_FLOAT32</span><span class="p">,</span> <span class="n">RESULT_LENGTH</span><span class="p">)</span>
+            <span class="n">conclude</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="k">print</span><span class="p">(</span><span class="s">&#39;Took </span><span class="si">%r</span><span class="s"> seconds to compute </span><span class="si">%d</span><span class="s"> images&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">conclude</span> <span class="o">-</span> <span class="n">begin</span><span class="p">,</span> <span class="n">num_images</span><span class="p">,</span> <span class="p">))</span>
+            <span class="k">for</span> <span class="n">input_gpath</span><span class="p">,</span> <span class="n">result_list</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">input_gpath_list_</span><span class="p">,</span> <span class="n">results_list</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;mode&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">result_list_</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">result_list</span><span class="p">:</span>
+                        <span class="c"># Unpack result into a nice Python dictionary and return</span>
+                        <span class="n">temp</span> <span class="o">=</span> <span class="p">{}</span>
+                        <span class="n">temp</span><span class="p">[</span><span class="s">&#39;centerx&#39;</span><span class="p">]</span>    <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                        <span class="n">temp</span><span class="p">[</span><span class="s">&#39;centery&#39;</span><span class="p">]</span>    <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                        <span class="n">temp</span><span class="p">[</span><span class="s">&#39;xtl&#39;</span><span class="p">]</span>        <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                        <span class="n">temp</span><span class="p">[</span><span class="s">&#39;ytl&#39;</span><span class="p">]</span>        <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                        <span class="n">temp</span><span class="p">[</span><span class="s">&#39;width&#39;</span><span class="p">]</span>      <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+                        <span class="n">temp</span><span class="p">[</span><span class="s">&#39;height&#39;</span><span class="p">]</span>     <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+                        <span class="n">temp</span><span class="p">[</span><span class="s">&#39;confidence&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="mi">6</span><span class="p">],</span> <span class="n">decimals</span><span class="o">=</span><span class="mi">4</span><span class="p">))</span>
+                        <span class="n">temp</span><span class="p">[</span><span class="s">&#39;suppressed&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="mi">7</span><span class="p">])</span> <span class="o">==</span> <span class="mi">1</span>
+                        <span class="n">result_list_</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">temp</span><span class="p">)</span>
+                    <span class="k">yield</span> <span class="p">(</span><span class="n">input_gpath</span><span class="p">,</span> <span class="n">result_list_</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">yield</span> <span class="p">(</span><span class="n">input_gpath</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+            <span class="n">params</span><span class="p">[</span><span class="s">&#39;results_val_array&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="n">params</span><span class="p">[</span><span class="s">&#39;results_len_array&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="c"># Pickle functions</span></div>
+<div class="viewcode-block" id="Random_Forest_Detector.dump"><a class="viewcode-back" href="../../pyrf.html#pyrf._pyrf.Random_Forest_Detector.dump">[docs]</a>    <span class="k">def</span> <span class="nf">dump</span><span class="p">(</span><span class="n">rf</span><span class="p">,</span> <span class="nb">file</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            UNIMPLEMENTED</span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                file (object)</span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">                None</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">pass</span>
+</div>
+<div class="viewcode-block" id="Random_Forest_Detector.dumps"><a class="viewcode-back" href="../../pyrf.html#pyrf._pyrf.Random_Forest_Detector.dumps">[docs]</a>    <span class="k">def</span> <span class="nf">dumps</span><span class="p">(</span><span class="n">rf</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            UNIMPLEMENTED</span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">                string</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">pass</span>
+</div>
+<div class="viewcode-block" id="Random_Forest_Detector.load"><a class="viewcode-back" href="../../pyrf.html#pyrf._pyrf.Random_Forest_Detector.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="nb">file</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            UNIMPLEMENTED</span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                file (object)</span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">                detector (object)</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">pass</span>
+</div>
+<div class="viewcode-block" id="Random_Forest_Detector.loads"><a class="viewcode-back" href="../../pyrf.html#pyrf._pyrf.Random_Forest_Detector.loads">[docs]</a>    <span class="k">def</span> <span class="nf">loads</span><span class="p">(</span><span class="n">string</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            UNIMPLEMENTED</span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                string (str)</span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">                detector (object)</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">pass</span></div></div>
+=======
 
 
 <span class="c"># Bindings for Numpy Arrays</span>
@@ -410,6 +1026,7 @@
 </div>
 <div class="viewcode-block" id="Random_Forest_Detector.save"><a class="viewcode-back" href="../../pyrf.html#pyrf._pyrf.Random_Forest_Detector.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="n">rf</span><span class="p">):</span>
         <span class="n">rf</span><span class="o">.</span><span class="n">_run</span><span class="p">(</span><span class="n">RF_CLIB</span><span class="o">.</span><span class="n">save</span><span class="p">,</span> <span class="p">[</span><span class="n">rf</span><span class="o">.</span><span class="n">pyrf_ptr</span><span class="p">])</span></div></div>
+>>>>>>> 9c6f78462ce4b654324c88400f3c4166e9d8d920
 </pre></div>
 
           </div>
@@ -448,7 +1065,11 @@
       </ul>
     </div>
     <div class="footer">
+<<<<<<< HEAD
+        &copy; Copyright 2015, Jon Crall.
+=======
         &copy; Copyright 2014, Jon Crall.
+>>>>>>> 9c6f78462ce4b654324c88400f3c4166e9d8d920
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
     </div>
   </body>
