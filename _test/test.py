@@ -1,4 +1,4 @@
-from os.path import join, exists  # NOQA
+from os.path import join, exists, mkdir  # NOQA
 import cv2
 import random
 from pyrf import Random_Forest_Detector
@@ -46,13 +46,15 @@ def run_detection(species, sensitivity=None):
     test_gpath_list = test_direct.files()
     zebras_path = 'trees/%s' % (species, )
 
+    if not exists('output/%s' % (species, )):
+        mkdir('output/%s' % (species, ))
     test_gpath_list = test_gpath_list
     output_list = [ 'output/%s/%d.JPEG' % (species, i + 1) for i in range(len(test_gpath_list))]
-    # output_scale_list = [ 'output/%s/%d_scale' % (species, i) for i in range(len(test_gpath_list))]
+    output_scale_list = [ 'output/%s/%d_scale' % (species, i) for i in range(len(test_gpath_list))]
     trees = Directory(zebras_path, include_file_extensions=['txt'])
     forest = detector.forest(trees.files())
-    # results_iter = detector.detect(forest, test_gpath_list, output_gpath_list=output_list, output_scale_gpath_list=output_scale_list, sensitivity=sensitivity)
-    results_iter = detector.detect(forest, test_gpath_list, output_gpath_list=output_list, sensitivity=sensitivity)
+    results_iter = detector.detect(forest, test_gpath_list, output_gpath_list=output_list, output_scale_gpath_list=output_scale_list, sensitivity=sensitivity)
+    # results_iter = detector.detect(forest, test_gpath_list, output_gpath_list=output_list, sensitivity=sensitivity)
     for input_gpath, result_list in results_iter:
         print(result_list)
         # original = openImage(input_gpath, color=True)
@@ -81,29 +83,11 @@ detector = Random_Forest_Detector()
 # for result in results:
 #     print 'RESULT: %r' % (result, )
 
+species = "giraffe"
+run_detection(species)
+
 species = "zebra_plains"
 run_detection(species)
 
 species = "zebra_grevys"
 run_detection(species)
-
-
-# species = "zebra_grevys"
-# zebras_path = 'trees/%s' % (species, )
-# trees = Directory(zebras_path, include_file_extensions=['txt'])
-# forest = detector.forest(trees.files())
-
-# test_gpath_list = ['test/test-big.jpg']
-# output_list = [ 'output/test/test-big.JPEG']
-# output_scale_list = [ 'output/test/test-big-scale']
-# results_iter = detector.detect(forest, test_gpath_list, output_gpath_list=output_list, output_scale_gpath_list=output_scale_list)
-# for input_gpath, result_list in results_iter:
-#     print(result_list)
-
-
-# test_gpath_list = ['test/test-small.jpg']
-# output_list = [ 'output/test/test-small.JPEG']
-# output_scale_list = [ 'output/test/test-small-scale']
-# results_iter = detector.detect(forest, test_gpath_list, output_gpath_list=output_list, output_scale_gpath_list=output_scale_list, scale_list=[1.0])
-# for input_gpath, result_list in results_iter:
-#     print(result_list)
