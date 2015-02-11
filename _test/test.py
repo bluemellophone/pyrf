@@ -1,4 +1,5 @@
-from os.path import join, exists, mkdir  # NOQA
+from os import mkdir
+from os.path import join, exists  # NOQA
 import cv2
 import random
 from pyrf import Random_Forest_Detector
@@ -50,11 +51,11 @@ def run_detection(species, sensitivity=None):
         mkdir('output/%s' % (species, ))
     test_gpath_list = test_gpath_list
     output_list = [ 'output/%s/%d.JPEG' % (species, i + 1) for i in range(len(test_gpath_list))]
-    output_scale_list = [ 'output/%s/%d_scale' % (species, i) for i in range(len(test_gpath_list))]
+    # output_scale_list = [ 'output/%s/%d_scale' % (species, i) for i in range(len(test_gpath_list))]
     trees = Directory(zebras_path, include_file_extensions=['txt'])
     forest = detector.forest(trees.files())
-    results_iter = detector.detect(forest, test_gpath_list, output_gpath_list=output_list, output_scale_gpath_list=output_scale_list, sensitivity=sensitivity)
-    # results_iter = detector.detect(forest, test_gpath_list, output_gpath_list=output_list, sensitivity=sensitivity)
+    # results_iter = detector.detect(forest, test_gpath_list, output_gpath_list=output_list, output_scale_gpath_list=output_scale_list, sensitivity=sensitivity)
+    results_iter = detector.detect(forest, test_gpath_list, output_gpath_list=output_list, sensitivity=sensitivity)
     for input_gpath, result_list in results_iter:
         print(result_list)
         # original = openImage(input_gpath, color=True)

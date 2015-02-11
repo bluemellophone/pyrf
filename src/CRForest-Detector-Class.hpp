@@ -257,7 +257,7 @@ public:
 
             // Create combined
             cvConvertScale( combinedMax, combined, maxvalAdd / maxvalMax );
-            cvMin( combined, combinedAdd, combined ); 
+            cvMax( combined, combinedAdd, combined ); 
 
             // Smooth the image
             cvSmooth( combined, combined, CV_GAUSSIAN, 5);
