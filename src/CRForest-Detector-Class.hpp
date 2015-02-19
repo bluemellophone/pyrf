@@ -160,7 +160,7 @@ public:
         // This threshold value is important, but not really because it can be controlled
         // with the sensitivity value
         // int threshold = int(255.0 * 0.90);
-        bool debug_flag = true;
+        bool debug_flag = false;
         int threshold = int(255 * 0.90);
         int accumulate_mode = 1; // 1 - max, 0 - add | 0 - hough, 1 - classification
         float density = 0.990;
@@ -328,6 +328,7 @@ public:
             int minx, maxx, miny, maxy;
             int x_, y_;
             int i, x, y, j;
+            int ls, bs, rs, ts;
     
             /////// DEBUG ///////
             int red, green, blue;
@@ -340,9 +341,11 @@ public:
 
             for (i = 0; contours != 0; contours = contours->h_next, ++i)
             {    
+
                 rect = cvBoundingRect(contours);
                 if(rect.width * rect.height >= nms_min_area_contour)
                 {
+
                     centerx   = rect.x + (rect.width  / 2);
                     centery   = rect.y + (rect.height / 2);
                     xm = int(rect.width  * 0.10);
@@ -359,6 +362,7 @@ public:
                     right.clear();
                     bottom.clear();
                     top.clear();
+
                     for(k = 0; k < manifests.size(); ++k)
                     {
                         minx = std::max(int((centerx - rect.width)  * scale_vector[k]), 0);
@@ -404,32 +408,123 @@ public:
                         }
                     }
 
+                    ls = left.size();
+                    bs = bottom.size();
+                    rs = right.size();
+                    ts = top.size();
+                    // cout << left.size() << " " << bottom.size() << " " << right.size() << " " << top.size() << endl;
+
                     if(debug_flag)
                     {
                         cvCircle(debug, cvPoint(centerx, centery), 3, cvScalar(0, 0, 255), -1);
 
-                        xtl    = accumulate(left.begin(),   left.end(),   0.0) / left.size();
-                        ytl    = accumulate(bottom.begin(), bottom.end(), 0.0) / bottom.size();
-                        width  = accumulate(right.begin(),  right.end(),  0.0) / right.size();
-                        height = accumulate(top.begin(),    top.end(),    0.0) / top.size();
+                        if(ls > 0)
+                        {
+                            xtl = accumulate(left.begin(), left.end(), 0.0) / ls;
+                        }
+                        else
+                        {
+                            xtl = centerx;
+                        }
+                        if(bs > 0)
+                        {
+                            ytl = accumulate(bottom.begin(), bottom.end(), 0.0) / bs;
+                        }
+                        else
+                        {
+                            ytl = centery;
+                        }
+                        if(rs > 0)
+                        {
+                            width = accumulate(right.begin(), right.end(), 0.0) / rs;
+                        }
+                        else
+                        {
+                            width = centerx;
+                        }
+                        if(ts > 0)
+                        {
+                            height = accumulate(top.begin(), top.end(), 0.0) / ts;
+                        }
+                        else
+                        {
+                            height = centery;
+                        }
                         cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(0, 0, 255), 3);
 
-                        xtl    = *min_element( left.begin(), left.end() );
-                        ytl    = *min_element( bottom.begin(), bottom.end() );
-                        width  = *max_element( right.begin(), right.end() );
-                        height = *max_element( top.begin(), top.end() );
+                        if(ls > 0)
+                        {
+                            xtl = *min_element( left.begin(), left.end() );
+                        }
+                        else
+                        {
+                            xtl = centerx;
+                        }
+                        if(bs > 0)
+                        {
+                            ytl = *min_element( bottom.begin(), bottom.end() );
+                        }
+                        else
+                        {
+                            ytl = centery;
+                        }
+                        if(rs > 0)
+                        {
+                            width = *max_element( right.begin(), right.end() );
+                        }
+                        else
+                        {
+                            width = centerx;
+                        }
+                        if(ts > 0)
+                        {
+                            height = *max_element( top.begin(), top.end() );
+                        }
+                        else
+                        {
+                            height = centery;
+                        }
+                        // cout << xtl << " " << ytl << " " << width << " " << height << endl;
                         cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(0, 255, 255), 3);
+
                     }
 
-                    std::sort(left.begin(),   left.end(),   std::greater<int>());
-                    std::sort(bottom.begin(), bottom.end(), std::greater<int>());
-                    std::sort(right.begin(),  right.end());
-                    std::sort(top.begin(),    top.end());
-
-                    xtl    = left  [int(density * left.size())];
-                    ytl    = bottom[int(density * bottom.size())];
-                    width  = right [int(density * right.size())];
-                    height = top   [int(density * top.size())];
+                    if(ls > 0)
+                    {
+                        std::sort(left.begin(), left.end(), std::greater<int>());
+                        xtl    = left[int(density * left.size())];
+                    }
+                    else
+                    {
+                        xtl = centerx;
+                    }
+                    if(bs > 0)
+                    {
+                        std::sort(bottom.begin(), bottom.end(), std::greater<int>());
+                        ytl    = bottom[int(density * bottom.size())];
+                    }
+                    else
+                    {
+                        ytl = centery;
+                    }
+                    if(rs > 0)
+                    {
+                        std::sort(right.begin(), right.end());
+                        width  = right[int(density * right.size())];
+                    }
+                    else
+                    {
+                        width = centerx;
+                    }
+                    if(ts > 0)
+                    {
+                        std::sort(top.begin(), top.end());
+                        height = top[int(density * top.size())];
+                    }
+                    else
+                    {
+                        height = centery;
+                    }
 
                     if(debug_flag)
                     {
@@ -454,6 +549,7 @@ public:
                     temp.push_back(temp_);
                 }
             }
+
             cvReleaseMemStorage(&storage);
         }
         else if(mode == 1)
