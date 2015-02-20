@@ -491,6 +491,9 @@ class Random_Forest_Detector(object):
             except:
                 params['batch_size'] = 8
 
+        # To eleminate downtime, add 1 to batch_size
+        # params['batch_size'] +=
+
         # Data integrity
         assert params['mode'] >= 0, \
             'Detection mode must be non-negative'

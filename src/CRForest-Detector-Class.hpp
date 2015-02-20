@@ -242,6 +242,8 @@ public:
             // Release images
             cvReleaseImage(&vImgDetect[k]);
         }
+        // Release memory
+        cvReleaseImage(&upscaled);
 
         // Take minimum of add and max, this will give good negatives and good centers.
         if(mode == 0)
@@ -277,9 +279,30 @@ public:
                 }
             }
 
+            if(debug_flag)
+            {
+                if (output_gpath.length() > 0)
+                {
+                    sprintf(buffer, "%s_debug_add.JPEG", output_gpath.c_str());
+                    cvConvertScale( combinedAdd, combinedAdd, sensitivity / scale_vector.size() );
+                    cvSaveImage(buffer, combinedAdd);
+
+                    sprintf(buffer, "%s_debug_max.JPEG", output_gpath.c_str());
+                    cvConvertScale( combinedMax, combinedMax, sensitivity );
+                    cvSaveImage(buffer, combinedMax);
+                }   
+            }
+
+            // Release memory
+            cvReleaseImage(&combinedAdd);
+            cvReleaseImage(&combinedMax);
+
             // Scale to output
             cvConvertScale( combined, output, sensitivity / scale_vector.size() );
             cvSmooth( output, output, CV_GAUSSIAN, 5);
+
+            // Release memory 
+            cvReleaseImage(&combined);
 
             if (output_gpath.length() > 0)
             {
@@ -305,14 +328,6 @@ public:
                     // Save output mode image
                     sprintf(buffer, "%s_debug_thresh.JPEG", output_gpath.c_str());
                     cvSaveImage(buffer, output);
-
-                    sprintf(buffer, "%s_debug_add.JPEG", output_gpath.c_str());
-                    cvConvertScale( combinedAdd, combinedAdd, sensitivity / scale_vector.size() );
-                    cvSaveImage(buffer, combinedAdd);
-
-                    sprintf(buffer, "%s_debug_max.JPEG", output_gpath.c_str());
-                    cvConvertScale( combinedMax, combinedMax, sensitivity );
-                    cvSaveImage(buffer, combinedMax);
                 }   
             }
     
@@ -341,7 +356,6 @@ public:
 
             for (i = 0; contours != 0; contours = contours->h_next, ++i)
             {    
-
                 rect = cvBoundingRect(contours);
                 if(rect.width * rect.height >= nms_min_area_contour)
                 {
@@ -363,6 +377,8 @@ public:
                     bottom.clear();
                     top.clear();
 
+                    // #pragma omp critical(memoryIntensive)
+                    // {
                     for(k = 0; k < manifests.size(); ++k)
                     {
                         minx = std::max(int((centerx - rect.width)  * scale_vector[k]), 0);
@@ -404,6 +420,8 @@ public:
                                         top.push_back(y_);
                                     }
                                 }
+                                // Release memory (! effects the bounding box regressions !)
+                                // manifests[k][y][x].clear();
                             }
                         }
                     }
@@ -531,6 +549,13 @@ public:
                         cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(255, 255, 0), 3);   
                     }
 
+                    // Free up space
+                    // left.clear();
+                    // right.clear();
+                    // bottom.clear();
+                    // top.clear();
+                    // }
+
                     // Fix width and height
                     width  -= xtl;
                     height -= ytl;
@@ -550,11 +575,19 @@ public:
                 }
             }
 
+            // Free up space
+            // manifests.clear();
             cvReleaseMemStorage(&storage);
         }
         else if(mode == 1)
         {
             cvConvertScale( combinedMax, output, sensitivity );
+
+            // Release memory
+            cvReleaseImage(&combinedAdd);
+            cvReleaseImage(&combinedMax);
+            cvReleaseImage(&combined);
+
             // cvConvertScale( combinedAdd, output, sensitivity / scale_vector.size() );
             if (output_gpath.length() > 0)
             {
@@ -577,10 +610,6 @@ public:
 
         // Release image
         cvReleaseImage(&img);
-        cvReleaseImage(&combined);
-        cvReleaseImage(&combinedAdd);
-        cvReleaseImage(&combinedMax);
-        cvReleaseImage(&upscaled);
         cvReleaseImage(&output);        
         cvReleaseImage(&debug);   
 

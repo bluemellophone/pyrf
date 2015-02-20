@@ -48,6 +48,7 @@ void CRForestDetector::detectColor(IplImage *img, IplImage *imgDetect,
     int yoffset = height / 2;
 
     cy = yoffset;
+    // int global_counter = 0;
     for (y = 0; y < img->height - height; ++y, ++cy)
     {
         // Get start of row
@@ -89,6 +90,7 @@ void CRForestDetector::detectColor(IplImage *img, IplImage *imgDetect,
                                 manifest[ny][nx].push_back(cvPoint(cx, cy));
                                 // Give perfect patches an additional vote as a reward
                                 *(ptDet + nx + ny * stepDet) += weight;
+                                // global_counter++;
                             }
                         }
                     }
@@ -112,6 +114,7 @@ void CRForestDetector::detectColor(IplImage *img, IplImage *imgDetect,
             ptFCh[c] += stepImg;
         }
     }
+    // cout << "MANIFEST SIZE (MB): " << global_counter << " " << sizeof(CvPoint*) << "  " << (global_counter * sizeof(CvPoint*)) / (1024.0 * 1024.0) << endl; 
     
     // release feature channels
     for (unsigned int c = 0; c < vImg.size(); ++c)

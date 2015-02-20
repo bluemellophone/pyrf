@@ -84,11 +84,11 @@ detector = Random_Forest_Detector()
 # for result in results:
 #     print 'RESULT: %r' % (result, )
 
-species = "giraffe"
-run_detection(species)
+# species = "giraffe"
+# run_detection(species)
 
 species = "zebra_plains"
 run_detection(species)
 
-species = "zebra_grevys"
-run_detection(species)
+# species = "zebra_grevys"
+# run_detection(species)
