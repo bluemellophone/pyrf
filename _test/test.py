@@ -1,3 +1,4 @@
+#!/usr/bin/env python2.7
 from os import mkdir
 from os.path import join, exists  # NOQA
 import cv2
@@ -46,7 +47,8 @@ def run_detection(species, sensitivity=None):
     test_direct = Directory('test/%s' % (species, ))
     test_gpath_list = test_direct.files()
     zebras_path = 'trees/%s' % (species, )
-
+    if not exists('output'):
+        mkdir('output/')
     if not exists('output/%s' % (species, )):
         mkdir('output/%s' % (species, ))
     test_gpath_list = test_gpath_list
