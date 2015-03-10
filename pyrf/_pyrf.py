@@ -14,6 +14,7 @@ from pyrf.pyrf_helpers import (_load_c_shared_library, _cast_list_to_c, _cache_d
 
 
 VERBOSE_RF = ut.get_argflag('--verbrf') or ut.VERBOSE
+QUIET_RF   = ut.get_argflag('--quietrf') or ut.QUIET
 
 
 #============================
@@ -51,7 +52,8 @@ IMPORTANT:
 
 METHODS = {}
 METHODS['init'] = ([
-    # Nothing
+    C_BOOL,          # verbose
+    C_BOOL,          # quiet
 ], C_OBJ)
 
 METHODS['forest'] = ([
@@ -60,6 +62,7 @@ METHODS['forest'] = ([
     C_INT,           # _tree_path_num
     C_BOOL,          # serial
     C_BOOL,          # verbose
+    C_BOOL,          # quiet
 ], C_OBJ)
 
 METHODS['train'] = ([
@@ -83,6 +86,7 @@ METHODS['train'] = ([
     C_FLOAT,         # trees_prob_optimize_mode
     C_BOOL,          # serial
     C_BOOL,          # verbose
+    C_BOOL,          # quiet
 ], None)
 
 METHODS['detect'] = ([
@@ -103,6 +107,7 @@ METHODS['detect'] = ([
     C_INT,           # RESULT_LENGTH
     C_BOOL,          # serial
     C_BOOL,          # verbose
+    C_BOOL,          # quiet
 ], None)
 RESULT_LENGTH = 8
 
@@ -117,7 +122,7 @@ RF_CLIB = _load_c_shared_library(METHODS)
 #=================================
 class Random_Forest_Detector(object):
 
-    def __init__(rf, verbose=VERBOSE_RF):
+    def __init__(rf, verbose=VERBOSE_RF, quiet=QUIET_RF):
         '''
             Create the C object for the PyRF detector.
 
@@ -128,9 +133,10 @@ class Random_Forest_Detector(object):
                 detector (object): the Random Forest Detector object
         '''
         rf.verbose = verbose
-        if verbose:
+        rf.quiet = quiet
+        if rf.verbose and not rf.quiet:
             print('[pyrf py] New Random_Forest Object Created')
-        rf.detector_c_obj = RF_CLIB.init()
+        rf.detector_c_obj = RF_CLIB.init(rf.verbose, rf.quiet)
 
     def forest(rf, tree_path_list, **kwargs):
         '''
@@ -149,7 +155,8 @@ class Random_Forest_Detector(object):
         # Default values
         params = odict([
             ('serial',                       False),
-            ('verbose',                      True),
+            ('verbose',                      rf.verbose),
+            ('quiet',                        rf.quiet),
         ])
         params.update(kwargs)
 
@@ -268,6 +275,7 @@ class Random_Forest_Detector(object):
             ('trees_prob_optimize_mode',     0.5),
             ('serial',                       False),
             ('verbose',                      rf.verbose),
+            ('quiet',                        rf.quiet),
         ])
         params.update(kwargs)
         # Make the tree path absolute
@@ -290,7 +298,8 @@ class Random_Forest_Detector(object):
         if params['trees_offset'] is None:
             direct = Directory(trees_path, include_file_extensions=['txt'])
             params['trees_offset'] = len(direct.files()) + 1
-            print('[pyrf py] Auto Tree Offset: %d' % params['trees_offset'])
+            if not params['quiet']:
+                print('[pyrf py] Auto Tree Offset: %d' % params['trees_offset'])
 
         # Data integrity
         assert params['chips_norm_width'] is None or params['chips_norm_width'] >= params['patch_width'], \
@@ -323,10 +332,12 @@ class Random_Forest_Detector(object):
             'At least one specified positive chip path does not exist'
         # We will let the C++ code perform the patch size checks
 
-        print('[pyrf py] Caching positives into %r' % (data_path_pos, ))
+        if not params['quiet']:
+            print('[pyrf py] Caching positives into %r' % (data_path_pos, ))
         train_pos_chip_filename_list = _cache_data(train_pos_cpath_list, data_path_pos, **params)
 
-        print('[pyrf py] Caching negatives into %r' % (data_path_neg, ))
+        if not params['quiet']:
+            print('[pyrf py] Caching negatives into %r' % (data_path_neg, ))
         train_neg_chip_filename_list = _cache_data(train_neg_cpath_list, data_path_neg, **params)
 
         # We no longer need these parameters (and they should not be transferred to the C++ library)
@@ -346,8 +357,9 @@ class Random_Forest_Detector(object):
             trees_path,
         ] + params.values()
         RF_CLIB.train(rf.detector_c_obj, *params_list)
-        print('\n\n[pyrf py] *************************************')
-        print('[pyrf py] Training Completed')
+        if not params['quiet']:
+            print('\n\n[pyrf py] *************************************')
+            print('[pyrf py] Training Completed')
 
     def detect(rf, forest, input_gpath_list, **kwargs):
         '''
@@ -381,12 +393,12 @@ class Random_Forest_Detector(object):
                         is utilized
                 sensitivity (float, optional): the sensitivity of the detector;
 
-                        mode = 0 - defaults to 255.0
+                        mode = 0 - defaults to 128.0
                         mode = 1 - defaults to 255.0
 
                 scale_list (list of float, optional): the list of floats that specifies the scales
                     to try during testing;
-                    defaults to [1.33, 1.00, 0.75, 0.56, 0.42, 0.32, 0.24, 0.18]
+                    defaults to [1.0, 0.80, 0.65, 0.50, 0.40, 0.30, 0.20, 0.10]
 
                         scale > 1.0 - Upscale the image
                         scale = 1.0 - Original image size
@@ -442,10 +454,7 @@ class Random_Forest_Detector(object):
             ('output_scale_gpath_list',      None),
             ('mode',                         0),
             ('sensitivity',                  None),
-            # 0.85 - [1.63, 1.38, 1.18, 1.0, 0.85, 0.72, 0.61, 0.52, 0.44, 0.38, 0.32, 0.27, 0.23, 0.2, 0.17, 0.14, 0.12, 0.1]
-            # 0.85 edited - [1.38, 1.18, 1.00, 0.85, 0.72, 0.61, 0.52, 0.44, 0.38, 0.32, 0.26, 0.20, 0.17, 0.14, 0.10]
-            # ('scale_list',                   [1.3, 1.2, 1.1, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]),
-            ('scale_list',                   [1.15, 1.0, 0.85, 0.7, 0.55, 0.4, 0.25, 0.10]),
+            ('scale_list',                   [1.0, 0.80, 0.65, 0.50, 0.40, 0.30, 0.20, 0.10]),
             ('_scale_num',                   None),  # This value always gets overwritten
             ('batch_size',                   None),
             ('nms_min_area_contour',         100),
@@ -455,6 +464,7 @@ class Random_Forest_Detector(object):
             ('RESULT_LENGTH',                None),  # This value always gets overwritten
             ('serial',                       False),
             ('verbose',                      rf.verbose),
+            ('quiet',                        rf.quiet),
         ])
         params.update(kwargs)
         params['RESULT_LENGTH'] = RESULT_LENGTH
@@ -467,8 +477,7 @@ class Random_Forest_Detector(object):
         if params['sensitivity'] is None:
             assert params['mode'] in [0, 1], 'Invalid mode provided'
             if params['mode'] == 0:
-                params['sensitivity'] = 255.0
-                # params['sensitivity'] = 200.0 # add
+                params['sensitivity'] = 128.0
             elif params['mode'] == 1:
                 params['sensitivity'] = 255.0
 
@@ -476,10 +485,14 @@ class Random_Forest_Detector(object):
         if params['batch_size'] is None:
             try:
                 cpu_count = multiprocessing.cpu_count()
-                print('[pyrf py] Detecting with %d CPUs' % (cpu_count, ))
+                if not params['quiet']:
+                    print('[pyrf py] Detecting with %d CPUs' % (cpu_count, ))
                 params['batch_size'] = cpu_count
             except:
                 params['batch_size'] = 8
+
+        # To eleminate downtime, add 1 to batch_size
+        # params['batch_size'] +=
 
         # Data integrity
         assert params['mode'] >= 0, \
@@ -521,14 +534,15 @@ class Random_Forest_Detector(object):
         # Prepare for C
         params['_scale_num'] = len(params['scale_list'])
         params['scale_list'] = _cast_list_to_c(params['scale_list'], C_FLOAT)
-        print('[pyrf py] Detecting over %d scales' % (params['_scale_num'], ))
+        if not params['quiet']:
+            print('[pyrf py] Detecting over %d scales' % (params['_scale_num'], ))
 
         # Run training algorithm
         batch_size = params['batch_size']
         del params['batch_size']  # Remove this value from params
         batch_num = int(len(input_gpath_list) / batch_size) + 1
         # Detect for each batch
-        for batch in ut.ProgressIter(range(batch_num), lbl="[pyrf py]", freq=1, message_type=2):
+        for batch in ut.ProgressIter(range(batch_num), lbl="[pyrf py]", freq=1, invert_rate=True):
             begin = time.time()
             start = batch * batch_size
             end   = start + batch_size
@@ -556,7 +570,8 @@ class Random_Forest_Detector(object):
             RF_CLIB.detect(rf.detector_c_obj, *params_list)
             results_list = _extract_np_array(params['results_len_array'], params['results_val_array'], NP_ARRAY_FLOAT, NP_FLOAT32, RESULT_LENGTH)
             conclude = time.time()
-            print('[pyrf py] Took %r seconds to compute %d images' % (conclude - begin, num_images, ))
+            if not params['quiet']:
+                print('[pyrf py] Took %r seconds to compute %d images' % (conclude - begin, num_images, ))
             for input_gpath, result_list in zip(input_gpath_list_, results_list):
                 if params['mode'] == 0:
                     result_list_ = []
