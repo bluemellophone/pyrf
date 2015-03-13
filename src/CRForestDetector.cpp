@@ -18,7 +18,6 @@ using namespace std;
 
 void CRForestDetector::detectColor(IplImage *img, IplImage *imgDetect,
                                    vector<vector<vector<CvPoint > > > &manifest,
-                                   vector<vector<vector<const LeafNode *> > > &leaf,
                                    int mode, float multiplier)
 {
     // extract features
@@ -67,12 +66,7 @@ void CRForestDetector::detectColor(IplImage *img, IplImage *imgDetect,
 
             // vote for all trees (leafs)
             for (vector<const LeafNode *>::const_iterator itL = result.begin(); itL != result.end(); ++itL)
-            {
-                if ((*itL)->pfg == 1.00)
-                {
-                    leaf[cy][cx].push_back((*itL));
-                }
-                
+            {   
                 // To speed up the voting, one can vote only for patches
                 // with a probability for foreground > 0.5
                 if (mode == 0 && (*itL)->pfg > 0.5) // Mode: Hough Voting (default)
@@ -133,7 +127,6 @@ void CRForestDetector::detectColor(IplImage *img, IplImage *imgDetect,
 
 void CRForestDetector::detectPyramid(IplImage *img, vector<IplImage * > &vImgDetect,
                                      vector<vector<vector<vector<CvPoint > > > > &vManifests,
-                                     vector<vector<vector<vector<const LeafNode *> > > > &vLeafs,
                                      vector<float> &scale_vector, int mode, bool serial)
 {
 
@@ -151,7 +144,7 @@ void CRForestDetector::detectPyramid(IplImage *img, vector<IplImage * > &vImgDet
             // cvResize( img, scale, CV_INTER_LINEAR );
             // detection
             float multiplier = sqrt(1.0 / scale_vector[i]);
-            detectColor(scale, vImgDetect[i], vManifests[i], vLeafs[i], mode, multiplier);
+            detectColor(scale, vImgDetect[i], vManifests[i], mode, multiplier);
             // release
             cvReleaseImage(&scale);
         }

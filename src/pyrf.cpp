@@ -104,7 +104,7 @@ PYTHON_RANDOM_FOREST void detect(CRForestDetectorClass *detector, CRForest *fore
         }
     }
     
-    // #pragma omp parallel for if(!serial)
+    #pragma omp parallel for if(!serial)
     for (int index = 0; index < _input_gpath_num; ++index)
     {
         string input_gpath = input_gpath_array[index];
