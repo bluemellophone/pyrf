@@ -19,7 +19,9 @@ public:
 
     // detect multi scale
     void detectPyramid(IplImage *img, vector<IplImage * > &imgDetect,
-                       vector<vector<vector<vector<CvPoint > > > > &vmenifests, vector<float> &scale_vector, int mode, bool serial);
+                       vector<vector<vector<vector<CvPoint > > > > &vmenifests, 
+                       vector<vector<vector<vector<const LeafNode *> > > > &vLeafs,
+                       vector<float> &scale_vector, int mode, bool serial);
 
     // Get/Set functions
     unsigned int GetNumCenter() const {
@@ -28,7 +30,9 @@ public:
 
 private:
     void detectColor(IplImage *img, IplImage *imgDetect,
-                     vector<vector<vector<CvPoint > > > &manifest, int mode, float multiplier);
+                     vector<vector<vector<CvPoint > > > &manifest, 
+                     vector<vector<vector<const LeafNode *> > > &leaf,
+                     int mode, float multiplier);
 
     const CRForest *crForest;
     int width;

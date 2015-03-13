@@ -92,5 +92,5 @@ detector = Random_Forest_Detector()
 species = "zebra_plains"
 run_detection(species)
 
-# species = "zebra_grevys"
-# run_detection(species)
+species = "zebra_grevys"
+run_detection(species)
