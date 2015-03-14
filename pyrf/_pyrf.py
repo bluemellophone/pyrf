@@ -454,7 +454,7 @@ class Random_Forest_Detector(object):
             ('output_scale_gpath_list',      None),
             ('mode',                         0),
             ('sensitivity',                  None),
-            ('scale_list',                   [1.0, 0.80, 0.65, 0.50, 0.40, 0.30, 0.20, 0.10]),
+            ('scale_list',                   [1.25, 1.0, 0.80, 0.65, 0.50, 0.40, 0.30, 0.20, 0.15, 0.10]),
             ('_scale_num',                   None),  # This value always gets overwritten
             ('batch_size',                   None),
             ('nms_min_area_contour',         100),

@@ -16,7 +16,8 @@ endif()
 
 #######################################
 project(pyrf) #### !!!!IMPORTANT!!!! THIS MUST BE DOWN HERE FOR CLANG2
-set(CMAKE_BUILD_TYPE "Release")
+set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3")
 
 if (APPLE)
     #MacPorts

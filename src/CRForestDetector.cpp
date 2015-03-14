@@ -16,13 +16,72 @@
 
 using namespace std;
 
+int CRForestDetector::findLabel(vector<CvRect > &peaks, int nx, int ny, float scale)
+{
+    int sx = int(nx / scale);
+    int sy = int(ny / scale);
+    // TODO: Sort based on size of area to give preference to bigger bounding boxes (NMS)
+    CvRect peak;
+    for(int p = 0; p < peaks.size(); ++p)
+    {   
+        peak = peaks[p];
+        // if(peak.contains(cvPoint(sx, sy)))
+        if(peak.x <= sx && sx < peak.x + peak.width && peak.y <= sy && sy < peak.y + peak.height)
+        {
+            return p;
+        }
+    }
+    return -1;
+}
+
+int CRForestDetector::findGreedy(vector<int > &labels)
+{
+    int val;
+    int count     = -1;
+    int value     = -1;
+    int max_count = -1;
+    int max_value = -1;
+ 
+    std::sort(labels.begin(), labels.end());
+
+    for(int l = 0; l < labels.size(); ++l)
+    {
+        val = labels[l];
+        if(val == -1)
+        {
+            continue;
+        }
+        if(val == value)
+        {
+            count++;
+        }
+        else
+        {
+            if(count > max_count)
+            {
+                max_count = count;
+                max_value = value;
+            }
+            count = 1;
+            value = val;
+        }
+    }
+    if(count > max_count)
+    {
+        max_count = count;
+        max_value = value;
+    }
+    return max_value;
+}
+
 void CRForestDetector::detectColor(IplImage *img, IplImage *imgDetect,
                                    vector<vector<vector<CvPoint > > > &manifest,
-                                   int mode, float multiplier)
+                                   vector<CvRect > &peaks, float scale, int mode)
 {
     // extract features
     vector<IplImage * > vImg;
     CRPatch::extractFeatureChannels(img, vImg);
+    float multiplier = sqrt(1.0 / scale);
 
     // reset output image
     cvSetZero( imgDetect );
@@ -42,7 +101,9 @@ void CRForestDetector::detectColor(IplImage *img, IplImage *imgDetect,
     cvGetRawData( imgDetect, (uchar **) & (ptDet), &stepDet);
     stepDet /= sizeof(ptDet[0]);
 
-    int x, y, cx, cy, nx, ny; // x, y top left; cx, cy center of patch
+    vector<int > labels;
+    int x, y, cx, cy, nx, ny, greedy, label; // x, y top left; cx, cy center of patch
+    int count, value, max_count, max_value;
     float weight;
     int xoffset = width / 2;
     int yoffset = height / 2;
@@ -75,10 +136,37 @@ void CRForestDetector::detectColor(IplImage *img, IplImage *imgDetect,
                     // Apply the scale multiplier to the vote
                     weight *= multiplier;
                     // Vote for all center offsets stored in the leaf
-                    for (vector<CvPoint>::const_iterator it = (*itL)->vCenter.begin(); it != (*itL)->vCenter.end(); ++it)
+
+                    greedy = -1;
+                    if(peaks.size() > 0)
                     {
+                        labels.clear();
+                        for (vector<CvPoint>::const_iterator it = (*itL)->vCenter.begin(); it != (*itL)->vCenter.end(); ++it)
+                        {       
+                            nx = cx - it->x;
+                            ny = cy - it->y;
+                            label = findLabel(peaks, nx, ny, scale);
+                            labels.push_back(label);
+                        }
+                        greedy = findGreedy(labels);
+                    }
+
+                    for (vector<CvPoint>::const_iterator it = (*itL)->vCenter.begin(); it != (*itL)->vCenter.end(); ++it)
+                    {   
                         nx = cx - it->x;
                         ny = cy - it->y;
+                        
+                        // Greedy voting
+                        if(greedy >= 0)
+                        {
+                            label = findLabel(peaks, nx, ny, scale);
+                            if(label >= 0 && label != greedy)
+                            // if(label != greedy)
+                            {
+                                continue;
+                            }
+                        }
+
                         // TODO: Let votes vote outside of the image
                         if (ny >= 0 && ny < imgDetect->height && nx >= 0 && nx < imgDetect->width)
                         {
@@ -89,7 +177,7 @@ void CRForestDetector::detectColor(IplImage *img, IplImage *imgDetect,
                             {
                                 manifest[ny][nx].push_back(cvPoint(cx, cy));
                                 // Give perfect patches an additional vote as a reward
-                                *(ptDet + nx + ny * stepDet) += weight;
+                                // *(ptDet + nx + ny * stepDet) += weight;
                                 // global_counter++;
                             }
                         }
@@ -127,7 +215,8 @@ void CRForestDetector::detectColor(IplImage *img, IplImage *imgDetect,
 
 void CRForestDetector::detectPyramid(IplImage *img, vector<IplImage * > &vImgDetect,
                                      vector<vector<vector<vector<CvPoint > > > > &vManifests,
-                                     vector<float> &scale_vector, int mode, bool serial)
+                                     vector<float> &scale_vector, vector<CvRect > &peaks, 
+                                     int mode, bool serial)
 {
 
     if (img->nChannels == 1)
@@ -143,8 +232,7 @@ void CRForestDetector::detectPyramid(IplImage *img, vector<IplImage * > &vImgDet
             cvResize( img, scale, CV_INTER_LANCZOS4 );
             // cvResize( img, scale, CV_INTER_LINEAR );
             // detection
-            float multiplier = sqrt(1.0 / scale_vector[i]);
-            detectColor(scale, vImgDetect[i], vManifests[i], mode, multiplier);
+            detectColor(scale, vImgDetect[i], vManifests[i], peaks, scale_vector[i], mode);
             // release
             cvReleaseImage(&scale);
         }
