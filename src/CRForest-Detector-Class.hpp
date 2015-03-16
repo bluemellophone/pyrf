@@ -581,14 +581,18 @@ public:
         }
         else if(mode == 1)
         {
+            //#define USE_MAX 0
+            #ifdef USE_MAX
             cvConvertScale( combinedMax, output, sensitivity );
+            #else
+            cvConvertScale( combinedAdd, output, sensitivity / scale_vector.size() );
+            #endif
 
             // Release memory
             cvReleaseImage(&combinedAdd);
             cvReleaseImage(&combinedMax);
             cvReleaseImage(&combined);
 
-            // cvConvertScale( combinedAdd, output, sensitivity / scale_vector.size() );
             if (output_gpath.length() > 0)
             {
                 // Save output mode image
