@@ -160,7 +160,7 @@ public:
         // This threshold value is important, but not really because it can be controlled
         // with the sensitivity value
         // int threshold = int(255.0 * 0.90);
-        bool debug_flag = false;
+        bool debug_flag = true;
         int threshold = int(255 * 0.90);
         int accumulate_mode = 1; // 1 - max, 0 - add | 0 - hough, 1 - classification
         float density = 0.990;
