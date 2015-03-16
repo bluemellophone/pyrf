@@ -393,7 +393,7 @@ class Random_Forest_Detector(object):
                         is utilized
                 sensitivity (float, optional): the sensitivity of the detector;
 
-                        mode = 0 - defaults to 128.0
+                        mode = 0 - defaults to 255.0
                         mode = 1 - defaults to 255.0
 
                 scale_list (list of float, optional): the list of floats that specifies the scales
@@ -477,7 +477,7 @@ class Random_Forest_Detector(object):
         if params['sensitivity'] is None:
             assert params['mode'] in [0, 1], 'Invalid mode provided'
             if params['mode'] == 0:
-                params['sensitivity'] = 128.0
+                params['sensitivity'] = 255.0
             elif params['mode'] == 1:
                 params['sensitivity'] = 255.0
 
