@@ -408,8 +408,8 @@ class Random_Forest_Detector(object):
                     should be carefully chosen
 
                     The scales are applied to BOTH the width and the height of the image
-                    in order to scale the image and an interpolation of CV_INTER_LINEAR
-                    is used
+                    in order to scale the image and an interpolation of OpenCV's
+                    CV_INTER_LANCZOS4 is used
                 batch_size (int, optional): the number of images to test at a single
                     time in paralell (if None, the number of CPUs is used); defaults to None
                 nms_min_area_contour (int, optional): the minimum size of a centroid
