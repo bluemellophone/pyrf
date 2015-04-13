@@ -22,5 +22,5 @@ export NCPUS=$(grep -c ^processor /proc/cpuinfo)
 make -j$NCPUS -w
 #################################
 echo 'Moving the shared library'
-cp lib* ../pyrf
+cp -v lib* ../pyrf
 cd ..
