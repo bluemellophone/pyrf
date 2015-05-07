@@ -615,7 +615,7 @@ class Random_Forest_Detector(object):
         '''
         pass
 
-    def load(file):
+    def load(rf, file):
         '''
             UNIMPLEMENTED
 
@@ -627,7 +627,7 @@ class Random_Forest_Detector(object):
         '''
         pass
 
-    def loads(string):
+    def loads(rf, string):
         '''
             UNIMPLEMENTED
 
