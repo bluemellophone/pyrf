@@ -18,7 +18,7 @@ using namespace std;
 
 void CRForestDetector::detectColor(IplImage *img, IplImage *imgDetect,
                                    vector<vector<vector<CvPoint > > > &manifest,
-                                   int mode, float multiplier)
+                                   int mode, float multiplier, bool serial)
 {
     // extract features
     vector<IplImage * > vImg;
@@ -42,7 +42,8 @@ void CRForestDetector::detectColor(IplImage *img, IplImage *imgDetect,
     cvGetRawData( imgDetect, (uchar **) & (ptDet), &stepDet);
     stepDet /= sizeof(ptDet[0]);
 
-    int x, y, cx, cy, nx, ny; // x, y top left; cx, cy center of patch
+    int x, y, cx, cy; // nx, ny; // x, y top left; cx, cy center of patch
+    int z;
     float weight;
     int xoffset = width / 2;
     int yoffset = height / 2;
@@ -75,10 +76,12 @@ void CRForestDetector::detectColor(IplImage *img, IplImage *imgDetect,
                     // Apply the scale multiplier to the vote
                     weight *= multiplier;
                     // Vote for all center offsets stored in the leaf
-                    for (vector<CvPoint>::const_iterator it = (*itL)->vCenter.begin(); it != (*itL)->vCenter.end(); ++it)
-                    {
-                        nx = cx - it->x;
-                        ny = cy - it->y;
+                    #pragma omp parallel for if(serial)
+                    for (z = 0; z < (*itL)->vCenter.size(); ++z)
+                    {   
+                        CvPoint it = (*itL)->vCenter[z];
+                        int nx = cx - it.x;
+                        int ny = cy - it.y;
                         // TODO: Let votes vote outside of the image
                         if (ny >= 0 && ny < imgDetect->height && nx >= 0 && nx < imgDetect->width)
                         {
@@ -87,10 +90,13 @@ void CRForestDetector::detectColor(IplImage *img, IplImage *imgDetect,
                             // If perfect confidence, add point to the manifest
                             if ((*itL)->pfg == 1.00)
                             {
-                                manifest[ny][nx].push_back(cvPoint(cx, cy));
-                                // Give perfect patches an additional vote as a reward
-                                *(ptDet + nx + ny * stepDet) += weight;
-                                // global_counter++;
+                                #pragma omp critical(voting)
+                                {
+                                    manifest[ny][nx].push_back(cvPoint(cx, cy));
+                                    // Give perfect patches an additional vote as a reward
+                                    *(ptDet + nx + ny * stepDet) += weight;
+                                    // global_counter++;
+                                }
                             }
                         }
                     }
@@ -144,7 +150,7 @@ void CRForestDetector::detectPyramid(IplImage *img, vector<IplImage * > &vImgDet
             // cvResize( img, scale, CV_INTER_LINEAR );
             // detection
             float multiplier = sqrt(1.0 / scale_vector[i]);
-            detectColor(scale, vImgDetect[i], vManifests[i], mode, multiplier);
+            detectColor(scale, vImgDetect[i], vManifests[i], mode, multiplier, serial);
             // release
             cvReleaseImage(&scale);
         }

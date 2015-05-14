@@ -28,7 +28,7 @@ public:
 
 private:
     void detectColor(IplImage *img, IplImage *imgDetect,
-                     vector<vector<vector<CvPoint > > > &manifest, int mode, float multiplier);
+                     vector<vector<vector<CvPoint > > > &manifest, int mode, float multiplier, bool serial);
 
     const CRForest *crForest;
     int width;

@@ -164,11 +164,20 @@ public:
         int threshold = int(255 * 0.90);
         int accumulate_mode = 1; // 1 - max, 0 - add | 0 - hough, 1 - classification
         float density = 0.990;
+        verbose = true;
 
         // Load forest into detector object
         CRForestDetector crDetect(forest);
         char buffer[512];
 
+        if(serial)
+        {
+            cout << "[pyrf c++] SERIAL" << endl;
+        }
+        else
+        {
+            cout << "[pyrf c++] PARALELL" << endl;
+        }
         // Storage for output
         vector<IplImage *> vImgDetect(scale_vector.size());
         vector<vector<vector<vector<CvPoint > > > > manifests(scale_vector.size());
