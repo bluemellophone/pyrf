@@ -7,7 +7,16 @@ import cv2
 import random
 import numpy as np
 import ctypes as C
+import sys
 import detecttools.ctypes_interface as ctypes_interface
+
+
+def ensure_bytes_strings(str_list):
+    # converts python3 strings into bytes
+    if sys.hexversion > 0x03000000:
+        return [str_ if not isinstance(str_, str) else bytes(str_, 'utf-8') for str_ in str_list]
+    else:
+        return str_list
 
 
 def _cast_list_to_c(py_list, dtype):

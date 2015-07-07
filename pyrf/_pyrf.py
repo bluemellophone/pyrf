@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function
 from collections import OrderedDict as odict
 import multiprocessing
 import ctypes as C
+from six.moves import zip, range
 # Scientific
 import utool as ut
 import numpy as np
@@ -10,7 +11,7 @@ import time
 from os.path import join, exists, abspath, isdir
 import shutil
 from detecttools.directory import Directory
-from pyrf.pyrf_helpers import (_load_c_shared_library, _cast_list_to_c, _cache_data, _extract_np_array)
+from pyrf.pyrf_helpers import (_load_c_shared_library, _cast_list_to_c, ensure_bytes_strings, _cache_data, _extract_np_array)
 
 
 VERBOSE_RF = ut.get_argflag('--verbrf') or ut.VERBOSE
@@ -167,9 +168,9 @@ class Random_Forest_Detector(object):
             'At least one specified tree path does not exist'
 
         params_list = [
-            _cast_list_to_c(tree_path_list, C_CHAR),
+            _cast_list_to_c(ensure_bytes_strings(tree_path_list), C_CHAR),
             len(tree_path_list),
-        ] + params.values()
+        ] + list(params.values())
         return RF_CLIB.forest(rf.detector_c_obj, *params_list)
 
     def train_folder(rf, train_pos_path, train_neg_path, trees_path, **kwargs):
@@ -349,13 +350,13 @@ class Random_Forest_Detector(object):
         # Run training algorithm
         params_list = [
             data_path_pos,
-            _cast_list_to_c(train_pos_chip_filename_list, C_CHAR),
+            _cast_list_to_c(ensure_bytes_strings(train_pos_chip_filename_list), C_CHAR),
             len(train_pos_chip_filename_list),
             data_path_neg,
-            _cast_list_to_c(train_neg_chip_filename_list, C_CHAR),
+            _cast_list_to_c(ensure_bytes_strings(train_neg_chip_filename_list), C_CHAR),
             len(train_neg_chip_filename_list),
             trees_path,
-        ] + params.values()
+        ] + list(params.values())
         RF_CLIB.train(rf.detector_c_obj, *params_list)
         if not params['quiet']:
             print('\n\n[pyrf py] *************************************')
@@ -519,7 +520,7 @@ class Random_Forest_Detector(object):
             for index in range(len(output_gpath_list)):
                 if output_gpath_list[index] is None:
                     output_gpath_list[index] = ''
-        output_gpath_list = _cast_list_to_c(output_gpath_list, C_CHAR)
+        output_gpath_list = _cast_list_to_c(ensure_bytes_strings(output_gpath_list), C_CHAR)
 
         if output_scale_gpath_list is None:
             output_scale_gpath_list = [''] * len(input_gpath_list)
@@ -529,7 +530,7 @@ class Random_Forest_Detector(object):
             for index in range(len(output_scale_gpath_list)):
                 if output_scale_gpath_list[index] is None:
                     output_scale_gpath_list[index] = ''
-        output_scale_gpath_list = _cast_list_to_c(output_scale_gpath_list, C_CHAR)
+        output_scale_gpath_list = _cast_list_to_c(ensure_bytes_strings(output_scale_gpath_list), C_CHAR)
 
         # Prepare for C
         params['_scale_num'] = len(params['scale_list'])
@@ -562,11 +563,11 @@ class Random_Forest_Detector(object):
             # Make the params_list
             params_list = [
                 forest,
-                _cast_list_to_c(input_gpath_list_, C_CHAR),
+                _cast_list_to_c(ensure_bytes_strings(input_gpath_list_), C_CHAR),
                 num_images,
-                _cast_list_to_c(output_gpath_list_, C_CHAR),
-                _cast_list_to_c(output_scale_gpath_list_, C_CHAR)
-            ] + params.values()
+                _cast_list_to_c(ensure_bytes_strings(output_gpath_list_), C_CHAR),
+                _cast_list_to_c(ensure_bytes_strings(output_scale_gpath_list_), C_CHAR)
+            ] + list(params.values())
             RF_CLIB.detect(rf.detector_c_obj, *params_list)
             results_list = _extract_np_array(params['results_len_array'], params['results_val_array'], NP_ARRAY_FLOAT, NP_FLOAT32, RESULT_LENGTH)
             conclude = time.time()
