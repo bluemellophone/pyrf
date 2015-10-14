@@ -9,11 +9,21 @@ echo 'Creating new build'
 mkdir build
 cd build
 #################################
+
+export PYEXE=$(which python2.7)
+if [[ "$VIRTUAL_ENV" == ""  ]]; then
+    export LOCAL_PREFIX=/usr/local
+    export _SUDO="sudo"
+else
+    export LOCAL_PREFIX=$($PYEXE -c "import sys; print(sys.prefix)")/local
+    export _SUDO=""
+fi
+
 echo 'Configuring with cmake'
 if [[ '$OSTYPE' == 'darwin'* ]]; then
-    export CONFIG="-DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_C_COMPILER=clang2 -DCMAKE_CXX_COMPILER=clang2++"
+    export CONFIG="-DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_C_COMPILER=clang2 -DCMAKE_CXX_COMPILER=clang2++ -DCMAKE_INSTALL_PREFIX=$LOCAL_PREFIX -DOpenCV_DIR=$LOCAL_PREFIX/share/OpenCV"
 else
-    export CONFIG="-DCMAKE_BUILD_TYPE='Release'"
+    export CONFIG="-DCMAKE_BUILD_TYPE='Release' -DCMAKE_INSTALL_PREFIX=$LOCAL_PREFIX -DOpenCV_DIR=$LOCAL_PREFIX/share/OpenCV"
 fi
 cmake $CONFIG -G 'Unix Makefiles' ..
 #################################
