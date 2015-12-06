@@ -7,14 +7,18 @@ import cv2
 import random
 import numpy as np
 import ctypes as C
+import utool as ut
 import detecttools.ctypes_interface as ctypes_interface
+
+ut.noinject(__name__, '[pyrf_helpers]')
 
 
 def _cast_list_to_c(py_list, dtype):
     """
     Converts a python list of strings into a c array of strings
-    adapted from "http://stackoverflow.com/questions/3494598/passing-a-list-of
-    -strings-to-from-python-ctypes-to-c-function-expecting-char"
+
+    References:
+        http://stackoverflow.com/questions/3494598/passing-a-list-of-strings-to-from-python-ctypes-to-c-function-expecting-char
     Avi's code
     """
     c_arr = (dtype * len(py_list))()
@@ -25,11 +29,12 @@ def _cast_list_to_c(py_list, dtype):
 def _arrptr_to_np(c_arrptr, shape, arr_t, dtype):
     """
     Casts an array pointer from C to numpy
-    Input:
+    Avi's code
+
+    Args:
         c_arrpt - an array pointer returned from C
         shape   - shape of that array pointer
         arr_t   - the ctypes datatype of c_arrptr
-    Avi's code
     """
     arr_t_size = C.POINTER(C.c_char * dtype().itemsize)           # size of each item
     c_arr = C.cast(c_arrptr.astype(int), arr_t_size)              # cast to ctypes
@@ -55,7 +60,7 @@ def _extract_np_array(size_list, ptr_list, arr_t, arr_dtype,
 
 
 def _load_c_shared_library(METHODS):
-    ''' Loads the pyrf dynamic library and defines its functions '''
+    """ Loads the pyrf dynamic library and defines its functions """
     root_dir = realpath(join('..', dirname(__file__)))
     libname = 'pyrf'
     rf_clib, def_cfunc = ctypes_interface.load_clib(libname, root_dir)
@@ -65,15 +70,17 @@ def _load_c_shared_library(METHODS):
     return rf_clib
 
 
-def _cache_data(src_path_list, dst_path, format_str='data_%07d.JPEG', **kwargs):
-    '''
+def _cache_data(src_path_list, dst_path, format_str='data_%07d.JPEG',
+                **kwargs):
+    """
+    Args:
         src_path_list                    (required)
         dst_path                         (required)
         chips_norm_width                 (required)
         chips_norm_height                (required)
         chips_prob_flip_horizontally     (required)
         chips_prob_flip_vertically       (required)
-    '''
+    """
     if kwargs['chips_norm_width'] is not None:
         kwargs['chips_norm_width'] = int(kwargs['chips_norm_width'])
     if kwargs['chips_norm_height'] is not None:

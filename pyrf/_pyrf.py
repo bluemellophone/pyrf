@@ -1,16 +1,17 @@
 from __future__ import absolute_import, division, print_function
-# Standard
-from collections import OrderedDict as odict
 import multiprocessing
 import ctypes as C
-# Scientific
 import utool as ut
 import numpy as np
 import time
-from os.path import join, exists, abspath, isdir
 import shutil
+from collections import OrderedDict as odict
+from os.path import join, exists, abspath, isdir
 from detecttools.directory import Directory
-from pyrf.pyrf_helpers import (_load_c_shared_library, _cast_list_to_c, _cache_data, _extract_np_array)
+from pyrf.pyrf_helpers import (_load_c_shared_library, _cast_list_to_c,
+                               _cache_data, _extract_np_array)
+
+ut.noinject(__name__, '[pyrf]')
 
 
 VERBOSE_RF = ut.get_argflag('--verbrf') or ut.VERBOSE

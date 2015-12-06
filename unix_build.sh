@@ -15,6 +15,15 @@ if [[ '$OSTYPE' == 'darwin'* ]]; then
 else
     export CONFIG="-DCMAKE_BUILD_TYPE='Release'"
 fi
+
+# Virtual Env
+virtualenv_settings()
+{
+    $PYTHON_VENV/venv
+    ls $PYTHON_VENV
+    ls $PYTHON_VENV/local/share/OpenCV
+    export OpenCV_DIR=$PYTHON_VENV/local/share/OpenCV
+}
 cmake $CONFIG -G 'Unix Makefiles' ..
 #################################
 echo 'Building with make'
