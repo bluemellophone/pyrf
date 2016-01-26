@@ -12,11 +12,11 @@ TEST_DATA_MODEL_URL = 'https://dl.dropboxusercontent.com/s/9814r3d2rkiq5t3/rf.zi
 def test_pyrf():
     r"""
     CommandLine:
-        python -m test_pyrf --test-test_pyrf
+        python run_tests.py --test-test_pyrf
 
     Example:
         >>> # ENABLE_DOCTEST
-        >>> from test_pyrf import *  # NOQA
+        >>> from run_tests import *  # NOQA
         >>> result = test_pyrf()
         >>> print(result)
     """
@@ -119,18 +119,13 @@ def test_pyrf():
 
 
 if __name__ == '__main__':
-    test_locals = ut.run_test(test_pyrf)
-    exec(ut.execstr_dict(test_locals, 'test_locals'))
-    exec(ut.ipython_execstr())
-
-#if __name__ == '__main__':
-#    """
-#    CommandLine:
-#        python ~/code/pyrf/test_pyrf.py
-#        python ~/code/pyrf/test_pyrf.py --allexamples
-#        python ~/code/pyrf/test_pyrf.py --allexamples --noface --nosrc
-#    """
-#    import multiprocessing
-#    multiprocessing.freeze_support()  # for win32
-#    import utool as ut  # NOQA
-#    ut.doctest_funcs()
+    r"""
+    CommandLine:
+        export PYTHONPATH=$PYTHONPATH:/home/joncrall/code/pyrf
+        python ~/code/pyrf/run_tests.py
+        python ~/code/pyrf/run_tests.py --allexamples
+    """
+    import multiprocessing
+    multiprocessing.freeze_support()  # for win32
+    import utool as ut  # NOQA
+    ut.doctest_funcs()
