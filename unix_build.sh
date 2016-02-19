@@ -1,3 +1,4 @@
+#!/bin/bash
 #################################
 echo 'Removing old build'
 rm -rf build
