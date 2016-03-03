@@ -189,7 +189,7 @@ public:
         {
             if (!img)
             {
-                cout << "[pyrf c++] Could not load image file: " << input_gpath << endl;   
+                cout << "[pyrf c++] Could not load image file: " << input_gpath << endl;
                 exit(-1);
             }
             else
@@ -207,7 +207,7 @@ public:
         IplImage *upscaled = cvCreateImage(cvSize(img->width, img->height), IPL_DEPTH_32F, 1);
         IplImage *output   = cvCreateImage(cvSize(img->width, img->height), IPL_DEPTH_8U,  1);
         IplImage *debug    = cvLoadImage(input_gpath.c_str(), CV_LOAD_IMAGE_COLOR);
-        
+
         // Prepare scale_vector
         int w, h, k;
         for (k = 0; k < vImgDetect.size(); ++k)
@@ -268,7 +268,7 @@ public:
 
             // Create combined
             cvConvertScale( combinedMax, combined, maxvalAdd / maxvalMax );
-            cvMax( combined, combinedAdd, combined ); 
+            cvMax( combined, combinedAdd, combined );
 
             // Smooth the image
             cvSmooth( combined, combined, CV_GAUSSIAN, 5);
@@ -299,7 +299,7 @@ public:
                     sprintf(buffer, "%s_debug_max.JPEG", output_gpath.c_str());
                     cvConvertScale( combinedMax, combinedMax, sensitivity );
                     cvSaveImage(buffer, combinedMax);
-                }   
+                }
             }
 
             // Release memory
@@ -310,7 +310,7 @@ public:
             cvConvertScale( combined, output, sensitivity / scale_vector.size() );
             cvSmooth( output, output, CV_GAUSSIAN, 5);
 
-            // Release memory 
+            // Release memory
             cvReleaseImage(&combined);
 
             if (output_gpath.length() > 0)
@@ -318,7 +318,7 @@ public:
                 // Save output mode image
                 cvSaveImage(output_gpath.c_str(), output);
             }
-            
+
             // if (output_gpath.length() > 0)
             // {
             //     cvErode(output, output, NULL, 3);
@@ -337,15 +337,15 @@ public:
                     // Save output mode image
                     sprintf(buffer, "%s_debug_thresh.JPEG", output_gpath.c_str());
                     cvSaveImage(buffer, output);
-                }   
+                }
             }
-    
+
             // Calculate contours for scaled image
             CvSeq *contours;
             CvMemStorage *storage = cvCreateMemStorage(0);
             cvFindContours(output, storage, &contours, sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
             cvClearMemStorage(storage);
-            
+
             CvRect rect;
             float centerx, centery, xtl, ytl, width, height, confidence, supressed;
             vector<int> left, right, bottom, top;
@@ -353,7 +353,7 @@ public:
             int x_, y_;
             int i, x, y, j;
             int ls, bs, rs, ts;
-    
+
             /////// DEBUG ///////
             int red, green, blue;
             int xm, ym;
@@ -364,7 +364,7 @@ public:
             /////// DEBUG ///////
 
             for (i = 0; contours != 0; contours = contours->h_next, ++i)
-            {    
+            {
                 rect = cvBoundingRect(contours);
                 if(rect.width * rect.height >= nms_min_area_contour)
                 {
@@ -555,7 +555,7 @@ public:
 
                     if(debug_flag)
                     {
-                        cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(255, 255, 0), 3);   
+                        cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(255, 255, 0), 3);
                     }
 
                     // Free up space
@@ -623,8 +623,8 @@ public:
 
         // Release image
         cvReleaseImage(&img);
-        cvReleaseImage(&output);        
-        cvReleaseImage(&debug);   
+        cvReleaseImage(&output);
+        cvReleaseImage(&debug);
 
         // Save results
         int size = temp.size();
@@ -691,7 +691,7 @@ private:
         int val = 0, counter = 0, total = 0;
         int cutoff = int(percentile * data.size());
         for(int c = 0; c < data.size(); ++c)
-        {   
+        {
             if(data[c] != val || c == data.size() - 1)
             {
                 total += counter;
