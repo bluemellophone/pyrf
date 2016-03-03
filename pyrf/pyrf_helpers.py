@@ -64,7 +64,7 @@ def _extract_np_array(size_list, ptr_list, arr_t, arr_dtype,
 
 
 def _load_c_shared_library(METHODS):
-    ''' Loads the pyrf dynamic library and defines its functions '''
+    """ Loads the pyrf dynamic library and defines its functions """
     root_dir = realpath(join('..', dirname(__file__)))
     libname = 'pyrf'
     rf_clib, def_cfunc = ctypes_interface.load_clib(libname, root_dir)
@@ -75,14 +75,14 @@ def _load_c_shared_library(METHODS):
 
 
 def _cache_data(src_path_list, dst_path, format_str='data_%07d.JPEG', **kwargs):
-    '''
+    """
         src_path_list                    (required)
         dst_path                         (required)
         chips_norm_width                 (required)
         chips_norm_height                (required)
         chips_prob_flip_horizontally     (required)
         chips_prob_flip_vertically       (required)
-    '''
+    """
     if kwargs['chips_norm_width'] is not None:
         kwargs['chips_norm_width'] = int(kwargs['chips_norm_width'])
     if kwargs['chips_norm_height'] is not None:
@@ -94,6 +94,9 @@ def _cache_data(src_path_list, dst_path, format_str='data_%07d.JPEG', **kwargs):
             print("Processing %r" % (src_path, ))
         # Load the iamge
         image = cv2.imread(src_path)
+        if image is None:
+            print('\t[WARNING] Cannot load image file, skipping image')
+            continue
         # Get the shape of the iamge
         height_, width_, channels_ = image.shape
         # Determine new image size
@@ -114,7 +117,7 @@ def _cache_data(src_path_list, dst_path, format_str='data_%07d.JPEG', **kwargs):
             height = height_
         # Check for patch size limitation
         if width < kwargs['patch_width'] or height < kwargs['patch_height']:
-            print('\t[WARNING] Image size is too small for the patch size, skipping image ')
+            print('\t[WARNING] Image size is too small for the patch size, skipping image')
             continue
         # Resize the image
         image_ = cv2.resize(image, (width, height), interpolation=cv2.INTER_LANCZOS4)
