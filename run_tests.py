@@ -90,7 +90,7 @@ def test_pyrf():
 
     with ut.Timer('[test_pyrf] for loop detector.detect') as t1:
         if not ut.get_argflag('--skip1'):
-            results_list1 = detector.detect(forest, std_gpath_list, output_gpath_list=dst_gpath_list)
+            results_list1 = detector.detect(forest, std_gpath_list, output_gpath_list=dst_gpath_list, quiet=True)
             #for ix, (img_fpath, dst_fpath) in enumerate(zip(std_gpath_list, dst_gpath_list)):
             #    #img_fname = split(img_fpath)[1]
             #    #dst_fpath = join(detect_path, img_fname)
