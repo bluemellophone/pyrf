@@ -161,7 +161,7 @@ public:
         // with the sensitivity value
         // int threshold = int(255.0 * 0.90);
         bool debug_flag = true;
-        int threshold = int(255 * 0.90);
+        int threshold = int(255.0 * 0.90);
         int accumulate_mode = 1; // 1 - max, 0 - add | 0 - hough, 1 - classification
         float density = 0.990;
         verbose = true;
@@ -239,7 +239,7 @@ public:
         for(int sweep = 1; sweep <= 100; ++ sweep)
         {
             sensitivity = float(sweep * 255.0 / 100.0);
-            cout << "[pyrf c++] Sweep: " << sweep << endl;
+            cout << "[pyrf c++] Sweep: " << sweep << " (" << sensitivity << ")" << endl;
             sweep_file << input_gpath << " " << sweep << endl;
 
             temp.clear();
