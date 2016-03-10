@@ -384,6 +384,8 @@ public:
 
                 for (i = 0; contours != 0; contours = contours->h_next, ++i)
                 {
+
+                    debug = cvLoadImage(input_gpath.c_str(), CV_LOAD_IMAGE_COLOR);
                     rect = cvBoundingRect(contours);
                     if(rect.width * rect.height >= nms_min_area_contour)
                     {
@@ -531,7 +533,7 @@ public:
                                 height = centery;
                             }
                             // cout << xtl << " " << ytl << " " << width << " " << height << endl;
-                            cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(0, 255, 255), 3);
+                            cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(0, 255, 255), 1);
 
                         }
 
@@ -602,6 +604,15 @@ public:
                         temp.push_back(temp_);
 
                         sweep_file << "    " << centerx << " " << centery << " " << xtl << " " << ytl << " " << width << " " << height << " " << confidence << " " << supressed << endl;
+
+                        if(debug_flag)
+                        {
+                            if(output_gpath.length() > 0)
+                            {
+                                sprintf(buffer, "%s_%d_%d_debug.JPEG", output_gpath.c_str(), sweep, i);
+                                cvSaveImage(buffer, debug);
+                            }
+                        }
                     }
                 }
 
