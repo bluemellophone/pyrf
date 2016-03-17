@@ -21,9 +21,9 @@ QUIET_RF   = ut.get_argflag('--quietrf') or ut.QUIET
 #============================
 # CTypes Interface Data Types
 #============================
-'''
+"""
     Bindings for C Variable Types
-'''
+"""
 NP_FLAGS       = 'aligned, c_contiguous, writeable'
 # Primatives
 C_OBJ          = C.c_void_p
@@ -45,11 +45,11 @@ RESULTS_ARRAY  = np.ctypeslib.ndpointer(dtype=NP_ARRAY_FLOAT, ndim=1, flags=NP_F
 #=================================
 # Method Parameter Types
 #=================================
-'''
+"""
 IMPORTANT:
     For functions that return void, use Python None as the return value.
     For functions that take no parameters, use the Python empty list [].
-'''
+"""
 
 METHODS = {}
 METHODS['init'] = ([
@@ -110,6 +110,19 @@ METHODS['detect'] = ([
     C_BOOL,          # verbose
     C_BOOL,          # quiet
 ], None)
+
+METHODS['free_detector'] = ([
+    C_OBJ,           # detector
+    C_BOOL,          # verbose
+    C_BOOL,          # quiet
+], None)
+
+METHODS['free_forest'] = ([
+    C_OBJ,           # forest
+    C_BOOL,          # verbose
+    C_BOOL,          # quiet
+], None)
+
 RESULT_LENGTH = 8
 
 #=================================
@@ -124,7 +137,7 @@ RF_CLIB = _load_c_shared_library(METHODS)
 class Random_Forest_Detector(object):
 
     def __init__(rf, verbose=VERBOSE_RF, quiet=QUIET_RF):
-        '''
+        """
             Create the C object for the PyRF detector.
 
             Args:
@@ -132,7 +145,7 @@ class Random_Forest_Detector(object):
 
             Returns:
                 detector (object): the Random Forest Detector object
-        '''
+        """
         rf.verbose = verbose
         rf.quiet = quiet
         if rf.verbose and not rf.quiet:
@@ -140,7 +153,7 @@ class Random_Forest_Detector(object):
         rf.detector_c_obj = RF_CLIB.init(rf.verbose, rf.quiet)
 
     def forest(rf, tree_path_list, **kwargs):
-        '''
+        """
             Create the forest object by loading a list of tree paths.
 
             Args:
@@ -152,7 +165,7 @@ class Random_Forest_Detector(object):
 
             Returns:
                 forest (object): the forest object of the loaded trees
-        '''
+        """
         # Default values
         params = odict([
             ('serial',                       False),
@@ -181,7 +194,7 @@ class Random_Forest_Detector(object):
         return rf.train(train_pos_cpath_list, train_neg_cpath_list, trees_path, **kwargs)
 
     def train(rf, train_pos_cpath_list, train_neg_cpath_list, trees_path, **kwargs):
-        '''
+        """
             Train a new forest with the given positive chips and negative chips.
 
             Args:
@@ -257,7 +270,7 @@ class Random_Forest_Detector(object):
 
             Returns:
                 None
-        '''
+        """
         # Default values
         params = odict([
             ('chips_norm_width',             128),
@@ -363,7 +376,7 @@ class Random_Forest_Detector(object):
             print('[pyrf py] Training Completed')
 
     def detect(rf, forest, input_gpath_list, **kwargs):
-        '''
+        """
             Run detection with a given loaded forest on a list of images
 
             Args:
@@ -448,7 +461,7 @@ class Random_Forest_Detector(object):
                             box has been marked to be suppressed by the detection
                             algorithm
 
-        '''
+        """
         # Default values
         params = odict([
             ('output_gpath_list',            None),
@@ -591,12 +604,22 @@ class Random_Forest_Detector(object):
                     yield (input_gpath, result_list_)
                 else:
                     yield (input_gpath, None)
+            results_list = None
             params['results_val_array'] = None
             params['results_len_array'] = None
 
+    def __del__(rf):
+        RF_CLIB.free_detector(rf.detector_c_obj, False, False)
+
+    def free_detector(rf):
+        del rf
+
+    def free_forest(rf, forest_c_obj):
+        RF_CLIB.free_forest(forest_c_obj, False, False)
+
     # Pickle functions
     def dump(rf, file):
-        '''
+        """
             UNIMPLEMENTED
 
             Args:
@@ -604,20 +627,20 @@ class Random_Forest_Detector(object):
 
             Returns:
                 None
-        '''
+        """
         pass
 
     def dumps(rf):
-        '''
+        """
             UNIMPLEMENTED
 
             Returns:
                 string
-        '''
+        """
         pass
 
     def load(rf, file):
-        '''
+        """
             UNIMPLEMENTED
 
             Args:
@@ -625,11 +648,11 @@ class Random_Forest_Detector(object):
 
             Returns:
                 detector (object)
-        '''
+        """
         pass
 
     def loads(rf, string):
-        '''
+        """
             UNIMPLEMENTED
 
             Args:
@@ -637,5 +660,5 @@ class Random_Forest_Detector(object):
 
             Returns:
                 detector (object)
-        '''
+        """
         pass

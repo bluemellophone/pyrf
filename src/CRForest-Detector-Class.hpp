@@ -91,6 +91,9 @@ public:
             #endif
         }
     }
+    ~CRForestDetectorClass() {
+        // Nothing to do
+    }
 
     CRForest *forest(vector<string> &tree_path_vector, bool serial, bool verbose, bool quiet)
     {
@@ -252,6 +255,7 @@ public:
             cvReleaseImage(&vImgDetect[k]);
         }
         // Release memory
+        vImgDetect.clear();
         cvReleaseImage(&upscaled);
 
         // Take minimum of add and max, this will give good negatives and good centers.
@@ -585,7 +589,10 @@ public:
             }
 
             // Free up space
-            // manifests.clear();
+            left.clear();
+            right.clear();
+            bottom.clear();
+            top.clear();
             cvReleaseMemStorage(&storage);
         }
         else if(mode == 1)
@@ -608,6 +615,9 @@ public:
                 cvSaveImage(output_gpath.c_str(), output);
             }
         }
+
+        // free memory
+        manifests.clear();
 
         if(debug_flag)
         {
@@ -636,6 +646,7 @@ public:
                 (*results)[i * RESULT_LENGTH + j] = temp[i][j];
             }
         }
+        temp.clear();
         return size;
     }
 

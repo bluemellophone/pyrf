@@ -106,6 +106,7 @@ def test_pyrf():
     #with ut.Timer('[test_pyrf] detector.detect_many') as t2:
     #    results_list2 = detector.detect_many(forest, std_gpath_list,
     #                                         dst_gpath_list, use_openmp=True)
+    detector.free_forest(forest)
 
     print('')
     print('+ --------------')

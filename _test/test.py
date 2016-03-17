@@ -70,6 +70,7 @@ def run_detection(species, sensitivity=None):
         # cv2.imshow('IMG', original)
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
+    detector.free_forest(forest)
 
 detector = Random_Forest_Detector()
 
