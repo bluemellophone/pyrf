@@ -172,7 +172,8 @@ class Random_Forest_Detector(object):
             ('verbose',                      rf.verbose),
             ('quiet',                        rf.quiet),
         ])
-        params.update(kwargs)
+        #params.update(kwargs)
+        ut.update_existing(params, kwargs)
 
         # Data integrity
         assert len(tree_path_list) > 0, \
@@ -291,7 +292,8 @@ class Random_Forest_Detector(object):
             ('verbose',                      rf.verbose),
             ('quiet',                        rf.quiet),
         ])
-        params.update(kwargs)
+        #params.update(kwargs)
+        ut.update_existing(params, kwargs)
         # Make the tree path absolute
         trees_path = abspath(trees_path)
 
