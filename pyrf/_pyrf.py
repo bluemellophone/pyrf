@@ -480,7 +480,13 @@ class Random_Forest_Detector(object):
             ('verbose',                      rf.verbose),
             ('quiet',                        rf.quiet),
         ])
-        params.update(kwargs)
+
+        import utool
+        utool.embed()
+
+        ut.update_existing(params, kwargs)
+        #print('Unused kwargs %r' % (set(kwargs.keys()) - set(params.keys()),))
+
         params['RESULT_LENGTH'] = RESULT_LENGTH
         output_gpath_list = params['output_gpath_list']
         output_scale_gpath_list = params['output_scale_gpath_list']
@@ -581,7 +587,12 @@ class Random_Forest_Detector(object):
                 _cast_list_to_c(ensure_bytes_strings(output_gpath_list_), C_CHAR),
                 _cast_list_to_c(ensure_bytes_strings(output_scale_gpath_list_), C_CHAR)
             ] + list(params.values())
-            RF_CLIB.detect(rf.detector_c_obj, *params_list)
+            try:
+                RF_CLIB.detect(rf.detector_c_obj, *params_list)
+            except C.ArgumentError as ex:
+                print('ERROR passing arguments to pyrf')
+                print(' * params_list = %s' % (ut.repr3(params_list, nl=3),))
+                ut.printex(ex)
             results_list = _extract_np_array(params['results_len_array'], params['results_val_array'], NP_ARRAY_FLOAT, NP_FLOAT32, RESULT_LENGTH)
             conclude = time.time()
             if not params['quiet']:
