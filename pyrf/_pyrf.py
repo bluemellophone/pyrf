@@ -483,9 +483,6 @@ class Random_Forest_Detector(object):
             ('quiet',                        rf.quiet),
         ])
 
-        import utool
-        utool.embed()
-
         ut.update_existing(params, kwargs)
         #print('Unused kwargs %r' % (set(kwargs.keys()) - set(params.keys()),))
 
