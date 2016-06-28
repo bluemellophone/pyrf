@@ -80,26 +80,27 @@ using namespace std;
 struct CRForestDetectorClass
 {
 public:
-    CRForestDetectorClass()
+    CRForestDetectorClass(bool verbose, bool quiet)
     {
-#ifdef _OPENMP
-        cout << "\n\n[pyrf c++]  --- RUNNING PYRF DETECTOR IN PARALLEL ---\n\n" << endl;
-#else
-        cout << "\n\n[pyrf c++]  --- RUNNING PYRF DETECTOR IN SERIAL ---\n\n" << endl;
-#endif
+        if( ! quiet )
+        {
+            #ifdef _OPENMP
+                    cout << "[pyrf c++] --- RUNNING PYRF DETECTOR IN PARALLEL ---" << endl;
+            #else
+                    cout << "[pyrf c++] --- RUNNING PYRF DETECTOR IN SERIAL ---" << endl;
+            #endif
+        }
+    }
+    ~CRForestDetectorClass() {
+        // Nothing to do
     }
 
-    CRForestDetectorClass(const CRForestDetectorClass &original)
-    {
-        // Nohting to do to copy the object class
-    }
-
-    CRForest *forest(vector<string> &tree_path_vector, bool serial, bool verbose)
+    CRForest *forest(vector<string> &tree_path_vector, bool serial, bool verbose, bool quiet)
     {
         // Init forest with number of trees
         CRForest *crForest = new CRForest( tree_path_vector.size() );
         // Load forest
-        crForest->loadForest(tree_path_vector, serial, verbose);
+        crForest->loadForest(tree_path_vector, serial, verbose && ! quiet);
         return crForest;
     }
 
@@ -112,7 +113,7 @@ public:
                float patch_density, int trees_num, int trees_offset,
                int trees_max_depth, int trees_max_patches,
                int trees_leaf_size, int trees_pixel_tests,
-               float trees_prob_optimize_mode, bool serial, bool verbose)
+               float trees_prob_optimize_mode, bool serial, bool verbose, bool quiet)
     {
         // Init new forest with number of trees
         CRForest crForest( trees_num );
@@ -129,21 +130,27 @@ public:
         cout << "[pyrf c++] Loading positive patches..." << endl;
         int pos_patches = extract_Patches(Train, &cvRNG, train_pos_chip_path_string,
                                           train_pos_chip_filename_vector, 1, patch_density,
-                                          trees_max_patches / 2, verbose);
-        cout << endl << "[pyrf c++] ...Loaded " << pos_patches << " patches" << endl;
+                                          trees_max_patches / 2, verbose, quiet);
+        if( ! quiet )
+        {
+            cout << endl << "[pyrf c++] ...Loaded " << pos_patches << " patches" << endl;
+        }
 
         // Extract neg training patches
         cout << "[pyrf c++] Loading negative patches..." << endl;
         int neg_patches = extract_Patches(Train, &cvRNG, train_neg_chip_path_string,
                                           train_neg_chip_filename_vector, 0, patch_density,
-                                          pos_patches, verbose);  // We pass pos_patches as max_patches for balance
-        cout << endl << "[pyrf c++] ...Loaded " << neg_patches << " patches" << endl;
+                                          pos_patches, verbose, quiet);  // We pass pos_patches as max_patches for balance
+        if( ! quiet )
+        {
+            cout << endl << "[pyrf c++] ...Loaded " << neg_patches << " patches" << endl;
+        }
 
         // Train forest and save file
         crForest.trainForest(trees_leaf_size, trees_max_depth, &cvRNG, Train,
                              trees_pixel_tests, trees_prob_optimize_mode,
                              trees_path_string.c_str(), trees_offset, patch_width,
-                             patch_height, serial, verbose);
+                             patch_height, serial, verbose && ! quiet);
     }
 
     // Run detector
@@ -151,20 +158,29 @@ public:
                string output_scale_gpath, int mode, float sensitivity,
                vector<float> &scale_vector, int nms_min_area_contour,
                int nms_min_area_overlap, float **results, int RESULT_LENGTH,
-               bool serial, bool verbose)
+               bool serial, bool verbose, bool quiet)
     {
         // This threshold value is important, but not really because it can be controlled
         // with the sensitivity value
         // int threshold = int(255.0 * 0.90);
-        bool debug_flag = false;
+        bool debug_flag = true;
         int threshold = int(255 * 0.90);
         int accumulate_mode = 1; // 1 - max, 0 - add | 0 - hough, 1 - classification
         float density = 0.990;
+        verbose = true;
 
         // Load forest into detector object
         CRForestDetector crDetect(forest);
         char buffer[512];
 
+        if(serial)
+        {
+            cout << "[pyrf c++] SERIAL" << endl;
+        }
+        else
+        {
+            cout << "[pyrf c++] PARALELL" << endl;
+        }
         // Storage for output
         vector<IplImage *> vImgDetect(scale_vector.size());
         vector<vector<vector<vector<CvPoint > > > > manifests(scale_vector.size());
@@ -181,7 +197,10 @@ public:
             }
             else
             {
-                cout << "[pyrf c++] Loaded image file: " << input_gpath << endl;
+                if(! quiet)
+                {
+                    cout << "[pyrf c++] Loaded image file: " << input_gpath << endl;
+                }
             }
         }
 
@@ -191,7 +210,7 @@ public:
         IplImage *upscaled = cvCreateImage(cvSize(img->width, img->height), IPL_DEPTH_32F, 1);
         IplImage *output   = cvCreateImage(cvSize(img->width, img->height), IPL_DEPTH_8U,  1);
         IplImage *debug    = cvLoadImage(input_gpath.c_str(), CV_LOAD_IMAGE_COLOR);
-        
+
         // Prepare scale_vector
         int w, h, k;
         for (k = 0; k < vImgDetect.size(); ++k)
@@ -219,11 +238,25 @@ public:
         {
             // Add scale to combined
             cvResize(vImgDetect[k], upscaled);
+            // Smooth the result
+            cvSmooth( upscaled, upscaled, CV_GAUSSIAN, 5);
             cvAdd(upscaled, combinedAdd, combinedAdd);
             cvMax(upscaled, combinedMax, combinedMax);
+            // Before we release, output the scale
+            if (output_scale_gpath.length() > 0)
+            {
+                // Save scale output mode image
+                cvConvertScale( vImgDetect[k], vImgDetect[k], sensitivity);
+                cvSmooth( vImgDetect[k], vImgDetect[k], CV_GAUSSIAN, 5);
+                sprintf(buffer, "%s_scaled_%0.02f.JPEG", output_scale_gpath.c_str(), scale_vector[k]);
+                cvSaveImage(buffer, vImgDetect[k]);
+            }
             // Release images
             cvReleaseImage(&vImgDetect[k]);
         }
+        // Release memory
+        vImgDetect.clear();
+        cvReleaseImage(&upscaled);
 
         // Take minimum of add and max, this will give good negatives and good centers.
         if(mode == 0)
@@ -236,37 +269,60 @@ public:
             double minvalMax, maxvalMax;
             cvMinMaxLoc(combinedAdd, &minvalAdd, &maxvalAdd, &minloc, &maxloc, 0);
             cvMinMaxLoc(combinedMax, &minvalMax, &maxvalMax, &minloc, &maxloc, 0);
-            
-            if(debug_flag)
-            {
-                #pragma omp critical(imageLoad)
-                {
-                    cout << "[pyrf c++] PRE: ADD Detected - min: " << minvalAdd << ", max: " << maxvalAdd << endl;
-                    cout << "[pyrf c++] PRE: MAX Detected - min: " << minvalMax << ", max: " << maxvalMax << endl;
-                }
-            }
 
             // Create combined
-            cvConvertScale( combinedMax, combinedMax, maxvalAdd / maxvalMax );
-            cvMin( combinedMax, combinedAdd, combined ); 
+            cvConvertScale( combinedMax, combined, maxvalAdd / maxvalMax );
+            cvMax( combined, combinedAdd, combined );
 
             // Smooth the image
             cvSmooth( combined, combined, CV_GAUSSIAN, 5);
 
             // Find strength
-            double minval, maxval;
-            cvMinMaxLoc(combined, &minval, &maxval, &minloc, &maxloc, 0);
-            cout << "[pyrf c++] Detected - min: " << minval << ", max: " << maxval << " / " << scale_vector.size() << endl;
+            double minvalComb, maxvalComb;
+            cvMinMaxLoc(combined, &minvalComb, &maxvalComb, &minloc, &maxloc, 0);
+
+            if(debug_flag && ! quiet)
+            {
+                #pragma omp critical(detectionStrengths)
+                {
+                    cout << "[pyrf c++]" << endl;
+                    cout << "[pyrf c++] ADD  Detected - min: " << minvalAdd  << ", max: " << maxvalAdd  << " / " << scale_vector.size() << endl;
+                    cout << "[pyrf c++] MAX  Detected - min: " << minvalMax  << ", max: " << maxvalMax  << " / " << scale_vector.size() << endl;
+                    cout << "[pyrf c++] COMB Detected - min: " << minvalComb << ", max: " << maxvalComb << " / " << scale_vector.size() << endl;
+                }
+            }
+
+            if(debug_flag)
+            {
+                if (output_gpath.length() > 0)
+                {
+                    sprintf(buffer, "%s_debug_add.JPEG", output_gpath.c_str());
+                    cvConvertScale( combinedAdd, combinedAdd, sensitivity / scale_vector.size() );
+                    cvSaveImage(buffer, combinedAdd);
+
+                    sprintf(buffer, "%s_debug_max.JPEG", output_gpath.c_str());
+                    cvConvertScale( combinedMax, combinedMax, sensitivity );
+                    cvSaveImage(buffer, combinedMax);
+                }
+            }
+
+            // Release memory
+            cvReleaseImage(&combinedAdd);
+            cvReleaseImage(&combinedMax);
 
             // Scale to output
             cvConvertScale( combined, output, sensitivity / scale_vector.size() );
+            cvSmooth( output, output, CV_GAUSSIAN, 5);
+
+            // Release memory
+            cvReleaseImage(&combined);
 
             if (output_gpath.length() > 0)
             {
                 // Save output mode image
                 cvSaveImage(output_gpath.c_str(), output);
             }
-            
+
             // if (output_gpath.length() > 0)
             // {
             //     cvErode(output, output, NULL, 3);
@@ -283,26 +339,28 @@ public:
                 if (output_gpath.length() > 0)
                 {
                     // Save output mode image
-                    sprintf(buffer, "%s_thresh.JPEG", output_gpath.c_str());
+                    sprintf(buffer, "%s_debug_thresh.JPEG", output_gpath.c_str());
                     cvSaveImage(buffer, output);
-                }   
+                }
             }
-    
+
             // Calculate contours for scaled image
             CvSeq *contours;
             CvMemStorage *storage = cvCreateMemStorage(0);
             cvFindContours(output, storage, &contours, sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
             cvClearMemStorage(storage);
-            
+
             CvRect rect;
             float centerx, centery, xtl, ytl, width, height, confidence, supressed;
             vector<int> left, right, bottom, top;
             int minx, maxx, miny, maxy;
             int x_, y_;
             int i, x, y, j;
-    
+            int ls, bs, rs, ts;
+
             /////// DEBUG ///////
             int red, green, blue;
+            int xm, ym;
             time_t t = time(NULL);
             int seed = (int) t;
             CvRNG cvRNG(seed);
@@ -310,12 +368,15 @@ public:
             /////// DEBUG ///////
 
             for (i = 0; contours != 0; contours = contours->h_next, ++i)
-            {    
+            {
                 rect = cvBoundingRect(contours);
                 if(rect.width * rect.height >= nms_min_area_contour)
                 {
+
                     centerx   = rect.x + (rect.width  / 2);
                     centery   = rect.y + (rect.height / 2);
+                    xm = int(rect.width  * 0.10);
+                    ym = int(rect.height * 0.10);
 
                     if(debug_flag)
                     {
@@ -328,6 +389,9 @@ public:
                     right.clear();
                     bottom.clear();
                     top.clear();
+
+                    // #pragma omp critical(memoryIntensive)
+                    // {
                     for(k = 0; k < manifests.size(); ++k)
                     {
                         minx = std::max(int((centerx - rect.width)  * scale_vector[k]), 0);
@@ -369,41 +433,141 @@ public:
                                         top.push_back(y_);
                                     }
                                 }
+                                // Release memory (! effects the bounding box regressions !)
+                                // manifests[k][y][x].clear();
                             }
                         }
                     }
+
+                    ls = left.size();
+                    bs = bottom.size();
+                    rs = right.size();
+                    ts = top.size();
+                    // cout << left.size() << " " << bottom.size() << " " << right.size() << " " << top.size() << endl;
 
                     if(debug_flag)
                     {
                         cvCircle(debug, cvPoint(centerx, centery), 3, cvScalar(0, 0, 255), -1);
 
-                        xtl    = accumulate(left.begin(),   left.end(),   0.0) / left.size();
-                        ytl    = accumulate(bottom.begin(), bottom.end(), 0.0) / bottom.size();
-                        width  = accumulate(right.begin(),  right.end(),  0.0) / right.size();
-                        height = accumulate(top.begin(),    top.end(),    0.0) / top.size();
+                        if(ls > 0)
+                        {
+                            xtl = accumulate(left.begin(), left.end(), 0.0) / ls;
+                        }
+                        else
+                        {
+                            xtl = centerx;
+                        }
+                        if(bs > 0)
+                        {
+                            ytl = accumulate(bottom.begin(), bottom.end(), 0.0) / bs;
+                        }
+                        else
+                        {
+                            ytl = centery;
+                        }
+                        if(rs > 0)
+                        {
+                            width = accumulate(right.begin(), right.end(), 0.0) / rs;
+                        }
+                        else
+                        {
+                            width = centerx;
+                        }
+                        if(ts > 0)
+                        {
+                            height = accumulate(top.begin(), top.end(), 0.0) / ts;
+                        }
+                        else
+                        {
+                            height = centery;
+                        }
                         cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(0, 0, 255), 3);
 
-                        xtl    = *min_element( left.begin(), left.end() );
-                        ytl    = *min_element( bottom.begin(), bottom.end() );
-                        width  = *max_element( right.begin(), right.end() );
-                        height = *max_element( top.begin(), top.end() );
+                        if(ls > 0)
+                        {
+                            xtl = *min_element( left.begin(), left.end() );
+                        }
+                        else
+                        {
+                            xtl = centerx;
+                        }
+                        if(bs > 0)
+                        {
+                            ytl = *min_element( bottom.begin(), bottom.end() );
+                        }
+                        else
+                        {
+                            ytl = centery;
+                        }
+                        if(rs > 0)
+                        {
+                            width = *max_element( right.begin(), right.end() );
+                        }
+                        else
+                        {
+                            width = centerx;
+                        }
+                        if(ts > 0)
+                        {
+                            height = *max_element( top.begin(), top.end() );
+                        }
+                        else
+                        {
+                            height = centery;
+                        }
+                        // cout << xtl << " " << ytl << " " << width << " " << height << endl;
                         cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(0, 255, 255), 3);
+
                     }
 
-                    std::sort(left.begin(),   left.end(),   std::greater<int>());
-                    std::sort(bottom.begin(), bottom.end(), std::greater<int>());
-                    std::sort(right.begin(),  right.end());
-                    std::sort(top.begin(),    top.end());
-
-                    xtl    = left  [int(density * left.size())];
-                    ytl    = bottom[int(density * bottom.size())];
-                    width  = right [int(density * right.size())];
-                    height = top   [int(density * top.size())];
+                    if(ls > 0)
+                    {
+                        std::sort(left.begin(), left.end(), std::greater<int>());
+                        xtl    = left[int(density * left.size())];
+                    }
+                    else
+                    {
+                        xtl = centerx;
+                    }
+                    if(bs > 0)
+                    {
+                        std::sort(bottom.begin(), bottom.end(), std::greater<int>());
+                        ytl    = bottom[int(density * bottom.size())];
+                    }
+                    else
+                    {
+                        ytl = centery;
+                    }
+                    if(rs > 0)
+                    {
+                        std::sort(right.begin(), right.end());
+                        width  = right[int(density * right.size())];
+                    }
+                    else
+                    {
+                        width = centerx;
+                    }
+                    if(ts > 0)
+                    {
+                        std::sort(top.begin(), top.end());
+                        height = top[int(density * top.size())];
+                    }
+                    else
+                    {
+                        height = centery;
+                    }
 
                     if(debug_flag)
                     {
-                        cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(255, 255, 0), 3);   
+                        cvRectangle(debug, cvPoint(xtl, ytl), cvPoint(width, height), cvScalar(255, 255, 0), 3);
                     }
+
+                    // Free up space
+                    // left.clear();
+                    // right.clear();
+                    // bottom.clear();
+                    // top.clear();
+                    // }
 
                     // Fix width and height
                     width  -= xtl;
@@ -423,17 +587,37 @@ public:
                     temp.push_back(temp_);
                 }
             }
+
+            // Free up space
+            left.clear();
+            right.clear();
+            bottom.clear();
+            top.clear();
             cvReleaseMemStorage(&storage);
         }
         else if(mode == 1)
         {
+            //#define USE_MAX 0
+            #ifdef USE_MAX
             cvConvertScale( combinedMax, output, sensitivity );
+            #else
+            cvConvertScale( combinedAdd, output, sensitivity / scale_vector.size() );
+            #endif
+
+            // Release memory
+            cvReleaseImage(&combinedAdd);
+            cvReleaseImage(&combinedMax);
+            cvReleaseImage(&combined);
+
             if (output_gpath.length() > 0)
             {
                 // Save output mode image
                 cvSaveImage(output_gpath.c_str(), output);
             }
         }
+
+        // free memory
+        manifests.clear();
 
         if(debug_flag)
         {
@@ -449,12 +633,8 @@ public:
 
         // Release image
         cvReleaseImage(&img);
-        cvReleaseImage(&combined);
-        cvReleaseImage(&combinedAdd);
-        cvReleaseImage(&combinedMax);
-        cvReleaseImage(&upscaled);
-        cvReleaseImage(&output);        
-        cvReleaseImage(&debug);   
+        cvReleaseImage(&output);
+        cvReleaseImage(&debug);
 
         // Save results
         int size = temp.size();
@@ -466,6 +646,7 @@ public:
                 (*results)[i * RESULT_LENGTH + j] = temp[i][j];
             }
         }
+        temp.clear();
         return size;
     }
 
@@ -473,7 +654,7 @@ private:
     // Extract patches from training data
     int extract_Patches(CRPatch &Train, CvRNG *pRNG, string train_pos_chip_path_string,
                         vector<string> &train_pos_chip_filename_vector, int label,
-                        float patch_density, int max_patches, bool verbose)
+                        float patch_density, int max_patches, bool verbose, bool quiet)
     {
         string img_filepath;
         IplImage *img;
@@ -483,14 +664,17 @@ private:
         {
             if (patch_total > max_patches)
             {
-                if (verbose)
+                if (verbose && ! quiet)
                 {
                     cout << endl << "[pyrf c++] Skipping image file: " << img_filepath;
                 }
                 continue;
             }
             // Print status
-            if (i % 10 == 0) cout << i << " " << flush;
+            if( ! quiet )
+            {
+                if (i % 10 == 0) cout << i << " " << flush;
+            }
             // Get the image's filepah
             img_filepath = train_pos_chip_path_string + "/" + train_pos_chip_filename_vector[i];
             // Load image
@@ -518,7 +702,7 @@ private:
         int val = 0, counter = 0, total = 0;
         int cutoff = int(percentile * data.size());
         for(int c = 0; c < data.size(); ++c)
-        {   
+        {
             if(data[c] != val || c == data.size() - 1)
             {
                 total += counter;

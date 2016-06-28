@@ -219,7 +219,7 @@ def train_pyrf():
     )
 
     # Use pre-trained trees?
-    TEST_DATA_MODEL_URL = 'https://dl.dropboxusercontent.com/s/9814r3d2rkiq5t3/rf.zip'
+    TEST_DATA_MODEL_URL = 'https://lev.cs.rpi.edu/public/models/rf.zip'
     models_path = utool.grab_zipped_url(TEST_DATA_MODEL_URL, appname='utool')
     trees_path = join(models_path, category)
 

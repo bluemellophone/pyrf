@@ -18,7 +18,7 @@ using namespace std;
 
 void CRForestDetector::detectColor(IplImage *img, IplImage *imgDetect,
                                    vector<vector<vector<CvPoint > > > &manifest,
-                                   int mode, float multiplier)
+                                   int mode, float multiplier, bool serial)
 {
     // extract features
     vector<IplImage * > vImg;
@@ -42,12 +42,14 @@ void CRForestDetector::detectColor(IplImage *img, IplImage *imgDetect,
     cvGetRawData( imgDetect, (uchar **) & (ptDet), &stepDet);
     stepDet /= sizeof(ptDet[0]);
 
-    int x, y, cx, cy; // x, y top left; cx, cy center of patch
+    int x, y, cx, cy; // nx, ny; // x, y top left; cx, cy center of patch
+    int z;
     float weight;
     int xoffset = width / 2;
     int yoffset = height / 2;
 
     cy = yoffset;
+    // int global_counter = 0;
     for (y = 0; y < img->height - height; ++y, ++cy)
     {
         // Get start of row
@@ -74,21 +76,27 @@ void CRForestDetector::detectColor(IplImage *img, IplImage *imgDetect,
                     // Apply the scale multiplier to the vote
                     weight *= multiplier;
                     // Vote for all center offsets stored in the leaf
-                    for (vector<CvPoint>::const_iterator it = (*itL)->vCenter.begin(); it != (*itL)->vCenter.end(); ++it)
-                    {
-                        x = cx - it->x;
-                        y = cy - it->y;
+                    #pragma omp parallel for if(serial)
+                    for (z = 0; z < (*itL)->vCenter.size(); ++z)
+                    {   
+                        CvPoint it = (*itL)->vCenter[z];
+                        int nx = cx - it.x;
+                        int ny = cy - it.y;
                         // TODO: Let votes vote outside of the image
-                        if (y >= 0 && y < imgDetect->height && x >= 0 && x < imgDetect->width)
+                        if (ny >= 0 && ny < imgDetect->height && nx >= 0 && nx < imgDetect->width)
                         {
                             // Normalize the weight by the number of leaves in the result and by number of centers voting
-                            *(ptDet + x + y * stepDet) += weight;
+                            *(ptDet + nx + ny * stepDet) += weight;
                             // If perfect confidence, add point to the manifest
                             if ((*itL)->pfg == 1.00)
                             {
-                                manifest[y][x].push_back(cvPoint(cx, cy));
-                                // Give perfect patches an additional vote as a reward
-                                *(ptDet + x + y * stepDet) += weight;
+                                #pragma omp critical(voting)
+                                {
+                                    manifest[ny][nx].push_back(cvPoint(cx, cy));
+                                    // Give perfect patches an additional vote as a reward
+                                    *(ptDet + nx + ny * stepDet) += weight;
+                                    // global_counter++;
+                                }
                             }
                         }
                     }
@@ -112,6 +120,7 @@ void CRForestDetector::detectColor(IplImage *img, IplImage *imgDetect,
             ptFCh[c] += stepImg;
         }
     }
+    // cout << "MANIFEST SIZE (MB): " << global_counter << " " << sizeof(CvPoint*) << "  " << (global_counter * sizeof(CvPoint*)) / (1024.0 * 1024.0) << endl; 
     
     // release feature channels
     for (unsigned int c = 0; c < vImg.size(); ++c)
@@ -137,10 +146,11 @@ void CRForestDetector::detectPyramid(IplImage *img, vector<IplImage * > &vImgDet
         for (int i = 0; i < int(vImgDetect.size()); ++i)
         {
             IplImage *scale = cvCreateImage( cvSize(vImgDetect[i]->width, vImgDetect[i]->height) , IPL_DEPTH_8U , 3);
-            cvResize( img, scale, CV_INTER_LINEAR );
+            cvResize( img, scale, CV_INTER_LANCZOS4 );
+            // cvResize( img, scale, CV_INTER_LINEAR );
             // detection
             float multiplier = sqrt(1.0 / scale_vector[i]);
-            detectColor(scale, vImgDetect[i], vManifests[i], mode, multiplier);
+            detectColor(scale, vImgDetect[i], vManifests[i], mode, multiplier, serial);
             // release
             cvReleaseImage(&scale);
         }

@@ -1,3 +1,5 @@
+#!/usr/bin/env python2.7
+from os import mkdir
 from os.path import join, exists  # NOQA
 import cv2
 import random
@@ -45,14 +47,19 @@ def run_detection(species, sensitivity=None):
     test_direct = Directory('test/%s' % (species, ))
     test_gpath_list = test_direct.files()
     zebras_path = 'trees/%s' % (species, )
-
+    if not exists('output'):
+        mkdir('output/')
+    if not exists('output/%s' % (species, )):
+        mkdir('output/%s' % (species, ))
     test_gpath_list = test_gpath_list
-    output_list = [ 'output/%s/%d.JPEG' % (species, i) for i in range(len(test_gpath_list))]
+    output_list = [ 'output/%s/%d.JPEG' % (species, i + 1) for i in range(len(test_gpath_list))]
+    # output_scale_list = [ 'output/%s/%d_scale' % (species, i) for i in range(len(test_gpath_list))]
     trees = Directory(zebras_path, include_file_extensions=['txt'])
     forest = detector.forest(trees.files())
+    # results_iter = detector.detect(forest, test_gpath_list, output_gpath_list=output_list, output_scale_gpath_list=output_scale_list, sensitivity=sensitivity)
     results_iter = detector.detect(forest, test_gpath_list, output_gpath_list=output_list, sensitivity=sensitivity)
     for input_gpath, result_list in results_iter:
-        print result_list
+        print(result_list)
         # original = openImage(input_gpath, color=True)
         # for result in result_list:
         #     color = randColor()
@@ -63,6 +70,7 @@ def run_detection(species, sensitivity=None):
         # cv2.imshow('IMG', original)
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
+    detector.free_forest(forest)
 
 detector = Random_Forest_Detector()
 
@@ -79,8 +87,11 @@ detector = Random_Forest_Detector()
 # for result in results:
 #     print 'RESULT: %r' % (result, )
 
+# species = "giraffe"
+# run_detection(species)
+
 species = "zebra_plains"
 run_detection(species)
 
-species = "zebra_grevys"
-run_detection(species)
+# species = "zebra_grevys"
+# run_detection(species)
