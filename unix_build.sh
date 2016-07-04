@@ -32,8 +32,10 @@ echo 'Building with make'
 export NCPUS=$(grep -c ^processor /proc/cpuinfo)
 make -j$NCPUS -w
 #################################
-echo 'Fixing OSX libiomp'
-install_name_tool -change libiomp5.dylib ~/code/libomp_oss/exports/mac_32e/lib.thin/libiomp5.dylib lib*
+if [[ '$OSTYPE' == 'darwin'* ]]; then
+    echo 'Fixing OSX libiomp'
+    install_name_tool -change libiomp5.dylib ~/code/libomp_oss/exports/mac_32e/lib.thin/libiomp5.dylib lib*
+fi
 #################################
 echo 'Moving the shared library'
 cp -v lib* ../pyrf
