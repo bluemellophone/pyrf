@@ -9,6 +9,7 @@ import numpy as np
 import ctypes as C
 import sys
 import detecttools.ctypes_interface as ctypes_interface
+import utool as ut
 
 ut.noinject(__name__, '[pyrf_helpers]')
 
@@ -78,15 +79,9 @@ def _load_c_shared_library(METHODS):
     return rf_clib
 
 
-<<<<<<< HEAD
-def _cache_data(src_path_list, dst_path, format_str='data_%07d.JPEG',
-                **kwargs):
-    """
-    Args:
-=======
 def _cache_data(src_path_list, dst_path, format_str='data_%07d.JPEG', **kwargs):
     """
->>>>>>> next
+    Args:
         src_path_list                    (required)
         dst_path                         (required)
         chips_norm_width                 (required)
